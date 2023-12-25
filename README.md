@@ -1,2 +1,2 @@
-# integration_jmap
-Nextcloud Exchange JMAP Integration
+# integration_jmapc
+Nextcloud JMAP Integration

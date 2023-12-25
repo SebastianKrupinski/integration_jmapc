@@ -1,7 +1,7 @@
 <template>
 	<span :aria-hidden="!title"
 		:aria-label="title"
-		class="eas-icon"
+		class="JMAPIcon"
 		role="img"
 		v-bind="$attrs"
 		@click="$emit('click', $event)">
@@ -19,7 +19,7 @@
 
 <script>
 export default {
-	name: 'EwsIcon',
+	name: 'JMAPIcon',
 	props: {
 		title: {
 			type: String,

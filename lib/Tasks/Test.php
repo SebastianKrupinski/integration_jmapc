@@ -83,48 +83,7 @@ try {
 
 	// execute initial harmonization
 	$HarmonizationService->performHarmonization($uid, 'S');
-
-	exit;
 	
-	// construct decoder
-	//$EasXmlEncoder = new \OCA\JMAPC\Utile\Eas\EasXmlEncoder();
-	//$EasXmlDecoder = new \OCA\JMAPC\Utile\Eas\EasXmlDecoder();
-	
-	// Load From File
-	//$stream = fopen(__DIR__ . '/EAS-Calendar-Create', 'r');
-	// read data as stream
-	//$msg_ref_obj = $EasXmlDecoder->streamToObject($stream);
-	// read data as string
-	//$msg_ref_raw = stream_get_contents($stream);
-	//$msg_ref_obj = $EasXmlDecoder->stringToObject($msg_ref_raw);
-	//fclose($stream);
-	
-	//exit;
-	
-	// construct remote data store client
-	$EasClient = $CoreService->createClient($uid);
-
-	// assign remote data store to module
-	$RemoteEventsService->initialize($EasClient);
-
-	// perform initial connect
-	$EasClient->performConnect();
-
-	$cid = 2;
-	$cst = 0;
-
-	// retrieve collection delta
-	$rs = $RemoteEventsService->reconcileCollection($cid, $cst);
-	
-	if (isset($rs->SyncKey)) {
-		$cst = $rs->SyncKey->getContents();
-	}
-
-	// retrieve collection delta
-	$rs = $RemoteEventsService->reconcileCollection($cid, $cst);
-	
-	exit;
-
 } catch (Exception $ex) {
 	$logger->logException($ex, ['app' => 'integration_jmapc']);
 	$logger->info('Test ended unexpectedly', ['app' => 'integration_jmapc']);

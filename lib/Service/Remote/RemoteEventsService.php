@@ -908,19 +908,19 @@ class RemoteEventsService {
 					       . 'a64dstname/vdstyear/vdstmonth/vdstday/vdstweek/vdsthour/vdstminute/vdstsecond/vdstmillis/ldstbias', $zone);
 		// extract zone name from array and convert to UTF8
 		$name = trim(@iconv('UTF-16', 'UTF-8', $zone['stdname']));
-		// convert EWS time zone name to DateTimeZone object
+		// convert JMAP time zone name to DateTimeZone object
 			return \OCA\JMAPC\Utile\TimeZoneEAS::toDateTimeZone($name);
 		
 	}
 
 	/**
-     * Converts DateTimeZone object to EWS (Microsoft/Windows) time zone name
+     * Converts DateTimeZone object to JMAP (Microsoft/Windows) time zone name
      * 
      * @since Release 1.0.0
      * 
      * @param DateTimeZone $zone
      * 
-     * @return string valid EWS time zone name on success, or null on failure
+     * @return string valid JMAP time zone name on success, or null on failure
      */ 
 	public function toTimeZone(DateTimeZone $zone, DateTime $date = null): string {
 

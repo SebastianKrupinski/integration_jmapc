@@ -45,22 +45,22 @@ class Connect extends Command {
 	protected function configure() {
 		$this
 			->setName('jmapc:connect')
-			->setDescription('Connects a user to EWS Server')
+			->setDescription('Connects a user to JMAP Server')
             ->addArgument('user',
 				InputArgument::REQUIRED,
-				'User whom to connect to the EWS Server')
+				'User whom to connect to the JMAP Server')
 			->addArgument('provider',
 				InputArgument::REQUIRED,
-				'FQDN or IP address of the EWS Server')
+				'FQDN or IP address of the JMAP Server')
             ->addArgument('accountid',
                 InputArgument::REQUIRED,
-                'The username of the account to connect to on the EWS Server')
+                'The username of the account to connect to on the JMAP Server')
             ->addArgument('accountsecret',
                 InputArgument::REQUIRED,
-                'The password of the account to connect to on the EWS Server')
+                'The password of the account to connect to on the JMAP Server')
             ->addArgument('validate',
                 InputArgument::OPTIONAL,
-                'Should we validate the credentials with EWS Server. (default true)');
+                'Should we validate the credentials with JMAP Server. (default true)');
 	}
 
 	/**

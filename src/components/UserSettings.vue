@@ -23,76 +23,49 @@
 
 <template>
 	<div id="jmapc_settings" class="section">
-		<div class="eas-section-heading">
-			<EwsIcon :size="32" /><h2> {{ t('integration_jmapc', 'Exchange EAS Connector (Exchange Active Sync)') }}</h2>
+		<div class="jmap-section-heading">
+			<JMAPIcon :size="32" /><h2> {{ t('integration_jmapc', 'JMAP Connector') }}</h2>
 		</div>
-		<div class="eas-content">
+		<div class="jmap-content">
 			<h3>{{ t('integration_jmapc', 'Authentication') }}</h3>
 			<div v-if="state.account_connected !== '1'">
 				<div>
-					<label>
-						{{ t('integration_jmapc', 'Provider ') }}
-					</label>
-					<NcSelect v-model="state.account_provider"
-						:reduce="item => item.id"
-						:options="[{label: 'On-Premises / Alternate', id: 'A'}, {label: 'Microsoft Exchange 365 Online', id: 'MS365'}]" />
-				</div>
-				<br>
-				<div v-if="state.account_provider == 'MS365'">
-					<div class="fields">
-						<div v-if="state.system_ms365_authrization_uri === ''">
-							{{ t('integration_jmapc', 'No Microsoft Exchange 365 configuration missing. Ask your Nextcloud administrator to configure Microsoft Exchange 365 connected accounts admin section.') }}
-						</div>
-						<div v-else class="eas-connect-ms365">
-							<label>
-								{{ t('integration_jmapc', 'Press connect and enter your account information') }}
-							</label>
-							<NcButton @click="onConnectMS365Click">
-								<template #icon>
-									<CheckIcon />
-								</template>
-								{{ t('integration_jmapc', 'Connect') }}
-							</NcButton>
-						</div>
-					</div>
-				</div>
-				<div v-else>
 					<div class="settings-hint">
-						{{ t('integration_jmapc', 'Enter your Exchange Server and account information then press connect.') }}
+						{{ t('integration_jmapc', 'Enter your JMAP Server and account information then press connect.') }}
 					</div>
 					<div class="fields">
 						<div class="line">
-							<label for="eas-account-id">
-								<EwsIcon />
+							<label for="jmap-account-id">
+								<JMAPIcon />
 								{{ t('integration_jmapc', 'Account ID') }}
 							</label>
-							<input id="eas-account-id"
+							<input id="jmap-account-id"
 								v-model="state.account_bauth_id"
 								type="text"
-								:placeholder="t('integration_jmapc', 'Authentication ID for your EWS Account')"
+								:placeholder="t('integration_jmapc', 'Authentication ID for your JMAP Account')"
 								autocomplete="off"
 								autocorrect="off"
 								autocapitalize="none">
 						</div>
 						<div class="line">
-							<label for="eas-account-secret">
-								<EwsIcon />
+							<label for="jmap-account-secret">
+								<JMAPIcon />
 								{{ t('integration_jmapc', 'Account Secret') }}
 							</label>
-							<input id="eas-account-secret"
+							<input id="jmap-account-secret"
 								v-model="state.account_bauth_secret"
 								type="password"
-								:placeholder="t('integration_jmapc', 'Authentication secret for your EWS Account')"
+								:placeholder="t('integration_jmapc', 'Authentication secret for your JMAP Account')"
 								autocomplete="off"
 								autocorrect="off"
 								autocapitalize="none">
 						</div>
 						<div v-if="configureManually" class="line">
-							<label for="eas-server">
-								<EwsIcon />
+							<label for="jmap-server">
+								<JMAPIcon />
 								{{ t('integration_jmapc', 'Account Server') }}
 							</label>
-							<input id="eas-server"
+							<input id="jmap-server"
 								v-model="state.account_server"
 								type="text"
 								:placeholder="t('integration_jmapc', 'Account Server Address')"
@@ -111,7 +84,7 @@
 							</NcCheckboxRadioSwitch>
 						</div>
 						<div class="line">
-							<label class="eas-connect">
+							<label class="jmap-connect">
 								&nbsp;
 							</label>
 							<NcButton @click="onConnectAlternateClick">
@@ -125,8 +98,8 @@
 				</div>
 			</div>
 			<div v-else>
-				<div class="eas-connected">
-					<EwsIcon />
+				<div class="jmap-connected">
+					<JMAPIcon />
 					<label>
 						{{ t('integration_jmapc', 'Connected as {0} to {1}', {0:state.account_id, 1:state.account_server}) }}
 					</label>
@@ -142,14 +115,14 @@
 					{{ t('integration_jmapc', 'and finished on ') }} {{ formatDate(state.account_harmonization_end) }}
 				</div>
 				<br>
-				<div class="eas-correlations-contacts">
+				<div class="jmap-correlations-contacts">
 					<h3>{{ t('integration_jmapc', 'Contacts') }}</h3>
 					<div class="settings-hint">
 						{{ t('integration_jmapc', 'Select the remote contacts folder(s) you wish to synchronize by pressing the link button next to the contact folder name and selecting the local contacts address book to synchronize to.') }}
 					</div>
 					<div v-if="state.system_contacts == 1">
 						<ul v-if="availableContactCollections.length > 0">
-							<li v-for="ritem in availableContactCollections" :key="ritem.id" class="eas-collectionlist-item">
+							<li v-for="ritem in availableContactCollections" :key="ritem.id" class="jmap-collectionlist-item">
 								<NcCheckboxRadioSwitch type="switch"
 									:checked="establishedContactCorrelation(ritem.id, ritem.name)"
 									@update:checked="changeContactCorrelation(ritem.id, $event)" />
@@ -189,14 +162,14 @@
 					</div>
 					<br>
 				</div>
-				<div class="eas-correlations-events">
+				<div class="jmap-correlations-events">
 					<h3>{{ t('integration_jmapc', 'Calendars') }}</h3>
 					<div class="settings-hint">
 						{{ t('integration_jmapc', 'Select the remote calendar(s) you wish to synchronize by pressing the link button next to the calendars name and selecting the local calendar to synchronize to.') }}
 					</div>
 					<div v-if="state.system_events == 1">
 						<ul v-if="availableEventCollections.length > 0">
-							<li v-for="ritem in availableEventCollections" :key="ritem.id" class="eas-collectionlist-item">
+							<li v-for="ritem in availableEventCollections" :key="ritem.id" class="jmap-collectionlist-item">
 								<NcCheckboxRadioSwitch type="switch"
 									:checked="establishedEventCorrelation(ritem.id, ritem.name)"
 									@update:checked="changeEventCorrelation(ritem.id, $event)" />
@@ -238,14 +211,14 @@
 					</div>
 					<br>
 				</div>
-				<div class="eas-correlations-tasks">
+				<div class="jmap-correlations-tasks">
 					<h3>{{ t('integration_jmapc', 'Tasks') }}</h3>
 					<div class="settings-hint">
 						{{ t('integration_jmapc', 'Select the remote Task(s) folder you wish to synchronize by pressing the link button next to the folder name and selecting the local calendar to synchronize to.') }}
 					</div>
 					<div v-if="state.system_tasks == 1">
 						<ul v-if="availableTaskCollections.length > 0">
-							<li v-for="ritem in availableTaskCollections" :key="ritem.id" class="eas-collectionlist-item">
+							<li v-for="ritem in availableTaskCollections" :key="ritem.id" class="jmap-collectionlist-item">
 								<NcCheckboxRadioSwitch type="switch"
 									:checked="establishedTaskCorrelation(ritem.id, ritem.name)"
 									@update:checked="changeTaskCorrelation(ritem.id, $event)" />
@@ -287,7 +260,7 @@
 					</div>
 					<br>
 				</div>
-				<div class="eas-actions">
+				<div class="jmap-actions">
 					<NcButton @click="onSaveClick()">
 						<template #icon>
 							<CheckIcon />
@@ -317,7 +290,7 @@ import NcCheckboxRadioSwitch from '@nextcloud/vue/dist/Components/NcCheckboxRadi
 import NcColorPicker from '@nextcloud/vue/dist/Components/NcColorPicker.js'
 import NcSelect from '@nextcloud/vue/dist/Components/NcSelect.js'
 
-import EwsIcon from './icons/EwsIcon.vue'
+import JMAPIcon from './icons/JMAPIcon.vue'
 import CheckIcon from 'vue-material-design-icons/Check.vue'
 import CloseIcon from 'vue-material-design-icons/Close.vue'
 import CalendarIcon from 'vue-material-design-icons/Calendar.vue'
@@ -332,7 +305,7 @@ export default {
 		NcCheckboxRadioSwitch,
 		NcColorPicker,
 		NcSelect,
-		EwsIcon,
+		JMAPIcon,
 		CheckIcon,
 		CloseIcon,
 		CalendarIcon,
@@ -401,7 +374,7 @@ export default {
 			axios.get(uri, data)
 				.then((response) => {
 					if (response.data === 'success') {
-						showSuccess(('Successfully connected to EWS account'))
+						showSuccess(('Successfully connected to JMAP account'))
 						this.state.account_connected = '1'
 						this.fetchPreferences()
 						this.loadData()
@@ -409,7 +382,7 @@ export default {
 				})
 				.catch((error) => {
 					showError(
-						t('integration_jmapc', 'Failed to authenticate with EWS server')
+						t('integration_jmapc', 'Failed to authenticate with JMAP server')
 						+ ': ' + error.response?.request?.responseText
 					)
 				})
@@ -417,7 +390,7 @@ export default {
 		onConnectMS365Click() {
 			const ssoWindow = window.open(
 				this.state.system_ms365_authrization_uri,
-				t('integration_jmapc', 'Sign in Nextcloud EWS Connector'),
+				t('integration_jmapc', 'Sign in Nextcloud JMAP Connector'),
 				' width=600, height=700'
 			)
 			ssoWindow.focus()
@@ -432,7 +405,7 @@ export default {
 			const uri = generateUrl('/apps/integration_jmapc/disconnect')
 			axios.get(uri)
 				.then((response) => {
-					showSuccess(('Successfully disconnected from EWS account'))
+					showSuccess(('Successfully disconnected from JMAP account'))
 					// state
 					this.state.account_connected = '0'
 					this.fetchPreferences()
@@ -451,7 +424,7 @@ export default {
 				})
 				.catch((error) => {
 					showError(
-						t('integration_jmapc', 'Failed to disconnect from EWS account')
+						t('integration_jmapc', 'Failed to disconnect from JMAP account')
 						+ ': ' + error.response?.request?.responseText
 					)
 				})
@@ -713,12 +686,12 @@ export default {
 
 <style scoped lang="scss">
 #jmapc_settings {
-	.eas-section-heading {
+	.jmap-section-heading {
 		display:inline-block;
 		vertical-align:middle;
 	}
 
-	.eas-connected {
+	.jmap-connected {
 		display: flex;
 		align-items: center;
 
@@ -728,7 +701,7 @@ export default {
 		}
 	}
 
-	.eas-collectionlist-item {
+	.jmap-collectionlist-item {
 		display: flex;
 		align-items: center;
 
@@ -738,7 +711,7 @@ export default {
 		}
 	}
 
-	.eas-actions {
+	.jmap-actions {
 		display: flex;
 		align-items: center;
 	}

@@ -45,7 +45,7 @@ class Disconnect extends Command {
 	protected function configure() {
 		$this
 			->setName('jmapc:disconnect')
-			->setDescription('Disconnects a user from an EWS Server')
+			->setDescription('Disconnects a user from an JMAP Server')
             ->addArgument('user',
 				InputArgument::REQUIRED,
 				'User whom to disconnect');
@@ -65,7 +65,7 @@ class Disconnect extends Command {
 
         $this->CoreService->disconnectAccount($uid);
 
-		$output->writeln("<info>User $uid disconnected from EWS Server</info>");
+		$output->writeln("<info>User $uid disconnected from JMAP Server</info>");
 
 		return 0;
 
