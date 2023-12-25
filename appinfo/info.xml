@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<info xmlns:xsi= "http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>integration_jmapc</id>
+    <name>JMAP Connector</name>
+    <summary>JMAP Server data sync with Nextcloud</summary>
+    <description><![CDATA[JMAP Connector allows you to automatically sync your calendars and contacts with Nextcloud.]]></description>
+    <version>1.0.0-alpha</version>
+    <licence>agpl</licence>
+    <author mail="krupinski01@gmail.com">Sebastian Krupinski</author>
+    <namespace>JMAPC</namespace>
+    <documentation>
+        <developer>https://github.com/ksainc/integration_jmap</developer>
+    </documentation>
+    <category>integration</category>
+    <website>https://github.com/ksainc/integration_jmapc</website>
+    <discussion>https://github.com/ksainc/integration_jmapc/issues</discussion>
+    <bugs>https://github.com/ksainc/integration_jmap/issues</bugs>
+    <repository>https://github.com/ksainc/integration_jmapc</repository>
+    <screenshot>https://github.com/ksainc/integration_jmapc/blob/main/img/EAS%20Notification%20Screen.png?raw=true</screenshot>
+    <dependencies>
+        <php min-version="8.0" max-version="8.2"  min-int-size="64" />
+        <database>pgsql</database>
+        <database>sqlite</database>
+        <database>mysql</database>
+        <command>php</command>
+        <command>ps</command>
+        <command>kill</command>
+        <lib>curl</lib>
+        <nextcloud min-version="26" max-version="28"/>
+    </dependencies>
+    <commands>
+		<command>OCA\JMAPC\Commands\Connect</command>
+		<command>OCA\JMAPC\Commands\Disconnect</command>
+		<command>OCA\JMAPC\Commands\Harmonize</command>
+	</commands>
+    <settings>
+        <admin>OCA\JMAPC\Settings\AdminSettings</admin>
+        <admin-section>OCA\JMAPC\Settings\AdminSection</admin-section>
+        <personal>OCA\JMAPC\Settings\UserSettings</personal>
+        <personal-section>OCA\JMAPC\Settings\UserSection</personal-section>
+    </settings>
+    <sabre>
+        <address-book-plugins>
+			<plugin>OCA\JMAPC\Providers\Contacts\Provider</plugin>
+		</address-book-plugins>
+		<calendar-plugins>
+			<plugin>OCA\JMAPC\Providers\Calendar\Provider</plugin>
+		</calendar-plugins>
+	</sabre>
+</info>
