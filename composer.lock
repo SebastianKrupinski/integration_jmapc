@@ -1,0 +1,77 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "3371e527424778690541c71a4de40090",
+    "packages": [
+        {
+            "name": "ksainc/jmap-client-php",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ksainc/jmap-client-php.git",
+                "reference": "db23b07ede72836e049adc95a4706ca366842223"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ksainc/jmap-client-php/zipball/db23b07ede72836e049adc95a4706ca366842223",
+                "reference": "db23b07ede72836e049adc95a4706ca366842223",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "php": "^8.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^9.5"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "JmapClient\\": "lib/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "JmapClient\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "AGL3"
+            ],
+            "authors": [
+                {
+                    "name": "Sebastian Krupinski",
+                    "homepage": "https://github.com/ksainc"
+                }
+            ],
+            "description": "JMAP PHP Client",
+            "homepage": "https://github.com/ksainc/jmap-client-php",
+            "keywords": [
+                "enum"
+            ],
+            "support": {
+                "source": "https://github.com/ksainc/jmap-client-php/tree/main",
+                "issues": "https://github.com/ksainc/jmap-client-php/issues"
+            },
+            "time": "2023-12-28T17:38:38+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": {
+        "ksainc/jmap-client-php": 20
+    },
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": [],
+    "platform-dev": [],
+    "platform-overrides": {
+        "php": "8.0"
+    },
+    "plugin-api-version": "2.3.0"
+}

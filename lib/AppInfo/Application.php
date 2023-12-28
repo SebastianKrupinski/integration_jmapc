@@ -71,6 +71,10 @@ class Application extends App implements IBootstrap {
     public const APP_ID = 'integration_jmapc';
 
     public function __construct(array $urlParams = []) {
+        if ((@include_once __DIR__ . '/../../vendor/autoload.php') === false) {
+			throw new Exception('Cannot include autoload. Did you run install dependencies using composer?');
+		}
+        
         parent::__construct(self::APP_ID, $urlParams);
 
         // retrieve harmonization mode
