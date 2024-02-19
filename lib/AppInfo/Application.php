@@ -61,6 +61,8 @@ use OCA\JMAPC\Notification\Notifier;
 
 use OCA\JMAPC\Calendar\Provider;
 
+use OCP\Mail\Provider\IManager as IMailManager;
+
 /**
  * Class Application
  *
@@ -114,9 +116,34 @@ class Application extends App implements IBootstrap {
     }
 
     public function register(IRegistrationContext $context): void {
-        //$context->registerCalendarProvider(Provider::class);
+        // $context->registerMailManager(Provider::class);
+        //$f = $this;
     }
 
     public function boot(IBootContext $context): void {
+
+        //$t = $MailManager = \OC::$server->get(\OCP\Mail\Provider\IManager::class);
+        
+        // $context->injectFn([$this, 'registerMailManager']);
+
+        //$f = $this;
     }
+
+    public function registerMailManager(IMailManager $manager, IAppContainer $container): void {
+		$manager->register(function () use ($container, $manager): void {
+			$user = \OC::$server->getUserSession()->getUser();
+			if (!is_null($user)) {
+				$this->setupContactsProvider($manager, $container, $user->getUID());
+			} else {
+				$this->setupSystemContactsProvider($manager, $container);
+			}
+		});
+	}
+
+	private function setupContactsProvider(IContactsManager $contactsManager, IAppContainer $container, string $userID): void {
+		/** @var ContactsManager $cm */
+		$cm = $container->query(ContactsManager::class);
+		$urlGenerator = $container->getServer()->getURLGenerator();
+		$cm->setupContactsProvider($contactsManager, $userID, $urlGenerator);
+	}
 }

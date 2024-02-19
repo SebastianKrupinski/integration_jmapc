@@ -72,17 +72,70 @@ try {
 	echo 'Test started for ' . $uid . PHP_EOL;
 
 	// load all apps to get all api routes properly setup
-	//OC_App::loadApps();
+	OC_App::loadApps();
 	
 	// initilize required services
-	$ConfigurationService = \OC::$server->get(\OCA\JMAPC\Service\ConfigurationService::class);
-	$CoreService = \OC::$server->get(\OCA\JMAPC\Service\CoreService::class);
-	$HarmonizationService = \OC::$server->get(\OCA\JMAPC\Service\HarmonizationService::class);
-	$RemoteCommonService = \OC::$server->get(\OCA\JMAPC\Service\Remote\RemoteCommonService::class);
-	$RemoteEventsService = \OC::$server->get(\OCA\JMAPC\Service\Remote\RemoteEventsService::class);
+	//$ConfigurationService = \OC::$server->get(\OCA\JMAPC\Service\ConfigurationService::class);
+	//$CoreService = \OC::$server->get(\OCA\JMAPC\Service\CoreService::class);
+	//$HarmonizationService = \OC::$server->get(\OCA\JMAPC\Service\HarmonizationService::class);
+	// $RemoteCommonService = \OC::$server->get(\OCA\JMAPC\Service\Remote\RemoteCommonService::class);
+	// $RemoteEventsService = \OC::$server->get(\OCA\JMAPC\Service\Remote\RemoteEventsService::class);
 
 	// execute initial harmonization
-	$HarmonizationService->performHarmonization($uid, 'S');
+	//$HarmonizationService->performHarmonization($uid, 'S');
+
+	$MailManager = \OC::$server->get(\OC\Mail\Provider\Manager::class);
+
+	$MailProvider = \OC::$server->get(\OCA\JMAPC\Providers\Mail\MailProvider::class);
+
+	$MailManager->register($MailProvider);
+
+	$types = $MailManager->types();
+
+	$providers = $MailManager->providers();
+
+	$services = $MailManager->services('admin');
+
+	exit;
+
+	$Client = new JmapClient\Client('172.22.96.1:8080', new JmapClient\Authentication\Basic('admin', 'TlFPvxwBNDQJ'));
+
+	$Client->configureTransportVerification(false);
+
+	$session = $Client->connect();
+
+	// Retrieve Collections List
+	$r0 = new JmapClient\Requests\Mail\MailboxQuery('a');
+	$r0->filter()->role('inbox');
+
+	// Retrieve Mail List
+	$r1 = new JmapClient\Requests\Mail\MailQuery('a');
+	$r1->filter()->in('a');
+	$r1->sort()->from();
+
+	$r2 = new JmapClient\Requests\Mail\MailGet('a');
+	$r2->targetFromRequest($r1, '/ids');
+
+	$rc = new JmapClient\Requests\Mail\MailSet('a');
+	$rc->create('test-id-0')
+	   ->in('Test')
+	   ->from('from@domain.com')
+	   ->to('from@domain.com')
+	   ->contents('This is a test message', 'text/plain')
+	   ->draft();
+
+	$bundle = $Client->perform([$r0, $r1, $r2]);
+
+	$response = $bundle->response(2);
+
+	$object = $response->object(0);
+
+
+	$id = $object->id();
+	$in = $object->in();
+	$from = $object->from();
+
+	exit;
 	
 } catch (Exception $ex) {
 	$logger->logException($ex, ['app' => 'integration_jmapc']);
