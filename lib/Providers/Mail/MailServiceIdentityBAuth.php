@@ -45,7 +45,7 @@ class MailServiceIdentityBAuth implements IServiceIdentityBAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function id(): string {
 		
@@ -55,7 +55,7 @@ class MailServiceIdentityBAuth implements IServiceIdentityBAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getIdentity(): string {
 		
@@ -65,7 +65,7 @@ class MailServiceIdentityBAuth implements IServiceIdentityBAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setIdentity(string $value) {
 
@@ -75,7 +75,7 @@ class MailServiceIdentityBAuth implements IServiceIdentityBAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getSecret(): string {
 
@@ -85,7 +85,7 @@ class MailServiceIdentityBAuth implements IServiceIdentityBAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setSecret(string $value) {
 

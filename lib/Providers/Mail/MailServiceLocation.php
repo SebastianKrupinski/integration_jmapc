@@ -51,7 +51,7 @@ class MailServiceLocation implements IServiceLocationUri {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function type(): string {
 
@@ -61,7 +61,7 @@ class MailServiceLocation implements IServiceLocationUri {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function location(): string {
 
@@ -76,7 +76,7 @@ class MailServiceLocation implements IServiceLocationUri {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getScheme(): string {
 
@@ -86,7 +86,7 @@ class MailServiceLocation implements IServiceLocationUri {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setScheme(string $value) {
 
@@ -96,7 +96,7 @@ class MailServiceLocation implements IServiceLocationUri {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getHost(): string {
 
@@ -106,7 +106,7 @@ class MailServiceLocation implements IServiceLocationUri {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setHost(string $value) {
 
@@ -116,7 +116,7 @@ class MailServiceLocation implements IServiceLocationUri {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getPort(): int {
 
@@ -126,7 +126,7 @@ class MailServiceLocation implements IServiceLocationUri {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setPort(int $value) {
 
@@ -136,7 +136,7 @@ class MailServiceLocation implements IServiceLocationUri {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getPath(): string {
 
@@ -146,7 +146,7 @@ class MailServiceLocation implements IServiceLocationUri {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setPath(string $value) {
 

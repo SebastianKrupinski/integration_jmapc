@@ -50,7 +50,7 @@ class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function id(): string {
 		
@@ -60,7 +60,7 @@ class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getAccessToken(): string {
 
@@ -70,7 +70,7 @@ class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setAccessToken(string $value) {
 
@@ -80,7 +80,7 @@ class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getAccessScope(): array {
 
@@ -90,7 +90,7 @@ class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setAccessScope(array $value) {
 
@@ -100,7 +100,7 @@ class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getAccessExpiry(): int {
 
@@ -110,7 +110,7 @@ class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setAccessExpiry(int $value) {
 
@@ -120,7 +120,7 @@ class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getRefreshToken(): string {
 
@@ -130,7 +130,7 @@ class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setRefreshToken(string $value) {
 
@@ -140,7 +140,7 @@ class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getRefreshLocation(): string {
 
@@ -150,7 +150,7 @@ class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setRefreshLocation(string $value) {
 

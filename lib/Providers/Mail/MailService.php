@@ -75,7 +75,7 @@ class MailService implements IService, ICollections,
 
 	/**
 	 * An arbitrary unique text string identifying this service
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function id(): string {
 
@@ -85,7 +85,7 @@ class MailService implements IService, ICollections,
 
 	/**
 	 * The localized human frendly name of this provider
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getLabel(): string {
 
@@ -95,7 +95,7 @@ class MailService implements IService, ICollections,
 
 	/**
 	 * The localized human frendly name of this provider
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setLabel(string $value) {
 
@@ -105,7 +105,7 @@ class MailService implements IService, ICollections,
 
 	/**
 	 * The localized human frendly name of this provider
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getIdentity(): IServiceIdentity {
 
@@ -115,7 +115,7 @@ class MailService implements IService, ICollections,
 
 	/**
 	 * The localized human frendly name of this provider
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setIdentity(IServiceIdentity $value) {
 
@@ -125,7 +125,7 @@ class MailService implements IService, ICollections,
 
 	/**
 	 * The localized human frendly name of this provider
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function getLocation(): IServiceLocation {
 
@@ -135,7 +135,7 @@ class MailService implements IService, ICollections,
 
 	/**
 	 * The localized human frendly name of this provider
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function setLocation(IServiceLocation $value) {
 

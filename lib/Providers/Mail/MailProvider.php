@@ -43,7 +43,7 @@ class MailProvider implements IProvider {
 
 	/**
 	 * An arbitrary unique text string identifying this provider
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function id(): string {
 
@@ -53,7 +53,7 @@ class MailProvider implements IProvider {
 
 	/**
 	 * The localized human frendly name of this provider
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function name(): string {
 
@@ -63,7 +63,7 @@ class MailProvider implements IProvider {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function hasServices(string $uid): bool {
 
@@ -73,7 +73,7 @@ class MailProvider implements IProvider {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function listServices(string $uid): array {
 
@@ -106,7 +106,7 @@ class MailProvider implements IProvider {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function createService(string $uid, IService $service): string {
 
@@ -119,7 +119,7 @@ class MailProvider implements IProvider {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function modifyService(string $uid, IService $service): string {
 
@@ -132,7 +132,7 @@ class MailProvider implements IProvider {
 
 	/**
 	 * 
-	 * @since 29.0.0
+	 * @since 1.0.0
 	 */
 	public function deleteService(string $uid, IService $service): bool {
 
