@@ -2,21 +2,21 @@
 <info xmlns:xsi= "http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
     <id>integration_jmapc</id>
     <name>JMAP Connector</name>
-    <summary>JMAP Server data sync with Nextcloud</summary>
-    <description><![CDATA[JMAP Connector allows you to automatically sync your calendars and contacts with Nextcloud.]]></description>
+    <summary>Connect Nextcloud to a JMAP service</summary>
+    <description><![CDATA[JMAP Connector allows you connect any compatible JMAP service to Nextcloud]]></description>
     <version>1.0.0-alpha</version>
     <licence>agpl</licence>
     <author mail="krupinski01@gmail.com">Sebastian Krupinski</author>
     <namespace>JMAPC</namespace>
     <documentation>
-        <developer>https://github.com/ksainc/integration_jmap</developer>
+        <developer>https://github.com/SebastianKrupinski/integration_jmapc</developer>
     </documentation>
     <category>integration</category>
-    <website>https://github.com/ksainc/integration_jmapc</website>
-    <discussion>https://github.com/ksainc/integration_jmapc/issues</discussion>
-    <bugs>https://github.com/ksainc/integration_jmap/issues</bugs>
-    <repository>https://github.com/ksainc/integration_jmapc</repository>
-    <screenshot>https://github.com/ksainc/integration_jmapc/blob/main/img/EAS%20Notification%20Screen.png?raw=true</screenshot>
+    <website>https://github.com/SebastianKrupinski/integration_jmapc</website>
+    <discussion>https://github.com/SebastianKrupinski/integration_jmapc/issues</discussion>
+    <bugs>https://github.com/SebastianKrupinski/integration_jmapc/issues</bugs>
+    <repository>https://github.com/SebastianKrupinski/integration_jmapc</repository>
+    <screenshot>https://github.com/SebastianKrupinski/integration_jmapc</screenshot>
     <dependencies>
         <php min-version="8.0" max-version="8.2"  min-int-size="64" />
         <database>pgsql</database>

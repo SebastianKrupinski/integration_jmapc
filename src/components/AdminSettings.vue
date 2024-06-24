@@ -24,7 +24,7 @@
 <template>
 	<div id="jmapc_settings" class="section">
 		<div class="jmap-section-heading">
-			<JMAPIcon :size="32" /><h2> {{ t('integration_jmapc', 'JMAP Connector') }}</h2>
+			<JmapIcon :size="32" /><h2> {{ t('integration_jmapc', 'JMAP Connector') }}</h2>
 		</div>
 		<p class="settings-hint">
 			{{ t('integration_jmapc', 'Select the system settings for JMAP Integration') }}
@@ -90,7 +90,7 @@ import { showSuccess, showError } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/dist/Components/NcButton.js'
 import NcSelect from '@nextcloud/vue/dist/Components/NcSelect.js'
 
-import JMAPIcon from './icons/JMAPIcon.vue'
+import JmapIcon from './icons/JmapIcon.vue'
 import CheckIcon from 'vue-material-design-icons/Check.vue'
 
 export default {
@@ -99,7 +99,7 @@ export default {
 	components: {
 		NcButton,
 		NcSelect,
-		JMAPIcon,
+		JmapIcon,
 		CheckIcon,
 	},
 

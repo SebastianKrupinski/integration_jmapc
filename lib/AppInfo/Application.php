@@ -79,6 +79,7 @@ class Application extends App implements IBootstrap {
         
         parent::__construct(self::APP_ID, $urlParams);
 
+        /*
         // retrieve harmonization mode
         $mode = \OC::$server->getConfig()->getAppValue(Application::APP_ID, 'harmonization_mode');
         $contacts = \OC::$server->getConfig()->getAppValue('contacts', 'enabled');
@@ -113,37 +114,15 @@ class Application extends App implements IBootstrap {
                 $dispatcher->addServiceListener(CalendarObjectRestoredEvent::class, CalendarObjectRestoredListener::class);
             }
         }
+        */
     }
 
     public function register(IRegistrationContext $context): void {
-        // $context->registerMailManager(Provider::class);
-        //$f = $this;
+
     }
 
     public function boot(IBootContext $context): void {
 
-        //$t = $MailManager = \OC::$server->get(\OCP\Mail\Provider\IManager::class);
-        
-        // $context->injectFn([$this, 'registerMailManager']);
-
-        //$f = $this;
     }
 
-    public function registerMailManager(IMailManager $manager, IAppContainer $container): void {
-		$manager->register(function () use ($container, $manager): void {
-			$user = \OC::$server->getUserSession()->getUser();
-			if (!is_null($user)) {
-				$this->setupContactsProvider($manager, $container, $user->getUID());
-			} else {
-				$this->setupSystemContactsProvider($manager, $container);
-			}
-		});
-	}
-
-	private function setupContactsProvider(IContactsManager $contactsManager, IAppContainer $container, string $userID): void {
-		/** @var ContactsManager $cm */
-		$cm = $container->query(ContactsManager::class);
-		$urlGenerator = $container->getServer()->getURLGenerator();
-		$cm->setupContactsProvider($contactsManager, $userID, $urlGenerator);
-	}
 }

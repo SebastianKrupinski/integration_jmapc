@@ -84,6 +84,7 @@ try {
 	// execute initial harmonization
 	//$HarmonizationService->performHarmonization($uid, 'S');
 
+	/*
 	$MailManager = \OC::$server->get(\OC\Mail\Provider\Manager::class);
 
 	$MailProvider = \OC::$server->get(\OCA\JMAPC\Providers\Mail\MailProvider::class);
@@ -97,25 +98,31 @@ try {
 	$services = $MailManager->services('admin');
 
 	exit;
+	*/
 
-	$Client = new JmapClient\Client('172.22.96.1:8080', new JmapClient\Authentication\Basic('admin', 'TlFPvxwBNDQJ'));
+	$Client = new JmapClient\Client('testmail.com:8080', new JmapClient\Authentication\Basic('user1@testmail.com', 'Password#2024'));
 
+	$Client->configureTransportMode($Client::TRANSPORT_MODE_STANDARD);
 	$Client->configureTransportVerification(false);
 
 	$session = $Client->connect();
 
-	// Retrieve Collections List
-	$r0 = new JmapClient\Requests\Mail\MailboxQuery('a');
-	$r0->filter()->role('inbox');
+	// retrieve all collections
+	$r1 = new JmapClient\Requests\Mail\MailboxGet('ce');
+
+	// find inbox collection
+	//$r1 = new JmapClient\Requests\Mail\MailboxQuery('ce');
+	//$r1->filter()->role('inbox');
 
 	// Retrieve Mail List
-	$r1 = new JmapClient\Requests\Mail\MailQuery('a');
-	$r1->filter()->in('a');
-	$r1->sort()->from();
+	$r2 = new JmapClient\Requests\Mail\MailQuery('ce');
+	$r2->filter()->in('a');
+	$r2->sort()->from();
 
-	$r2 = new JmapClient\Requests\Mail\MailGet('a');
-	$r2->targetFromRequest($r1, '/ids');
+	$r3 = new JmapClient\Requests\Mail\MailGet('ce');
+	$r3->targetFromRequest($r2, '/ids');
 
+	/*
 	$rc = new JmapClient\Requests\Mail\MailSet('a');
 	$rc->create('test-id-0')
 	   ->in('Test')
@@ -123,8 +130,11 @@ try {
 	   ->to('from@domain.com')
 	   ->contents('This is a test message', 'text/plain')
 	   ->draft();
+	*/
 
-	$bundle = $Client->perform([$r0, $r1, $r2]);
+	//$bundle = $Client->perform([$r0]);
+
+	$bundle = $Client->perform([$r1, $r2, $r3]);
 
 	$response = $bundle->response(2);
 

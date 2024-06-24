@@ -25,7 +25,7 @@
 
 namespace OCA\JMAPC\Objects;
 
-class ContactRelationshipObject {
+class ContactRelationObject {
 
     public ?string $Type;
 	public ?string $Value;

@@ -24,7 +24,7 @@
 <template>
 	<div id="jmapc_settings" class="section">
 		<div class="jmap-section-heading">
-			<JMAPIcon :size="32" /><h2> {{ t('integration_jmapc', 'JMAP Connector') }}</h2>
+			<JmapIcon :size="32" /><h2> {{ t('integration_jmapc', 'JMAP Connector') }}</h2>
 		</div>
 		<div class="jmap-content">
 			<h3>{{ t('integration_jmapc', 'Authentication') }}</h3>
@@ -36,7 +36,7 @@
 					<div class="fields">
 						<div class="line">
 							<label for="jmap-account-id">
-								<JMAPIcon />
+								<JmapIcon />
 								{{ t('integration_jmapc', 'Account ID') }}
 							</label>
 							<input id="jmap-account-id"
@@ -49,7 +49,7 @@
 						</div>
 						<div class="line">
 							<label for="jmap-account-secret">
-								<JMAPIcon />
+								<JmapIcon />
 								{{ t('integration_jmapc', 'Account Secret') }}
 							</label>
 							<input id="jmap-account-secret"
@@ -62,7 +62,7 @@
 						</div>
 						<div v-if="configureManually" class="line">
 							<label for="jmap-server">
-								<JMAPIcon />
+								<JmapIcon />
 								{{ t('integration_jmapc', 'Account Server') }}
 							</label>
 							<input id="jmap-server"
@@ -99,7 +99,7 @@
 			</div>
 			<div v-else>
 				<div class="jmap-connected">
-					<JMAPIcon />
+					<JmapIcon />
 					<label>
 						{{ t('integration_jmapc', 'Connected as {0} to {1}', {0:state.account_id, 1:state.account_server}) }}
 					</label>
@@ -290,7 +290,7 @@ import NcCheckboxRadioSwitch from '@nextcloud/vue/dist/Components/NcCheckboxRadi
 import NcColorPicker from '@nextcloud/vue/dist/Components/NcColorPicker.js'
 import NcSelect from '@nextcloud/vue/dist/Components/NcSelect.js'
 
-import JMAPIcon from './icons/JMAPIcon.vue'
+import JmapIcon from './icons/JmapIcon.vue'
 import CheckIcon from 'vue-material-design-icons/Check.vue'
 import CloseIcon from 'vue-material-design-icons/Close.vue'
 import CalendarIcon from 'vue-material-design-icons/Calendar.vue'
@@ -305,7 +305,7 @@ export default {
 		NcCheckboxRadioSwitch,
 		NcColorPicker,
 		NcSelect,
-		JMAPIcon,
+		JmapIcon,
 		CheckIcon,
 		CloseIcon,
 		CalendarIcon,

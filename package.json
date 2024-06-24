@@ -2,13 +2,14 @@
 	"name": "integration_jmapc",
 	"description": "JMAP Connector",
 	"version": "1.0.0-alpha",
-	"author": "Sebastian Krupinski <krupinski01@gmail.com> (https://github.com/ksainc/)",
+	"author": "Sebastian Krupinski <krupinski01@gmail.com> (https://github.com/SebastianKrupinski/)",
 	"license": "AGPL-3.0",
 	"private": true,
 	"keywords": [
 		"nextcloud",
 		"Integration",
 		"jmap",
+		"mail",
 		"calendars",
 		"contacts"
 	],
