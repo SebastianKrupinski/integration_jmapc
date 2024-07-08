@@ -59,9 +59,8 @@ use OCA\JMAPC\Events\CalendarObjectRestoredListener;
 use OCA\JMAPC\Events\UserDeletedListener;
 use OCA\JMAPC\Notification\Notifier;
 
-use OCA\JMAPC\Calendar\Provider;
-
-use OCP\Mail\Provider\IManager as IMailManager;
+use OCA\JMAPC\Providers\Calendar\Provider;
+use OCA\JMAPC\Providers\Mail\Provider as MailProvider;
 
 /**
  * Class Application
@@ -115,10 +114,15 @@ class Application extends App implements IBootstrap {
             }
         }
         */
+
     }
 
     public function register(IRegistrationContext $context): void {
-
+		// evaluate, if mail provider registration is possible
+		if (method_exists($context, 'registerMailProvider')) {
+			// register mail provider
+			$context->registerMailProvider(MailProvider::class);
+		}
     }
 
     public function boot(IBootContext $context): void {

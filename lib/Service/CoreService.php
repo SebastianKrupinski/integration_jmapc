@@ -917,87 +917,6 @@ class CoreService {
 			}
 		}
 	}
-
-	/**
-	 * Create remote data store client (EWS Client)
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * 
-	 * @return EasClient
-	 */
-	public function createClient(string $uid): EasClient {
-
-		if (!$this->RemoteStore instanceof EasClient) {
-			switch ($this->ConfigurationService->retrieveProvider($uid)) {
-				case ConfigurationService::ProviderMS365:
-					// retrieve oauth expiry information
-					$account_oauth_expiry = (int) $this->ConfigurationService->retrieveUserValue($uid, 'account_oauth_expiry');
-					//evaluate if token expired
-					if ($account_oauth_expiry < time()) {
-						// retrieve refresh token information
-						$account_oauth_refresh = $this->ConfigurationService->retrieveUserValue($uid, 'account_oauth_refresh');
-						// refresh access token
-						$this->refreshAccountMS365($uid, $account_oauth_refresh);
-					}
-					// retrieve connection information
-					$account_id = $this->ConfigurationService->retrieveUserValue($uid, 'account_id');
-					$account_server = $this->ConfigurationService->retrieveUserValue($uid, 'account_server');
-					$account_oauth_access = $this->ConfigurationService->retrieveUserValue($uid, 'account_oauth_access');
-					$account_oauth_expiry = $this->ConfigurationService->retrieveUserValue($uid, 'account_oauth_expiry');
-					$account_device_id = $this->ConfigurationService->retrieveUserValue($uid, 'account_device_id');
-					$account_device_key = $this->ConfigurationService->retrieveUserValue($uid, 'account_device_key');
-					$account_device_version = $this->ConfigurationService->retrieveUserValue($uid, 'account_device_version');
-					// construct remote data store client
-					$this->RemoteStore = new EasClient(
-						$account_server, 
-						new \OCA\JMAPC\Utile\Eas\EasAuthenticationBearer($account_id, $account_oauth_access, $account_oauth_expiry), 
-						$account_device_id,
-						$account_device_key,
-						$account_device_version
-					);
-					break;
-				case ConfigurationService::ProviderAlternate:
-					// retrieve connection information
-					$account_id = $this->ConfigurationService->retrieveUserValue($uid, 'account_id');
-					$account_server = $this->ConfigurationService->retrieveUserValue($uid, 'account_server');
-					$account_bauth_id = $this->ConfigurationService->retrieveUserValue($uid, 'account_bauth_id');
-					$account_bauth_secret = $this->ConfigurationService->retrieveUserValue($uid, 'account_bauth_secret');
-					$account_device_id = $this->ConfigurationService->retrieveUserValue($uid, 'account_device_id');
-					$account_device_key = $this->ConfigurationService->retrieveUserValue($uid, 'account_device_key');
-					$account_device_version = $this->ConfigurationService->retrieveUserValue($uid, 'account_device_version');
-					// construct remote data store client
-					$this->RemoteStore = new EasClient(
-						$account_server, 
-						new \OCA\JMAPC\Utile\Eas\EasAuthenticationBasic($account_bauth_id, $account_bauth_secret),
-						$account_device_id,
-						$account_device_key,
-						$account_device_version
-					);
-					break;
-			}
-		}
-
-		return $this->RemoteStore;
-
-	}
-
-	/**
-	 * Destroys remote data store client (EWS Client)
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param EasClient $Client	nextcloud user id
-	 * 
-	 * @return void
-	 */
-	public function destroyClient(EasClient $Client): void {
-		
-		// destory remote data store client
-		$Client = null;
-
-	}
 	
 	/**
 	 * publish user notification
@@ -1023,30 +942,4 @@ class CoreService {
 		$this->notificationManager->notify($notification);
 	}
 
-	public function performTest(string $uid, string $action): void {
-
-		try {
-			// retrieve Configuration
-			$Configuration = $this->ConfigurationService->retrieveUser($uid);
-			$Configuration = $this->ConfigurationService->toUserConfigurationObject($Configuration);
-			// create remote store client
-			$RemoteStore = $this->createClient($uid);
-			// Test Contacts
-			$this->ContactsService->RemoteStore = $RemoteStore;
-			$result = $this->ContactsService->performTest($action, $Configuration);
-			// Test Events
-			$this->EventsService->RemoteStore = $RemoteStore;
-			$result = $this->EventsService->performTest($action, $Configuration);
-			// Test Tasks
-			//$this->TasksService->RemoteStore = $RemoteStore;
-			//$result = $this->TasksService->performTest($action, $Configuration);
-			// destroy remote store client
-			$this->destroyClient($RemoteStore);
-		} catch (Exception $e) {
-			$result = [
-					'error' => 'Unknown Test failure:' . $e,
-			];
-		}
-	}
-	
 }

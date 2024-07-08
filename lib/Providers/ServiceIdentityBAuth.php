@@ -22,13 +22,15 @@ declare(strict_types=1);
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 */
-namespace OCA\JMAPC\Providers\Mail;
+namespace OCA\JMAPC\Providers;
 
-use OCP\Mail\Provider\IServiceIdentityBAuth;
+use OCP\Mail\Provider\IServiceIdentity;
+//use OCP\Mail\Provider\IServiceIdentityBAuth;
 
 use OCA\JMAPC\AppInfo\Application;
 
-class MailServiceIdentityBAuth implements IServiceIdentityBAuth {
+class ServiceIdentityBAuth implements IServiceIdentity {
+//class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 
 	private string $_identity = '';
 	private string $_secret = '';
@@ -47,7 +49,17 @@ class MailServiceIdentityBAuth implements IServiceIdentityBAuth {
 	 * 
 	 * @since 1.0.0
 	 */
-	public function id(): string {
+	public function type(): string {
+		
+		return 'BAUTH';
+
+	}
+
+	/**
+	 * 
+	 * @since 1.0.0
+	 */
+	public function label(): string {
 		
 		return 'Basic Authentication';
 

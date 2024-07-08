@@ -22,13 +22,15 @@ declare(strict_types=1);
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 */
-namespace OCA\JMAPC\Providers\Mail;
+namespace OCA\JMAPC\Providers;
 
-use OCP\Mail\Provider\IServiceIdentityOAuth;
+use OCP\Mail\Provider\IServiceIdentity;
+//use OCP\Mail\Provider\IServiceIdentityOAuth;
 
 use OCA\JMAPC\AppInfo\Application;
 
-class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
+class ServiceIdentityOAuth implements IServiceIdentity {
+//class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	private string $_AccessToken = '';
 	private array $_AccessScope = [];
@@ -52,7 +54,17 @@ class MailServiceIdentityOAuth implements IServiceIdentityOAuth {
 	 * 
 	 * @since 1.0.0
 	 */
-	public function id(): string {
+	public function type(): string {
+		
+		return 'OAUTH';
+
+	}
+
+	/**
+	 * 
+	 * @since 1.0.0
+	 */
+	public function label(): string {
 		
 		return 'Bearer Authentication';
 

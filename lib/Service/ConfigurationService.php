@@ -26,7 +26,6 @@
 namespace OCA\JMAPC\Service;
 
 use Exception;
-use Psr\Log\LoggerInterface;
 
 use OCP\IConfig;
 use OCP\Security\ICrypto;
@@ -35,20 +34,17 @@ use OCA\JMAPC\AppInfo\Application;
 
 class ConfigurationService {
 
-	const ProviderAlternate = 'A';
-	const ProviderMS365 = 'MS365';
-
 	/**
 	 * Default System Configuration 
 	 * @var array
 	 * */
 	private const _SYSTEM = [
-		'harmonization_mode' => 'P',
-		'harmonization_thread_duration' => '3600',
-		'harmonization_thread_pause' => '15',
-		'ms365_tenant_id' => '',
-		'ms365_application_id' => '',
-		'ms365_application_secret' => '',
+		'mail_mode' => 'L',
+		'mail_meta_store' => 'DB',
+		'mail_contents_store' => 'FS',
+		'mail_harmonization_mode' => 'P',
+		'mail_harmonization_thread_duration' => '3600',
+		'mail_harmonization_thread_pause' => '15',
 	];
 
 	/**
@@ -56,9 +52,6 @@ class ConfigurationService {
 	 * @var array
 	 * */
 	private const _SYSTEM_SECURE = [
-		'ms365_tenant_id' => 1,
-		'ms365_application_id' => 1,
-		'ms365_application_secret' => 1,
 	];
 
 	/**
@@ -66,23 +59,6 @@ class ConfigurationService {
 	 * @var array
 	 * */
 	private const _USER = [
-		'account_provider' => 'A',
-		'account_server' => '',
-		'account_id' => '',
-		'account_bauth_id' => '',
-		'account_bauth_secret' => '',
-		'account_device_id' => '',
-		'account_device_key' => '',
-		'account_device_version' => '',
-		'account_connected' => '0',
-		'account_harmonization_state' => '0',
-		'account_harmonization_start' => '0',
-		'account_harmonization_end' => '0',
-		'account_harmonization_tid' => '0',
-		'account_harmonization_thb' => '0',
-		'account_oauth_access' => '',
-		'account_oauth_expiry' => '0',
-		'account_oauth_refresh' => '',
 		'contacts_harmonize' => '5',
 		'contacts_prevalence' => 'R',
 		'contacts_presentation' => '',
@@ -100,14 +76,7 @@ class ConfigurationService {
 	 * @var array
 	 * */
 	private const _USER_SECURE = [
-		'account_bauth_secret' => 1,
-		'account_oauth_access' => 1,
-		'account_oauth_refresh' => 1,
-		'account_device_key' => 1,
 	];
-
-	/** @var LoggerInterface */
-	private $_logger;
 
 	/** @var IConfig */
 	private $_ds;
@@ -115,167 +84,10 @@ class ConfigurationService {
 	/** @var ICrypto */
 	private $_cs;
 
-	public function __construct(LoggerInterface $logger, IConfig $config, ICrypto $crypto)
+	public function __construct(IConfig $config, ICrypto $crypto)
 	{
-		$this->logger = $logger;
 		$this->_ds = $config;
 		$this->_cs = $crypto;
-	}
-
-	/**
-	 * Retrieves account provider
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * 
-	 * @return string acount provider id
-	 */
-	public function retrieveProvider(string $uid): string {
-		
-		// retrieve and return account provider
-		return $this->retrieveUserValue($uid, 'account_provider');;
-
-	}
-
-	/**
-	 * Deposit accout provider
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		nextcloud user id
-	 * @param string $id		account provider id 
-	 * 
-	 * @return void
-	 */
-	public function depositProvider(string $uid, string $id): void {
-		
-		// deposit account provider
-		$this->depositUserValue($uid, 'account_provider', $id);
-
-	}
-
-	/**
-	 * Retrieves user basic authentication parameters
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * 
-	 * @return array of key/value pairs, of parameters
-	 */
-	public function retrieveAuthenticationBasic(string $uid): array {
-		
-		// retrieve user authentication parameters
-		$parameters = [];
-		$parameters['account_id'] = $this->retrieveUserValue($uid, 'account_id');
-		$parameters['account_server'] = $this->retrieveUserValue($uid, 'account_server');
-		$parameters['account_bauth_id'] = $this->retrieveUserValue($uid, 'account_bauth_id');
-		$parameters['account_bauth_secret'] = $this->retrieveUserValue($uid, 'account_bauth_secret');
-		$parameters['account_device_id'] = $this->retrieveUserValue($uid, 'account_device_id');
-		$parameters['account_device_key'] = $this->retrieveUserValue($uid, 'account_device_key');
-		$parameters['account_device_version'] = $this->retrieveUserValue($uid, 'account_device_version');
-		// return configuration parameters
-		return $parameters;
-
-	}
-
-	/**
-	 * Deposit user basic authentication parameters
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid			nextcloud user id
-	 * @param string $server		FQDN or IP
-	 * @param string $protocol		account protocol version
-	 * @param string $id			account username
-	 * @param string $secret		account secret
-	 * 
-	 * @return void
-	 */
-	public function depositAuthenticationBasic(
-		string $uid, 
-		string $id, 
-		string $server, 
-		string $bauth_id, 
-		string $bauth_secret, 
-		string $device_id, 
-		string $device_key, 
-		string $device_version
-	): void {
-		
-		// deposit user authentication parameters
-		$this->depositUserValue($uid, 'account_id', $id);
-		$this->depositUserValue($uid, 'account_server', $server);
-		$this->depositUserValue($uid, 'account_bauth_id', $bauth_id);
-		$this->depositUserValue($uid, 'account_bauth_secret', $bauth_secret);
-		$this->depositUserValue($uid, 'account_device_id', $device_id);
-		$this->depositUserValue($uid, 'account_device_key', $device_key);
-		$this->depositUserValue($uid, 'account_device_version', $device_version);
-		
-	}
-
-	/**
-	 * Retrieves user oauth authentication parameters
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * 
-	 * @return array of key/value pairs, of parameters
-	 */
-	public function retrieveAuthenticationOAuth(string $uid): array {
-		
-		// retrieve user authentication parameters
-		$parameters = [];
-		$parameters['account_id'] = $this->retrieveUserValue($uid, 'account_id');
-		$parameters['account_server'] = $this->retrieveUserValue($uid, 'account_server');
-		$parameters['account_oauth_access'] = $this->retrieveUserValue($uid, 'account_oauth_access');
-		$parameters['account_oauth_expiry'] = $this->retrieveUserValue($uid, 'account_oauth_expiry');
-		$parameters['account_oauth_refresh'] = $this->retrieveUserValue($uid, 'account_oauth_refresh');
-		$parameters['account_device_id'] = $this->retrieveUserValue($uid, 'account_device_id');
-		$parameters['account_device_key'] = $this->retrieveUserValue($uid, 'account_device_key');
-		$parameters['account_device_version'] = $this->retrieveUserValue($uid, 'account_device_version');
-		// return configuration parameters
-		return $parameters;
-
-	}
-
-	/**
-	 * Deposit user oauth authentication parameters
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid			nextcloud user id
-	 * @param string $server		FQDN or IP 
-	 * @param string $token			oauth token
-	 * @param string $expiry		oauth expiry timestamp
-	 * @param string $refresh		oauth refresh code
-	 * 
-	 * @return void
-	 */
-	public function depositAuthenticationOAuth(
-		string $uid, 
-		string $id, 
-		string $server, 
-		string $oauth_access, 
-		string $oauth_expiry, 
-		string $oauth_refresh, 
-		string $device_id, 
-		string $device_key, 
-		string $device_version
-	): void {
-		
-		// deposit user oauth authentication parameters
-		$this->depositUserValue($uid, 'account_id', $id);
-		$this->depositUserValue($uid, 'account_server', $server);
-		$this->depositUserValue($uid, 'account_oauth_access', $oauth_access);
-		$this->depositUserValue($uid, 'account_oauth_expiry', $oauth_expiry);
-		$this->depositUserValue($uid, 'account_oauth_refresh', $oauth_refresh);
-		$this->depositUserValue($uid, 'account_device_id', $device_id);
-		$this->depositUserValue($uid, 'account_device_key', $device_key);
-		$this->depositUserValue($uid, 'account_device_version', $device_version);
-
 	}
 
 	/**
@@ -1073,20 +885,6 @@ class ConfigurationService {
 		else {
 			return false;
 		}
-
-	}
-
-	/**
-	 * retrieve account status
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @return bool
-	 */
-	public function isAccountConnected(string $uid): bool {
-
-		// retrieve account status
-		return filter_var($this->retrieveUserValue($uid, 'account_connected'), FILTER_VALIDATE_BOOLEAN);
 
 	}
 

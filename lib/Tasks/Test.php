@@ -50,7 +50,8 @@ try {
 		// evaluate if user name exists
 		if (isset($parameters["u"])) {
 			// assign user name
-			$uid = \OCA\JMAPC\Utile\Sanitizer::username($parameters["u"]);
+			//$uid = \OCA\JMAPC\Utile\Sanitizer::username($parameters["u"]);
+			$uid = $parameters["u"];
 		}
 	}
 	else {
@@ -72,7 +73,7 @@ try {
 	echo 'Test started for ' . $uid . PHP_EOL;
 
 	// load all apps to get all api routes properly setup
-	OC_App::loadApps();
+	//OC_App::loadApps();
 	
 	// initilize required services
 	//$ConfigurationService = \OC::$server->get(\OCA\JMAPC\Service\ConfigurationService::class);
@@ -84,43 +85,45 @@ try {
 	// execute initial harmonization
 	//$HarmonizationService->performHarmonization($uid, 'S');
 
-	/*
 	$MailManager = \OC::$server->get(\OC\Mail\Provider\Manager::class);
 
-	$MailProvider = \OC::$server->get(\OCA\JMAPC\Providers\Mail\MailProvider::class);
-
-	$MailManager->register($MailProvider);
-
+	// test types
 	$types = $MailManager->types();
-
+	// test providers
 	$providers = $MailManager->providers();
+	// test services
+	$services = $MailManager->services($uid);
 
-	$services = $MailManager->services('admin');
+	$service = $MailManager->findServiceByAddress('user1', 'user1@testmail.com');
 
-	exit;
-	*/
+	// retrieve all collections information
+	$collections = $service->collections('', '', []);
+	// retrieve single collection information
+	$collection = $service->collectionFetch('', 'a', []);
+	// search collection inside collection 'a'
+	$collectionSearch1 = $service->collectionSearch('', 'Inbox', '', []);
+	$collectionSearch2 = $service->collectionSearch('', 'Drafts', '', []);
 
-	$Client = new JmapClient\Client('testmail.com:8080', new JmapClient\Authentication\Basic('user1@testmail.com', 'Password#2024'));
+	// create collection inside inbox
+	$collectionCreated = $service->collectionCreate($collectionSearch1[0], 'This is a test bvmnxbmvcmx', []);
+	// move collection from inbox to drafts
+	$collectionMoved = $service->collectionMove($collectionSearch1[0], $collectionCreated, $collectionSearch2[0], []);
+	// update collection inside drafts
+	$collectionUpdated = $service->collectionUpdate($collectionSearch2[0], $collectionCreated, 'This is a test 20240101', []);
+	// delete collection inside drafts
+	$collectionDeleted = $service->collectionDelete($collectionSearch2[0], $collectionCreated, []);
 
-	$Client->configureTransportMode($Client::TRANSPORT_MODE_STANDARD);
-	$Client->configureTransportVerification(false);
 
-	$session = $Client->connect();
 
-	// retrieve all collections
-	$r1 = new JmapClient\Requests\Mail\MailboxGet('ce');
-
-	// find inbox collection
-	//$r1 = new JmapClient\Requests\Mail\MailboxQuery('ce');
-	//$r1->filter()->role('inbox');
+	
 
 	// Retrieve Mail List
-	$r2 = new JmapClient\Requests\Mail\MailQuery('ce');
-	$r2->filter()->in('a');
-	$r2->sort()->from();
+	//$r2 = new JmapClient\Requests\Mail\MailQuery('ce');
+	//$r2->filter()->in('a');
+	//$r2->sort()->from();
 
-	$r3 = new JmapClient\Requests\Mail\MailGet('ce');
-	$r3->targetFromRequest($r2, '/ids');
+	//$r3 = new JmapClient\Requests\Mail\MailGet('ce');
+	//$r3->targetFromRequest($r2, '/ids');
 
 	/*
 	$rc = new JmapClient\Requests\Mail\MailSet('a');
@@ -134,16 +137,15 @@ try {
 
 	//$bundle = $Client->perform([$r0]);
 
-	$bundle = $Client->perform([$r1, $r2, $r3]);
+	//$bundle = $Client->perform([$r1, $r2, $r3]);
 
-	$response = $bundle->response(2);
+	//$response = $bundle->response(2);
 
-	$object = $response->object(0);
+	//$object = $response->object(0);
 
-
-	$id = $object->id();
-	$in = $object->in();
-	$from = $object->from();
+	//$id = $object->id();
+	//$in = $object->in();
+	//$from = $object->from();
 
 	exit;
 	

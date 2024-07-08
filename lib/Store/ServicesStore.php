@@ -49,13 +49,75 @@ class ServicesStore {
 	 * 
 	 * @return array 			of services
 	 */
-	public function listServices(string $uid): array {
+	public function fetchByUserId(string $uid): array {
 		
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select('*')
 			->from($this->_ServicesTable)
 			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)));
+
+		// execute command
+		$rs = $cmd->executeQuery()->fetchAll();
+		$cmd->executeQuery()->closeCursor();
+		// return result or null
+		if (is_array($rs) && count($rs) > 0) {
+			return $rs;
+		}
+		else {
+			return [];
+		}
+
+	}
+
+		/**
+	 * retrieve services for specific user from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param string $uid		user id
+	 * 
+	 * @return array 			of services
+	 */
+	public function fetchByUserIdAndServiceId(string $uid, string $sid): array {
+		
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select('*')
+			->from($this->_ServicesTable)
+			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
+			->andWhere($cmd->expr()->eq('id', $cmd->createNamedParameter($sid)));
+
+		// execute command
+		$rs = $cmd->executeQuery()->fetchAll();
+		$cmd->executeQuery()->closeCursor();
+		// return result or null
+		if (is_array($rs) && count($rs) > 0) {
+			return $rs;
+		}
+		else {
+			return [];
+		}
+
+	}
+
+	/**
+	 * retrieve services for specific user from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param string $uid		user id
+	 * 
+	 * @return array 			of services
+	 */
+	public function fetchByUserIdAndAddress(string $uid, string $address): array {
+		
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select('*')
+			->from($this->_ServicesTable)
+			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
+			->andWhere($cmd->expr()->eq('address_primary', $cmd->createNamedParameter($address)));
 
 		// execute command
 		$rs = $cmd->executeQuery()->fetchAll();
@@ -79,7 +141,7 @@ class ServicesStore {
 	 * 
 	 * @return mixed
 	 */
-	public function deleteServicesByUser(string $uid): mixed {
+	public function deleteByUser(string $uid): mixed {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -99,7 +161,7 @@ class ServicesStore {
 	 * 
 	 * @return array
 	 */
-	public function fetchService(int $id): array {
+	public function fetch(int $id): array {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -128,7 +190,7 @@ class ServicesStore {
 	 * 
 	 * @return int|bool			entry id on success / false on failure
 	 */
-	public function confirmService(string $id): int|bool {
+	public function confirm(string $id): int|bool {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -157,7 +219,7 @@ class ServicesStore {
 	 * 
 	 * @return int				entity id
 	 */
-	public function createService(array $data) : int {
+	public function create(array $data) : int {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -184,7 +246,7 @@ class ServicesStore {
 	 * 
 	 * @return bool
 	 */
-	public function modifyService(int $id, array $data) : bool {
+	public function modify(int $id, array $data) : bool {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -209,7 +271,7 @@ class ServicesStore {
 	 * 
 	 * @return bool
 	 */
-	public function deleteService(int $id) : bool {
+	public function delete(int $id) : bool {
 
 		// retrieve original entity so we can chonicle it later
 		$data = $this->fetchEntity($id);

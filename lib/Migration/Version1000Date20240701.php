@@ -31,7 +31,7 @@ use OCP\DB\Types;
 use OCP\Migration\SimpleMigrationStep;
 use OCP\Migration\IOutput;
 
-class Version1000Date20230901 extends SimpleMigrationStep {
+class Version1000Date20240701 extends SimpleMigrationStep {
 
 	/**
 	 * @param IOutput $output
@@ -43,8 +43,8 @@ class Version1000Date20230901 extends SimpleMigrationStep {
 		/** @var ISchemaWrapper $schema */
 		$schema = $schemaClosure();
 
-		if (!$schema->hasTable('jmapc_correlations')) {
-			$table = $schema->createTable('jmapc_correlations');
+		if (!$schema->hasTable('jmapc_services')) {
+			$table = $schema->createTable('jmapc_services');
 			// id
 			$table->addColumn('id', Types::INTEGER, [
 				'autoincrement' => true,

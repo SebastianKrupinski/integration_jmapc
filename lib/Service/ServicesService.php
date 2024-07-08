@@ -27,28 +27,55 @@ namespace OCA\JMAPC\Service;
 use OCA\JMAPC\AppInfo\Application;
 use OCA\JMAPC\Store\ServicesStore;
 
-class AccountService {
+use OCP\Security\ICrypto;
+
+class ServicesService {
 
 	private ServicesStore $_Store;
+	private ICrypto $_cs;
 
-	public function __construct(ServicesStore $ServicesStore) {
+	/**
+	 * Default User Secure Parameters 
+	 * @var array
+	 * */
+	private const _USER_SECURE = [
+		'bauth_secret' => true,
+		'oauth_access_token' => true,
+		'oauth_refresh_token' => true,
+	];
+
+	public function __construct(ServicesStore $ServicesStore, ICrypto $crypto) {
 
 		$this->_Store = $ServicesStore;
+		$this->_cs = $crypto;
 
 	}
 
-	public function fetchAny(string $uid): array {
+	public function fetchByUserId(string $uid): array {
 
 		// return collection of services/accounts
-		return $this->_Store->listServices($uid);
+		return $this->_Store->fetchByUserId($uid);
+
+	}
+
+	public function fetchByUserIdAndServiceId(string $uid, string $sid): array {
+
+		// return collection of services/accounts
+		return $this->_Store->fetchByUserIdAndServiceId($uid, $sid);
+
+	}
+
+	public function fetchByUserIdAndAddress(string $uid, string $address): array {
+
+		// return collection of services/accounts
+		return $this->_Store->fetchByUserIdAndAddress($uid, $address);
 
 	}
 
 	public function fetch(string $id): array {
 
-
 		// return service/account information
-		return [];
+		return $this->_Store->fetch($id);
 
 	}
 

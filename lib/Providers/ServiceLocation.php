@@ -22,14 +22,15 @@ declare(strict_types=1);
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 */
-namespace OCA\JMAPC\Providers\Mail;
+namespace OCA\JMAPC\Providers;
 
-use OCP\Mail\Provider\IServiceLocationUri;
+//use OCP\Mail\Provider\IServiceLocationUri;
+use OCP\Mail\Provider\IServiceLocation;
 
 use OCA\JMAPC\AppInfo\Application;
 
-class MailServiceLocation implements IServiceLocationUri {
-
+//class ServiceLocation implements IServiceLocationUri {
+class ServiceLocation implements IServiceLocation {
 	private string $_scheme = 'https://';
 	private string $_host = '';
 	private string $_path = '/';
