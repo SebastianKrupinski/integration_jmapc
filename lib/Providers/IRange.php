@@ -24,83 +24,41 @@ declare(strict_types=1);
 */
 namespace OCA\JMAPC\Providers;
 
-use OCP\Mail\Provider\IServiceIdentity;
-//use OCP\Mail\Provider\IServiceIdentityBAuth;
+enum RangeType: string {
+    case RELATIVE = 'relative';
+    case ABSOLUTE = 'absolute';
+}
 
-class ServiceIdentityBAuth implements IServiceIdentity {
-//class ServiceIdentityBAuth implements IServiceIdentityBAuth {
-
-	private string $_identity = '';
-	private string $_secret = '';
-
-	public function __construct(
-		string $identity = '',
-		string $secret = ''
-	) {
-
-		$this->_identity = $identity;
-		$this->_secret = $secret;
-
-	}
+interface IRange {
 
 	/**
 	 * 
 	 * @since 1.0.0
 	 */
-	public function type(): string {
-		
-		return 'BAUTH';
-
-	}
+	public function type(): RangeType;
 
 	/**
 	 * 
 	 * @since 1.0.0
 	 */
-	public function label(): string {
-		
-		return 'Basic Authentication';
-
-	}
+	public function getStart(): string | int;
 
 	/**
 	 * 
 	 * @since 1.0.0
 	 */
-	public function getIdentity(): string {
-		
-		return $this->_identity;
-
-	}
+	public function setStart(string | int $value): void;
 
 	/**
 	 * 
 	 * @since 1.0.0
 	 */
-	public function setIdentity(string $value) {
-
-		$this->_identity = $value;
-
-	}
+	public function getCount(): int;
 
 	/**
 	 * 
 	 * @since 1.0.0
 	 */
-	public function getSecret(): string {
-
-		return $this->_secret;
-
-	}
-
-	/**
-	 * 
-	 * @since 1.0.0
-	 */
-	public function setSecret(string $value) {
-
-		$this->_secret = $value;
-
-	}
+	public function setCount(int $value): void;
 
 }

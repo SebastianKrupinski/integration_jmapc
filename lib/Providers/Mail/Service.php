@@ -25,9 +25,11 @@ declare(strict_types=1);
  */
 namespace OCA\JMAPC\Providers\Mail;
 
+use OCA\JMAPC\Providers\IRange;
 use OCA\JMAPC\Providers\ServiceLocation;
 use OCA\JMAPC\Providers\ServiceIdentityBAuth;
 use OCA\JMAPC\Providers\ServiceIdentityOAuth;
+use OCA\JMAPC\Providers\Mail\Message;
 use OCA\JMAPC\Service\Remote\RemoteClientService;
 use OCP\Mail\Provider\IAddress;
 use OCP\Mail\Provider\IMessage;
@@ -35,38 +37,22 @@ use OCP\Mail\Provider\IMessageSend;
 use OCP\Mail\Provider\IService;
 use OCP\Mail\Provider\IServiceIdentity;
 use OCP\Mail\Provider\IServiceLocation;
+use OCP\Mail\Provider\Address;
 use Psr\Container\ContainerInterface;
 
 class Service implements IService, IMessageSend {
 
-	protected string $userId;
-	protected string $serviceId;
-	protected string $serviceLabel;
-	protected IAddress $servicePrimaryAddress;
-	protected ?array $serviceSecondaryAddress;
-	protected ?IServiceLocation $serviceLocation;
-	protected ?IServiceIdentity $serviceIdentity;
-
-	protected $commandProcessor = null;
+	protected array $serviceSecondaryAddress = [];
 
 	public function __construct(
-		ContainerInterface $container,
-		string $uid,
-		string $sid,
-		string $label,
-		IAddress $primaryAddress,
-		ServiceIdentityBAuth|ServiceIdentityOAuth $identity = null,
-		ServiceLocation $location = null
+		protected ContainerInterface $container,
+		protected string $userId = '',
+		protected string $serviceId = '',
+		protected string $serviceLabel = '',
+		protected IAddress $servicePrimaryAddress = new Address(),
+		protected ?IServiceIdentity $serviceIdentity = null,
+		protected ?IServiceLocation $serviceLocation = null,
 	) {
-
-		$this->container = $container;
-		$this->userId = $uid;
-		$this->serviceId = $sid;
-		$this->serviceLabel = $label;
-		$this->servicePrimaryAddress = $primaryAddress;
-		$this->serviceIdentity = $identity;
-		$this->serviceLocation = $location;
-
 	}
 
 	/**
@@ -229,7 +215,7 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @return array<int, IAddress>			collection of mail address objects
 	 */
-	public function getSecondaryAddress(): array | null {
+	public function getSecondaryAddresses(): array {
 
 		// retrieve and return secondary service addressess (aliases) collection
 		return $this->serviceSecondaryAddress;
@@ -245,14 +231,26 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @return self                         	return this object for command chaining
 	 */
-	public function setSecondaryAddress(IAddress ...$value): self {
+	public function setSecondaryAddresses(IAddress ...$value): self {
 
 		$this->serviceSecondaryAddress = $value;
 		return $this;
 
 	}
 
-	
+	/**
+	 * construct a new empty message object
+	 *
+	 * @since 30.0.0
+	 *
+	 * @return IMessage				blank message object
+	 */
+	public function initiateMessage(): IMessage {
+
+		return (new Message());
+
+	}
+
 	protected function mailService() {
 
 		if ($this->mailService === null) {
@@ -322,6 +320,83 @@ class Service implements IService, IMessageSend {
 
 	}
 
+	public function entityFetch(string $location, string $id, array $options = []): object {
+
+		// perform action
+		return $this->mailService()->entityFetch($location, $id, $options);
+
+	}
+
+	public function entityCreate(string $location, IMessage $message, array $options = []): string {
+
+		// perform action
+		return $this->mailService()->entityCreate($location, $message, $options);
+
+	}
+
+	public function entityUpdate(string $location, string $id, IMessage $message, array $options = []): string {
+
+		// perform action
+		return $this->mailService()->entityUpdate($location, $id, $message, $options);
+
+	}
+
+	public function entityDelete(string $location, string $id, array $options = []): string {
+
+		// perform action
+		return $this->mailService()->entityDelete($location, $id, $options);
+
+	}
+
+	public function entityCopy(string $sourceLocation, string $id, string $destinationLocation, array $options = []): string {
+
+		// perform action
+		return $this->mailService()->entityCopy($sourceLocation, $id, $destinationLocation, $options);
+
+	}
+
+	public function entityMove(string $sourceLocation, string $id, string $destinationLocation, array $options = []): string {
+
+		// perform action
+		return $this->mailService()->entityMove($sourceLocation, $id, $destinationLocation, $options);
+
+	}
+
+	public function entityForward(string $location, string $id, IMessage $message, array $options = []): string {
+
+		// perform action
+		return $this->mailService()->entityForward($location, $id, $message, $options);
+
+	}
+
+	public function entityReply(string $location, string $id, IMessage $message, array $options = []): string {
+
+		// perform action
+		return $this->mailService()->entityReply($location, $id, $message, $options);
+
+	}
+
+	public function entitySend(IMessage $message, array $options = []): string {
+
+		// perform action
+		return $this->mailService()->entitySend($message, $options);
+
+	}
+
+	public function entityList(string $location, IRange $range = null, string $sort = null, array $options = []): array {
+
+		// perform action
+		return $this->mailService()->entityList($location, $range, $sort, $options);
+
+	}
+
+	public function entitySearch(string $location, array $filter, IRange $range = null, string $sort = null, string $scope = null, array $options = []): array {
+		
+		// perform action
+		return $this->mailService()->entitySearch($location, $filter, $range, $sort, $scope, $options);
+
+	}
+
 	/**
 	 * Sends an outbound message
 	 *
@@ -331,10 +406,10 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @param array $options			array of options reserved for future use
 	 */
-	public function sendMessage(IMessage $message, array $option = []): void {
+	public function sendMessage(IMessage $message, array $options = []): void {
 
 		// perform action
-		$this->mailService()->sendMessage($message, $option);
+		$this->mailService()->entitySend($message, $options);
 
 	}
 

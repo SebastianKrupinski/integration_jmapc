@@ -30,6 +30,7 @@ use OCA\JMAPC\Service\ServicesService;
 use OCA\JMAPC\Providers\ServiceLocation;
 use OCA\JMAPC\Providers\ServiceIdentityBAuth;
 use OCA\JMAPC\Providers\ServiceIdentityOAuth;
+use OCA\JMAPC\Providers\Mail\Service;
 
 use OCP\Mail\Provider\Address as MailAddress;
 use OCP\Mail\Provider\IProvider;
@@ -39,18 +40,12 @@ use Psr\Container\ContainerInterface;
 
 class Provider implements IProvider {
 
-	private ContainerInterface $container;
-	private ServicesService $ServicesService;
 	private ?array $ServiceCollection = [];
 
 	public function __construct(
-		ContainerInterface $container,
-		ServicesService $ServicesService
+		protected ContainerInterface $container,
+		protected ServicesService $ServicesService
 	) {
-		
-		$this->container = $container;
-		$this->ServicesService = $ServicesService;
-
 	}
 
 	/**
@@ -200,6 +195,19 @@ class Provider implements IProvider {
 			);
 		}
 		return new Service($this->container, $uid, $id, $label, $address, $identity, $location);
+	}
+
+	/**
+	 * construct and new blank service instance
+	 *
+	 * @since 30.0.0
+	 *
+	 * @return IService				blank service instance
+	 */
+	public function initiateService(): IService {
+
+		return (new Service($this->container));
+
 	}
 
 	/**

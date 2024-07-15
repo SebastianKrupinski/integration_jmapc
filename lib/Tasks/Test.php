@@ -86,69 +86,95 @@ try {
 	//$HarmonizationService->performHarmonization($uid, 'S');
 
 	$MailManager = \OC::$server->get(\OC\Mail\Provider\Manager::class);
-
 	// test types
 	$types = $MailManager->types();
 	// test providers
 	$providers = $MailManager->providers();
-	// test services
-	$services = $MailManager->services($uid);
-
+	// test service list
+	$services = $MailManager->services('user1');
+	// test service find
 	$service = $MailManager->findServiceByAddress('user1', 'user1@testmail.com');
+	// test new service
+	//$serviceNew = $providers['jmapc']->initiateService();
+	// test new message
+	//$messageNew = $serviceNew->initiateMessage();
 
 	// retrieve all collections information
-	$collections = $service->collections('', '', []);
+	$collections = $service->collections('', '');
 	// retrieve single collection information
-	$collection = $service->collectionFetch('', 'a', []);
+	$collection = $service->collectionFetch('', 'a');
 	// search collection inside collection 'a'
-	$collectionSearch1 = $service->collectionSearch('', 'Inbox', '', []);
-	$collectionSearch2 = $service->collectionSearch('', 'Drafts', '', []);
+	$collectionSearch1 = $service->collectionSearch('', 'Inbox', '');
+	$collectionSearch2 = $service->collectionSearch('', 'Drafts', '');
 
 	// create collection inside inbox
-	$collectionCreated = $service->collectionCreate($collectionSearch1[0], 'This is a test bvmnxbmvcmx', []);
+	$collectionCreated = $service->collectionCreate($collectionSearch1[0], 'This is a test bvmnxbmvcmx');
 	// move collection from inbox to drafts
-	$collectionMoved = $service->collectionMove($collectionSearch1[0], $collectionCreated, $collectionSearch2[0], []);
+	$collectionMoved = $service->collectionMove($collectionSearch1[0], $collectionCreated, $collectionSearch2[0]);
 	// update collection inside drafts
-	$collectionUpdated = $service->collectionUpdate($collectionSearch2[0], $collectionCreated, 'This is a test 20240101', []);
+	$collectionUpdated = $service->collectionUpdate($collectionSearch2[0], $collectionCreated, 'This is a test 20240101');
 	// delete collection inside drafts
-	$collectionDeleted = $service->collectionDelete($collectionSearch2[0], $collectionCreated, []);
+	$collectionDeleted = $service->collectionDelete($collectionSearch2[0], $collectionCreated);
 
-
-
-	
-
-	// Retrieve Mail List
-	//$r2 = new JmapClient\Requests\Mail\MailQuery('ce');
-	//$r2->filter()->in('a');
-	//$r2->sort()->from();
-
-	//$r3 = new JmapClient\Requests\Mail\MailGet('ce');
-	//$r3->targetFromRequest($r2, '/ids');
-
-	/*
-	$rc = new JmapClient\Requests\Mail\MailSet('a');
-	$rc->create('test-id-0')
-	   ->in('Test')
-	   ->from('from@domain.com')
-	   ->to('from@domain.com')
-	   ->contents('This is a test message', 'text/plain')
-	   ->draft();
-	*/
-
-	//$bundle = $Client->perform([$r0]);
-
-	//$bundle = $Client->perform([$r1, $r2, $r3]);
-
-	//$response = $bundle->response(2);
-
-	//$object = $response->object(0);
-
-	//$id = $object->id();
-	//$in = $object->in();
-	//$from = $object->from();
+	// construct range object
+	$range = new \OCA\JMAPC\Providers\RangeAbsolute(0, 1);
+	// list messages inside inbox without range
+	$entityListNoRange = $service->entityList($collectionSearch1[0]);
+	// list messages inside inbox with range
+	$entityListWithRange = $service->entityList($collectionSearch1[0], $range);
+	// find message inside inbox
+	$entitySearch = $service->entitySearch($collectionSearch1[0], ['text' => 'test']);
+	// retrieve message from inbox
+	$entityFetch = $service->entityFetch($entityListWithRange[0]->in()[0], $entityListWithRange[0]->id());
+	// create new message
+	$messageCreate = $service->initiateMessage();
+	// create new message data
+	$messageData = json_decode('
+{
+	"keywords": {
+		"$seen": true,
+		"$draft": true
+	},
+	"from": [{
+		"name": "Joe Bloggs",
+		"email": "joe@example.com"
+	}],
+	"subject": "World domination",
+	"receivedAt": "2018-07-10T01:03:11Z",
+	"sentAt": "2018-07-10T11:03:11+10:00",
+	"bodyStructure": {
+		"type": "text/plain",
+		"partId": "bd48",
+		"header:Content-Language": "en"
+	},
+	"bodyValues": {
+		"bd48": {
+			"value": "I have the most brilliant plan. Let me tell you all about it. What we do is, we",
+			"isTruncated": false
+		}
+	}
+}
+	', true, 512, JSON_THROW_ON_ERROR);
+	// load new message with raw data
+	$messageCreate->setParameters($messageData);
+	// create message in drafts
+	$entityCreate = $service->entityCreate($collectionSearch2[0], $messageCreate);
+	// create new message
+	$messageUpdate = $service->initiateMessage();
+	// change paramaters
+	//$messageUpdate->setTo((new \OCP\Mail\Provider\Address('test@tester.com', 'Tester Testing')));
+	$messageCreate->setParameters([
+		'to/0' => [
+			"name" => "Joe Bloggs",
+			"email" => "joe@example.com"
+		],
+		'from/0' => null
+	]);
+	// create message in drafts
+	$entityUpdate = $service->entityUpdate($collectionSearch2[0], $entityCreate, $messageUpdate);
 
 	exit;
-	
+
 } catch (Exception $ex) {
 	$logger->logException($ex, ['app' => 'integration_jmapc']);
 	$logger->info('Test ended unexpectedly', ['app' => 'integration_jmapc']);

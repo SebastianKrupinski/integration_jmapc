@@ -24,22 +24,15 @@ declare(strict_types=1);
 */
 namespace OCA\JMAPC\Providers;
 
-use OCP\Mail\Provider\IServiceIdentity;
-//use OCP\Mail\Provider\IServiceIdentityBAuth;
-
-class ServiceIdentityBAuth implements IServiceIdentity {
-//class ServiceIdentityBAuth implements IServiceIdentityBAuth {
-
-	private string $_identity = '';
-	private string $_secret = '';
+class RangeAbsolute implements IRange {
 
 	public function __construct(
-		string $identity = '',
-		string $secret = ''
+		protected string | int $start = 0,
+		protected string | int $count = 32,
 	) {
 
-		$this->_identity = $identity;
-		$this->_secret = $secret;
+		$this->start = $start;
+		$this->count = $count;
 
 	}
 
@@ -47,9 +40,9 @@ class ServiceIdentityBAuth implements IServiceIdentity {
 	 * 
 	 * @since 1.0.0
 	 */
-	public function type(): string {
-		
-		return 'BAUTH';
+	public function type(): RangeType {
+
+		return RangeType::ABSOLUTE;
 
 	}
 
@@ -57,9 +50,9 @@ class ServiceIdentityBAuth implements IServiceIdentity {
 	 * 
 	 * @since 1.0.0
 	 */
-	public function label(): string {
-		
-		return 'Basic Authentication';
+	public function getStart(): string | int {
+
+		return $this->start;
 
 	}
 
@@ -67,9 +60,9 @@ class ServiceIdentityBAuth implements IServiceIdentity {
 	 * 
 	 * @since 1.0.0
 	 */
-	public function getIdentity(): string {
-		
-		return $this->_identity;
+	public function setStart(string | int $value): void {
+
+		$this->start = $value;
 
 	}
 
@@ -77,19 +70,9 @@ class ServiceIdentityBAuth implements IServiceIdentity {
 	 * 
 	 * @since 1.0.0
 	 */
-	public function setIdentity(string $value) {
+	public function getCount(): int {
 
-		$this->_identity = $value;
-
-	}
-
-	/**
-	 * 
-	 * @since 1.0.0
-	 */
-	public function getSecret(): string {
-
-		return $this->_secret;
+		return $this->count;
 
 	}
 
@@ -97,9 +80,9 @@ class ServiceIdentityBAuth implements IServiceIdentity {
 	 * 
 	 * @since 1.0.0
 	 */
-	public function setSecret(string $value) {
+	public function setCount(int $value): void {
 
-		$this->_secret = $value;
+		$this->count = $value;
 
 	}
 

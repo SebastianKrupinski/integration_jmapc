@@ -28,6 +28,12 @@ use JmapClient\Client;
 use JmapClient\Requests\Mail\MailboxGet;
 use JmapClient\Requests\Mail\MailboxSet;
 use JmapClient\Requests\Mail\MailboxQuery;
+use JmapClient\Requests\Mail\MailGet;
+use JmapClient\Requests\Mail\MailSet;
+use JmapClient\Requests\Mail\MailQuery;
+use OCA\JMAPC\Providers\IRange;
+
+use OCP\Mail\Provider\IMessage;
 
 class RemoteMailService {
 
@@ -43,9 +49,9 @@ class RemoteMailService {
 
 	}
 
-	public function collections(string $location, string $scope): mixed {
+	public function collections(string $account, string $location, string $scope): mixed {
 		// construct get request
-		$r0 = new MailboxGet('ce');
+		$r0 = new MailboxGet($account);
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
@@ -60,9 +66,9 @@ class RemoteMailService {
      * @since Release 1.0.0
      * 
 	 */
-	public function collectionFetch(string $location, string $id): mixed {
+	public function collectionFetch(string $account, string $location, string $id): mixed {
 		// construct get request
-		$r0 = new MailboxGet('ce');
+		$r0 = new MailboxGet($account);
 		$r0->target($id);
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0]);
@@ -78,9 +84,9 @@ class RemoteMailService {
      * @since Release 1.0.0
 	 * 
 	 */
-	public function collectionCreate(string $location, string $label): string {
+	public function collectionCreate(string $account, string $location, string $label): string {
 		// construct set request
-		$r0 = new MailboxSet('ce');
+		$r0 = new MailboxSet($account);
 		// construct object
 		$m0 = $r0->create('1');
 		$m0->in($location);
@@ -99,9 +105,9 @@ class RemoteMailService {
      * @since Release 1.0.0
      * 
 	 */
-	public function collectionUpdate(string $location, string $id, string $label): string {
+	public function collectionUpdate(string $account, string $location, string $id, string $label): string {
         // construct set request
-		$r0 = new MailboxSet('ce');
+		$r0 = new MailboxSet($account);
 		// construct object
 		$m0 = $r0->update($id);
 		$m0->label($label);
@@ -119,11 +125,11 @@ class RemoteMailService {
      * @since Release 1.0.0
      * 
 	 */
-    public function collectionDelete(string $location, string $id): string {
+    public function collectionDelete(string $account, string $location, string $id): string {
         // construct set request
-		$r0 = new MailboxSet('ce');
+		$r0 = new MailboxSet($account);
 		// construct object
-		$m0 = $r0->delete($id);
+		$r0->delete($id);
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
@@ -138,9 +144,9 @@ class RemoteMailService {
      * @since Release 1.0.0
      * 
 	 */
-    public function collectionMove(string $sourceLocation, string $id, string $destinationLocation): string {
+    public function collectionMove(string $account, string $sourceLocation, string $id, string $destinationLocation): string {
         // construct set request
-		$r0 = new MailboxSet('ce');
+		$r0 = new MailboxSet($account);
 		// construct object
 		$m0 = $r0->update($id);
 		$m0->in($destinationLocation);
@@ -158,9 +164,9 @@ class RemoteMailService {
      * @since Release 1.0.0
      * 
 	 */
-    public function collectionSearch(string $location, string $filter, string $scope): array {
+    public function collectionSearch(string $account, string $location, string $filter, string $scope): array {
         // construct set request
-		$r0 = new MailboxQuery('ce');
+		$r0 = new MailboxQuery($account);
 		// set location constraint
 		if (!empty($location)) {
 			$r0->filter()->in($location);
@@ -177,79 +183,246 @@ class RemoteMailService {
 		return $response->list();
     }
 
-    /**
-	 * retrieve alteration for specific collection
-     * 
-     * @since Release 1.0.0
-	 * 
-     * @param string $cid		Collection Id
-	 * @param string $cst		Collections Synchronization Token
-	 * 
-	 * @return object
-	 */
-	public function reconcileCollection(string $cid, string $cst): ?object {
-
-    }
-
 	/**
-     * retrieve collection entity in remote storage
+     * retrieve entity from remote storage
      * 
      * @since Release 1.0.0
      * 
-	 * @param string $cid			Collection ID
-     * @param string $cst           Collection Signature Token
-	 * @param string $eid			Entity ID
-	 * 
-	 * @return Object       	Object on success / Null on failure
 	 */
-	public function fetchEntity(string $cid, string &$cst, string $eid): ?Object {
-
+	public function entityFetch(string $account, string $location, string $id): object {
+		// construct set request
+		$r0 = new MailGet($account);
+		// construct object
+		$r0->target($id);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return $response->object(0);
     }
     
 	/**
-     * create collection entity in remote storage
+     * create entity in remote storage
      * 
      * @since Release 1.0.0
      * 
-	 * @param string $cid			Collection Id
-	 * @param string $cst			Collection Synchronization Token
-     * @param Object $so     	Source Object
-	 * 
-	 * @return Object        	Object on success / Null on failure
 	 */
-	public function createEntity(string $cid, string &$cst, Object $so): ?Object {
-
+	public function entityCreate(string $account, string $location, IMessage $message): string {
+		// construct set request
+		$r0 = new MailSet($account);
+		// construct object
+		$r0->create('1')->parametersRaw($message->getParameters())->in($location);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return (string) $response->created()['1']['id'];
     }
 
     /**
-     * update collection entity in remote storage
+     * update entity in remote storage
      * 
      * @since Release 1.0.0
      * 
-     * @param string $cid			Collection ID
-	 * @param string $cst			Collection Signature Token
-     * @param string $eid           Entity ID
-     * @param Object $so     	Source Object
-	 * 
-	 * @return Object        	Object on success / Null on failure
 	 */
-	public function updateEntity(string $cid, string &$cst, string $eid, Object $so): ?Object {
-
+	public function entityUpdate(string $account, string $location, string $id, IMessage $message): string {
+		//
+		//TODO: Replace this code with an actual property update instead of replacement
+		//
+		// construct set request
+		$r0 = new MailSet($account);
+		// construct object
+		$r0->create('1')->parametersRaw($message->getParameters())->in($location);
+		// construct set request
+		$r1 = new MailSet($account);
+		// construct object
+		$r1->delete($id);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return (string) $response->created()['1']['id'];
     }
     
     /**
-     * delete collection entity in remote storage
+     * delete entity from remote storage
      * 
      * @since Release 1.0.0
      * 
-     * @param string $cid			Collection Id
-	 * @param string $cst			Collection Synchronization Token
-	 * @param string $eid			Entity Id
-	 * 
-	 * @return bool                 True on success / False on failure
 	 */
-    public function deleteEntity(string $cid, string $cst, string $eid): bool {
+    public function entityDelete(string $account, string $location, string $id): string {
+        // construct set request
+		$r0 = new MailSet($account);
+		// construct object
+		$r0->delete($id);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return (string) $response->deleted()[0];
+    }
+
+	/**
+     * copy entity in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function entityCopy(string $account, string $sourceLocation, string $id, string $destinationLocation): string {
         
+    }
+
+	/**
+     * move entity in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function entityMove(string $account, string $sourceLocation, string $id, string $destinationLocation): string {
+        // construct set request
+		$r0 = new MailSet($account);
+		// construct object
+		$m0 = $r0->update($id);
+		$m0->in($destinationLocation);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return (string) $response->updated()[0];
+    }
+
+	/**
+     * forward entity in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function entityForward(string $account, string $location, string $id, IMessage $message): string {
+
+    }
+
+	/**
+     * reply to entity in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function entityReply(string $account, string $location, string $id, IMessage $message): string {
+
+    }
+
+	/**
+     * send entity in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function entitySend(string $account, IMessage $message): string {
+
+		
+
+    }
+
+	/**
+     * retrieve entities from remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function entityList(string $account, string $location, IRange $range = null, string $sort = null): array {
+		// construct query request
+		$r0 = new MailQuery($account);
+		// set location constraint
+		$r0->filter()->in($location);
+		// set range constraint
+		if ($range !== null) {
+			if ($range->type()->value === 'absolute') {
+				$r0->startAbsolute($range->getStart())->limitAbsolute($range->getCount());
+			}
+			if ($range->type()->value === 'relative') {
+				$r0->startRelative($range->getStart())->limitRelative($range->getCount());
+			}
+		}
+		// set sort
+		if ($sort !== null) {
+			match($sort) {
+				'received' => $r0->sort()->received(),
+				'sent' => $r0->sort()->sent(),
+				'from' => $r0->sort()->from(),
+				'to' => $r0->sort()->to(),
+				'subject' => $r0->sort()->subject(),
+				'size' => $r0->sort()->size(),
+			};
+		}
+		// construct get request
+		$r1 = new MailGet($account);
+		// set target to query request
+		$r1->targetFromRequest($r0, '/ids');
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0, $r1]);
+		// extract response
+		$response = $bundle->response(1);
+		// return collection information
+		return $response->objects();
+    }
+
+	/**
+     * search for entities from remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function entitySearch(string $account, string $location, array $filter = null, IRange $range = null, string $sort = null, string $scope = null): array {
+		// construct query request
+		$r0 = new MailQuery($account);
+		// set location constraint
+		$r0->filter()->in($location);
+		// set filter constraints
+		if (!empty($filter)) {
+			// extract request filter
+			$rf = $r0->filter();
+			// iterate filter values
+			foreach ($filter as $key => $value) {
+				if (method_exists($rf, $key)) {
+					$rf->$key($value);
+				}
+			}
+		}
+		// set range constraint
+		if ($range !== null) {
+			if ($range->type()->value === 'absolute') {
+				$r0->startAbsolute($range->getStart())->limitAbsolute($range->getCount());
+			}
+			if ($range->type()->value === 'relative') {
+				$r0->startRelative($range->getStart())->limitRelative($range->getCount());
+			}
+		}
+		// set sort
+		if ($sort !== null) {
+			match($sort) {
+				'received' => $r0->sort()->received(),
+				'sent' => $r0->sort()->sent(),
+				'from' => $r0->sort()->from(),
+				'to' => $r0->sort()->to(),
+				'subject' => $r0->sort()->subject(),
+				'size' => $r0->sort()->size(),
+			};
+		}
+		// construct get request
+		$r1 = new MailGet($account);
+		// set target to query request
+		$r1->targetFromRequest($r0, '/ids');
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0, $r1]);
+		// extract response
+		$response = $bundle->response(1);
+		// return collection information
+		return $response->objects();
     }
 
 	/**
@@ -257,9 +430,6 @@ class RemoteMailService {
      * 
      * @since Release 1.0.0
      * 
-     * @param array $batch		Batch of Attachment ID's
-	 * 
-	 * @return array
 	 */
 	public function fetchAttachment(array $batch): array {
 
@@ -270,10 +440,6 @@ class RemoteMailService {
      * 
      * @since Release 1.0.0
      * 
-	 * @param string $aid - Affiliation ID
-     * @param array $sc - Collection of AttachmentObject(S)
-	 * 
-	 * @return string
 	 */
 	public function createAttachment(string $aid, array $batch): array {
 
@@ -284,12 +450,29 @@ class RemoteMailService {
      * 
      * @since Release 1.0.0
      * 
-     * @param string $aid - Attachment ID
-	 * 
-	 * @return bool true - successfully delete / False - failed to delete
 	 */
 	public function deleteAttachment(array $batch): array {
 
+    }
+
+	// Recursive function to build JSON Pointer
+    function convertJsonToJsonPointer($data, $path = '') {
+        $pointer = [];
+        foreach ($data as $key => $value) {
+			// generate path
+			if (!empty($path)) {
+				$current_path = $path . '/' . str_replace('~', '~0', str_replace('/', '~1', $key));
+			} else {
+				$current_path = str_replace('~', '~0', str_replace('/', '~1', $key));
+			}
+    
+            if (is_array($value)) {
+                $pointer = array_merge($pointer, $this->convertJsonToJsonPointer($value, $current_path));
+            } else {
+                $pointer[$current_path] = $value;
+            }
+        }
+        return $pointer;
     }
 
 }

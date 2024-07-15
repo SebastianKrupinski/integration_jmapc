@@ -27,8 +27,6 @@ namespace OCA\JMAPC\Providers;
 use OCP\Mail\Provider\IServiceIdentity;
 //use OCP\Mail\Provider\IServiceIdentityOAuth;
 
-use OCA\JMAPC\AppInfo\Application;
-
 class ServiceIdentityOAuth implements IServiceIdentity {
 //class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 
