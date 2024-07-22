@@ -25,10 +25,9 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Providers;
 
 //use OCP\Mail\Provider\IServiceLocationUri;
-use OCP\Mail\Provider\IServiceLocation;
+//use OCP\Mail\Provider\IServiceLocation;
 
-//class ServiceLocation implements IServiceLocationUri {
-class ServiceLocation implements IServiceLocation {
+class ServiceLocation implements IServiceLocationUri {
 	private string $_scheme = 'https://';
 	private string $_host = '';
 	private string $_path = '/';

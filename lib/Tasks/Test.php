@@ -82,6 +82,15 @@ try {
 	// $RemoteCommonService = \OC::$server->get(\OCA\JMAPC\Service\Remote\RemoteCommonService::class);
 	// $RemoteEventsService = \OC::$server->get(\OCA\JMAPC\Service\Remote\RemoteEventsService::class);
 
+	/////////////// CalDAV Test //////////////////
+	/*
+	$CalDavBackend = \OC::$server->get(\OCA\DAV\CalDAV\CalDavBackend::class);
+
+	$results = $CalDavBackend->getChangesForCalendar('4512', '0', 1);
+
+	exit;
+	*/
+	
 	// execute initial harmonization
 	//$HarmonizationService->performHarmonization($uid, 'S');
 

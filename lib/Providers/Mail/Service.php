@@ -35,14 +35,15 @@ use OCP\Mail\Provider\IAddress;
 use OCP\Mail\Provider\IMessage;
 use OCP\Mail\Provider\IMessageSend;
 use OCP\Mail\Provider\IService;
-use OCP\Mail\Provider\IServiceIdentity;
-use OCP\Mail\Provider\IServiceLocation;
+use OCA\JMAPC\Providers\IServiceIdentity;
+use OCA\JMAPC\Providers\IServiceLocation;
 use OCP\Mail\Provider\Address;
 use Psr\Container\ContainerInterface;
 
 class Service implements IService, IMessageSend {
 
 	protected array $serviceSecondaryAddress = [];
+	protected array $serviceAbilities = [];
 
 	public function __construct(
 		protected ContainerInterface $container,
@@ -53,6 +54,26 @@ class Service implements IService, IMessageSend {
 		protected ?IServiceIdentity $serviceIdentity = null,
 		protected ?IServiceLocation $serviceLocation = null,
 	) {
+		$this->serviceAbilities = [
+			'Collections' => true,
+			'CollectionFetch' => true,
+			'CollectionCreate' => true,
+			'CollectionUpdate' => true,
+			'CollectionDelete' => true,
+			'CollectionMove' => true,
+			'CollectionSearch' => true,
+			'MessageFetch' => true,
+			'MessageCreate' => true,
+			'MessageUpdate' => true,
+			'MessageDelete' => true,
+			'MessageCopy' => true,
+			'MessageMove' => true,
+			'MessageForward' => true,
+			'MessageRelay' => true,
+			'MessageSend' => true,
+			'MessageList' => true,
+			'MessageSearch' => true,
+		];
 	}
 
 	/**
@@ -69,26 +90,35 @@ class Service implements IService, IMessageSend {
 	}
 
 	/**
-	 * checks or retrieves what capabilites the service has
+	 * checks if a service is able of performing an specific action
 	 *
-	 * @since 2024.05.25
+	 * @since 4.0.0
 	 *
-	 * @param string $ability				required ability e.g. 'MessageSend'
+	 * @param string $value					required ability e.g. 'MessageSend'
 	 *
-	 * @return bool|array					true/false if ability is supplied, collection of abilities otherwise
+	 * @return bool							true/false if ability is supplied and found in collection
 	 */
-	public function capable(?string $ability = null): bool | array {
+	public function capable(string $value): bool {
 
-		// define all abilities
-		$abilities = [
-			'MessageSend' => true,
-		];
-		// evaluate if required ability was specified
-		if (isset($ability)) {
-			return (isset($abilities[$ability]) ? (bool) $abilities[$ability] : false);
-		} else {
-			return $abilities;
+		// evaluate if required ability exists
+		if (isset($this->serviceAbilities[$value])) {
+			return (bool) $this->serviceAbilities[$value];
 		}
+		
+		return false;
+
+	}
+
+	/**
+	 * retrieves a collection of what actions a service can perfrom
+	 *
+	 * @since 4.0.0
+	 *
+	 * @return array						collection of abilities otherwise empty collection
+	 */
+	public function capabilities(): array {
+
+		return $this->serviceAbilities;
 
 	}
 
@@ -122,6 +152,24 @@ class Service implements IService, IMessageSend {
 	}
 
 	/**
+	 * construct a new empty identity object
+	 *
+	 * @since 30.0.0
+	 * 
+	 * @param string $type					identity type e.g. BA = Basic, OA = Bearer
+	 *
+	 * @return IServiceIdentity				blank identity object
+	 */
+	public function initiateIdentity(string $type): IServiceIdentity {
+
+		return match ($type) {
+			'BAUTH' => new ServiceIdentityBAuth(),
+			'OAUTH' => new ServiceIdentityOAuth(),
+		};
+
+	}
+
+	/**
 	 * gets service itentity
 	 *
 	 * @since 2024.05.25
@@ -149,6 +197,19 @@ class Service implements IService, IMessageSend {
 		return $this;
 	}
 
+	/**
+	 * construct a new empty identity object
+	 *
+	 * @since 30.0.0
+	 *
+	 * @return IServiceLocation				blank identity object
+	 */
+	public function initiateLocation(): IServiceLocation {
+
+		return new ServiceLocation();
+
+	}
+	
 	/**
 	 * gets service location
 	 *

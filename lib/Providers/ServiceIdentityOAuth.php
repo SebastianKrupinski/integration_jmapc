@@ -24,11 +24,10 @@ declare(strict_types=1);
 */
 namespace OCA\JMAPC\Providers;
 
-use OCP\Mail\Provider\IServiceIdentity;
+//use OCP\Mail\Provider\IServiceIdentity;
 //use OCP\Mail\Provider\IServiceIdentityOAuth;
 
-class ServiceIdentityOAuth implements IServiceIdentity {
-//class ServiceIdentityOAuth implements IServiceIdentityOAuth {
+class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 
 	private string $_AccessToken = '';
 	private array $_AccessScope = [];

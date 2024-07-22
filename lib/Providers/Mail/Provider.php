@@ -206,7 +206,7 @@ class Provider implements IProvider {
 	 */
 	public function initiateService(): IService {
 
-		return (new Service($this->container));
+		return new Service($this->container);
 
 	}
 

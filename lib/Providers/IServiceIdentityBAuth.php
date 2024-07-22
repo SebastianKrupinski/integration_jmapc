@@ -24,82 +24,36 @@ declare(strict_types=1);
 */
 namespace OCA\JMAPC\Providers;
 
-//use OCP\Mail\Provider\IServiceIdentity;
-//use OCP\Mail\Provider\IServiceIdentityBAuth;
-
-class ServiceIdentityBAuth implements IServiceIdentityBAuth {
-
-	private string $_identity = '';
-	private string $_secret = '';
-
-	public function __construct(
-		string $identity = '',
-		string $secret = ''
-	) {
-
-		$this->_identity = $identity;
-		$this->_secret = $secret;
-
-	}
+/**
+ * This is the interface that is implemented by apps that
+ * implement a mail provider
+ * 
+ * @since 30.0.0
+ */
+interface IServiceIdentityBAuth extends IServiceIdentity {
 
 	/**
 	 * 
-	 * @since 1.0.0
+	 * @since 30.0.0
 	 */
-	public function type(): string {
-		
-		return 'BAUTH';
-
-	}
+	public function getIdentity(): string;
 
 	/**
 	 * 
-	 * @since 1.0.0
+	 * @since 30.0.0
 	 */
-	public function label(): string {
-		
-		return 'Basic Authentication';
-
-	}
+	public function setIdentity(string $value);
 
 	/**
 	 * 
-	 * @since 1.0.0
+	 * @since 30.0.0
 	 */
-	public function getIdentity(): string {
-		
-		return $this->_identity;
-
-	}
+	public function getSecret(): string;
 
 	/**
 	 * 
-	 * @since 1.0.0
+	 * @since 30.0.0
 	 */
-	public function setIdentity(string $value) {
-
-		$this->_identity = $value;
-
-	}
-
-	/**
-	 * 
-	 * @since 1.0.0
-	 */
-	public function getSecret(): string {
-
-		return $this->_secret;
-
-	}
-
-	/**
-	 * 
-	 * @since 1.0.0
-	 */
-	public function setSecret(string $value) {
-
-		$this->_secret = $value;
-
-	}
+	public function setSecret(string $value);
 
 }

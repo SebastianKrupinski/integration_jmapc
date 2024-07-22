@@ -28,8 +28,8 @@ namespace OCA\JMAPC\Service\Remote;
 use JmapClient\Client;
 use JmapClient\Authentication\Basic;
 use JmapClient\Authentication\Bearer;
-use OCP\Mail\Provider\IServiceIdentity;
-use OCP\Mail\Provider\IServiceLocation;
+use OCA\JMAPC\Providers\IServiceIdentity;
+use OCA\JMAPC\Providers\IServiceLocation;
 
 class RemoteClientService {
 
