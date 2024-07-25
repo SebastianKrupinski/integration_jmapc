@@ -102,85 +102,56 @@ try {
 	// test service list
 	$services = $MailManager->services('user1');
 	// test service find
-	$service = $MailManager->findServiceByAddress('user1', 'user1@testmail.com');
+	$service = $MailManager->findServiceByAddress('user1', 'user-test@testmail.com');
 	// test new service
 	//$serviceNew = $providers['jmapc']->initiateService();
 	// test new message
 	//$messageNew = $serviceNew->initiateMessage();
 
 	// retrieve all collections information
-	$collections = $service->collections('', '');
+	$collectionList = $service->collectionList('', '');
 	// retrieve single collection information
-	$collection = $service->collectionFetch('', 'a');
+	$collectionFetch = $service->collectionFetch('', $collectionList[0]->id());
 	// search collection inside collection 'a'
 	$collectionSearch1 = $service->collectionSearch('', 'Inbox', '');
 	$collectionSearch2 = $service->collectionSearch('', 'Drafts', '');
+	$collectionSearch3 = $service->collectionSearch('', 'Junk Mail', '');
 
 	// create collection inside inbox
-	$collectionCreated = $service->collectionCreate($collectionSearch1[0], 'This is a test bvmnxbmvcmx');
+	$collectionCreated = $service->collectionCreate($collectionSearch1[0]->id(), 'This is a test bvmnxbmvcmx');
 	// move collection from inbox to drafts
-	$collectionMoved = $service->collectionMove($collectionSearch1[0], $collectionCreated, $collectionSearch2[0]);
+	$collectionMoved = $service->collectionMove($collectionSearch1[0]->id(), $collectionCreated, $collectionSearch2[0]->id());
 	// update collection inside drafts
-	$collectionUpdated = $service->collectionUpdate($collectionSearch2[0], $collectionCreated, 'This is a test 20240101');
+	$collectionUpdated = $service->collectionUpdate($collectionSearch2[0]->id(), $collectionCreated, 'This is a test 20240101');
 	// delete collection inside drafts
-	$collectionDeleted = $service->collectionDelete($collectionSearch2[0], $collectionCreated);
+	$collectionDeleted = $service->collectionDelete($collectionSearch2[0]->id(), $collectionCreated);
 
 	// construct range object
 	$range = new \OCA\JMAPC\Providers\RangeAbsolute(0, 1);
 	// list messages inside inbox without range
-	$entityListNoRange = $service->entityList($collectionSearch1[0]);
+	$entityListNoRange = $service->entityList($collectionSearch1[0]->id());
 	// list messages inside inbox with range
-	$entityListWithRange = $service->entityList($collectionSearch1[0], $range);
+	$entityListWithRange = $service->entityList($collectionSearch1[0]->id(), $range);
 	// find message inside inbox
-	$entitySearch = $service->entitySearch($collectionSearch1[0], ['text' => 'test']);
+	$entitySearch = $service->entitySearch($collectionSearch1[0]->id(), ['text' => 'test']);
 	// retrieve message from inbox
 	$entityFetch = $service->entityFetch($entityListWithRange[0]->in()[0], $entityListWithRange[0]->id());
 	// create new message
 	$messageCreate = $service->initiateMessage();
-	// create new message data
-	$messageData = json_decode('
-{
-	"keywords": {
-		"$seen": true,
-		"$draft": true
-	},
-	"from": [{
-		"name": "Joe Bloggs",
-		"email": "joe@example.com"
-	}],
-	"subject": "World domination",
-	"receivedAt": "2018-07-10T01:03:11Z",
-	"sentAt": "2018-07-10T11:03:11+10:00",
-	"bodyStructure": {
-		"type": "text/plain",
-		"partId": "bd48",
-		"header:Content-Language": "en"
-	},
-	"bodyValues": {
-		"bd48": {
-			"value": "I have the most brilliant plan. Let me tell you all about it. What we do is, we",
-			"isTruncated": false
-		}
-	}
-}
-	', true, 512, JSON_THROW_ON_ERROR);
-	// load new message with raw data
-	$messageCreate->setParameters($messageData);
-	// create message in drafts
-	$entityCreate = $service->entityCreate($collectionSearch2[0], $messageCreate);
 	// create new message
-	$messageUpdate = $service->initiateMessage();
-	// change paramaters
-	//$messageUpdate->setTo((new \OCP\Mail\Provider\Address('test@tester.com', 'Tester Testing')));
-	$messageCreate->setParameters([
-		'to/0' => [
-			"name" => "Joe Bloggs",
-			"email" => "joe@example.com"
-		],
-		'from/0' => null
-	]);
+	$messageCreate->setFrom(new \OCP\Mail\Provider\Address('joe@example.com', 'Joe Bloggs'));
+	$messageCreate->setSubject('World domination');
+	$messageCreate->setBodyPlain('I have the most brilliant plan. Let me tell you all about it. What we do is, we');
 	// create message in drafts
-	$entityUpdate = $service->entityUpdate($collectionSearch2[0], $entityCreate, $messageUpdate);
+	$entityCreate = $service->entityCreate($collectionSearch2[0]->id(), $messageCreate);
+	// fetch created message
+	$messageUpdate = $service->entityFetch($collectionSearch2[0]->id(), $entityCreate);
+	// update subject of message
+	$messageUpdate->setSubject('World domination Modified');
+	// update message in drafts
+	//////// $entityUpdate = $service->entityUpdate($collectionSearch2[0]->id(), $entityCreate, $messageUpdate);
+	// move message to junk mail
+	$entityMoved = $service->entityMove($collectionSearch2[0]->id(), $entityCreate, $collectionSearch3[0]->id());
 
 	exit;
 

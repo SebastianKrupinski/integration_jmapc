@@ -63,13 +63,7 @@ class MailMessageService {
 		
 	}
 
-	public function collections(string $location, string $scope, array $options = []): array {
-		
-		return $this->remoteMailService->collections($this->account, $location, $scope);
-
-	}
-
-	public function collectionFetch(string $location, string $id, array $options = []): array {
+	public function collectionFetch(string $location, string $id, array $options = []): object {
 		
 		return $this->remoteMailService->collectionFetch($this->account, $location, $id);
 
@@ -99,15 +93,21 @@ class MailMessageService {
 
 	}
 
+	public function collectionList(string $location, string $scope, array $options = []): array {
+		
+		return $this->remoteMailService->collectionList($this->account, $location, $scope);
+
+	}
+
 	public function collectionSearch(string $location, string $filter, string $scope, array $options = []): array {
 
 		return $this->remoteMailService->collectionSearch($this->account, $location, $filter, $scope);
 
 	}
 
-	public function entityFetch(string $location, string $id, array $options = []): object {
+	public function entityFetch(string $location, string $id, string $particulars = 'D', array $options = []): object {
 		
-		return $this->remoteMailService->entityFetch($this->account, $location, $id);
+		return $this->remoteMailService->entityFetch($this->account, $location, $id, $particulars);
 
 	}
 
@@ -164,15 +164,15 @@ class MailMessageService {
 
 	}
 
-	public function entityList(string $location, IRange $range = null, string $sort = null, array $options = []): array {
+	public function entityList(string $location, IRange $range = null, string $sort = null, string $particulars = 'D', array $options = []): array {
 
-		return $this->remoteMailService->entityList($this->account, $location, $range, $sort);
+		return $this->remoteMailService->entityList($this->account, $location, $range, $sort, $particulars);
 
 	}
 
-	public function entitySearch(string $location, array $filter, IRange $range = null, string $sort = null, string $scope = null, array $options = []): array {
+	public function entitySearch(string $location, array $filter, IRange $range = null, string $sort = null, string $scope = null, string $particulars = 'D', array $options = []): array {
 		
-		return $this->remoteMailService->entitySearch($this->account, $location, $filter, $range, $sort, $scope);
+		return $this->remoteMailService->entitySearch($this->account, $location, $filter, $range, $sort, $particulars);
 
 	}
 

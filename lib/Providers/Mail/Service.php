@@ -326,19 +326,6 @@ class Service implements IService, IMessageSend {
 		
 	}
 
-	/**
-	 * retrieve a list of collections
-	 *
-	 * @since 2024.05.25
-	 *
-	 */
-	public function collections(string $location, string $scope, array $options = []): array {
-
-		// perform action
-		return $this->mailService()->collections($location, $scope, $options);
-
-	}
-
 	public function collectionFetch(string $location, string $id, array $options = []): mixed {
 		
 		// perform action
@@ -374,6 +361,19 @@ class Service implements IService, IMessageSend {
 
 	}
 
+	/**
+	 * retrieve a list of collections
+	 *
+	 * @since 2024.05.25
+	 *
+	 */
+	public function collectionList(string $location, string $scope, array $options = []): array {
+
+		// perform action
+		return $this->mailService()->collectionList($location, $scope, $options);
+
+	}
+
 	public function collectionSearch(string $location, string $filter, string $scope, array $options = []): array {
 
 		// perform action
@@ -381,10 +381,10 @@ class Service implements IService, IMessageSend {
 
 	}
 
-	public function entityFetch(string $location, string $id, array $options = []): object {
+	public function entityFetch(string $location, string $id, string $particulars = 'D', array $options = []): object {
 
 		// perform action
-		return $this->mailService()->entityFetch($location, $id, $options);
+		return $this->mailService()->entityFetch($location, $id, $particulars, $options);
 
 	}
 
@@ -444,17 +444,17 @@ class Service implements IService, IMessageSend {
 
 	}
 
-	public function entityList(string $location, IRange $range = null, string $sort = null, array $options = []): array {
+	public function entityList(string $location, IRange $range = null, string $sort = null, string $particulars = 'D', array $options = []): array {
 
 		// perform action
-		return $this->mailService()->entityList($location, $range, $sort, $options);
+		return $this->mailService()->entityList($location, $range, $sort, $particulars, $options);
 
 	}
 
-	public function entitySearch(string $location, array $filter, IRange $range = null, string $sort = null, string $scope = null, array $options = []): array {
+	public function entitySearch(string $location, array $filter, IRange $range = null, string $sort = null, string $scope = null, string $particulars = 'D', array $options = []): array {
 		
 		// perform action
-		return $this->mailService()->entitySearch($location, $filter, $range, $sort, $scope, $options);
+		return $this->mailService()->entitySearch($location, $filter, $range, $sort, $scope, $particulars, $options);
 
 	}
 

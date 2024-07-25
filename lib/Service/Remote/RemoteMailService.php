@@ -31,7 +31,11 @@ use JmapClient\Requests\Mail\MailboxQuery;
 use JmapClient\Requests\Mail\MailGet;
 use JmapClient\Requests\Mail\MailSet;
 use JmapClient\Requests\Mail\MailQuery;
+
 use OCA\JMAPC\Providers\IRange;
+use OCA\JMAPC\Providers\Mail\ICollection;
+use OCA\JMAPC\Providers\Mail\Collection;
+use OCA\JMAPC\Providers\Mail\Message;
 
 use OCP\Mail\Provider\IMessage;
 
@@ -49,24 +53,13 @@ class RemoteMailService {
 
 	}
 
-	public function collections(string $account, string $location, string $scope): mixed {
-		// construct get request
-		$r0 = new MailboxGet($account);
-		// transmit request and receive response
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// return collections information
-		return $response->objects();
-	}
-
 	/**
      * retrieve properties for specific collection
      * 
      * @since Release 1.0.0
      * 
 	 */
-	public function collectionFetch(string $account, string $location, string $id): mixed {
+	public function collectionFetch(string $account, string $location, string $id): ICollection {
 		// construct get request
 		$r0 = new MailboxGet($account);
 		$r0->target($id);
@@ -74,8 +67,8 @@ class RemoteMailService {
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// return collection information
-		return $response->objects();
+		// convert json object to message object and return
+		return new Collection($response->object(0)->parametersRaw());
     }
 
 	/**
@@ -116,7 +109,7 @@ class RemoteMailService {
 		// extract response
 		$response = $bundle->response(0);
 		// return collection information
-		return isset($response->updated()[$id]) ? (string) $id : '';
+		return array_key_exists($id, $response->updated()) ? (string) $id : '';
     }
 
     /**
@@ -155,8 +148,38 @@ class RemoteMailService {
 		// extract response
 		$response = $bundle->response(0);
 		// return collection information
-		return (string) $response->updated()[0];
+		return array_key_exists($id, $response->updated()) ? (string) $id : '';
     }
+
+	/**
+     * list of collections in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function collectionList(string $account, string $location, string $scope): array {
+		// construct set request
+		$r0 = new MailboxQuery($account);
+		// set location constraint
+		if (!empty($location)) {
+			$r0->filter()->in($location);
+		}
+		// construct get request
+		$r1 = new MailboxGet($account);
+		// set target to query request
+		$r1->targetFromRequest($r0, '/ids');
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0, $r1]);
+		// extract response
+		$response = $bundle->response(1);
+		// convert json objects to collection objects
+		$list = $response->objects();
+		foreach ($list as $id => $message) {
+			$list[$id] = new Collection($message->parametersRaw());
+		}
+		// return collection of collections
+		return $list;
+	}
 
 	/**
      * search for collection in remote storage
@@ -175,12 +198,21 @@ class RemoteMailService {
 		if (!empty($filter)) {
 			$r0->filter()->Name($filter);
 		}
+		// construct get request
+		$r1 = new MailboxGet($account);
+		// set target to query request
+		$r1->targetFromRequest($r0, '/ids');
 		// transmit request and receive response
-		$bundle = $this->dataStore->perform([$r0]);
+		$bundle = $this->dataStore->perform([$r0, $r1]);
 		// extract response
-		$response = $bundle->response(0);
-		// return collection information
-		return $response->list();
+		$response = $bundle->response(1);
+		// convert json objects to collection objects
+		$list = $response->objects();
+		foreach ($list as $id => $message) {
+			$list[$id] = new Collection($message->parametersRaw());
+		}
+		// return collection of collections
+		return $list;
     }
 
 	/**
@@ -189,17 +221,22 @@ class RemoteMailService {
      * @since Release 1.0.0
      * 
 	 */
-	public function entityFetch(string $account, string $location, string $id): object {
+	public function entityFetch(string $account, string $location, string $id, string $particulars = 'D'): IMessage {
 		// construct set request
 		$r0 = new MailGet($account);
 		// construct object
 		$r0->target($id);
+		// determine what view to return
+		if ($particulars = 'B') {
+			$r0->bodyAll(true);
+		}
+		//$r0->bodyProperty('header:all');
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// return collection information
-		return $response->object(0);
+		// convert json object to message object and return
+		return new Message($response->object(0)->parametersRaw());
     }
     
 	/**
@@ -232,19 +269,25 @@ class RemoteMailService {
 		//TODO: Replace this code with an actual property update instead of replacement
 		//
 		// construct set request
+		//$r0 = new MailSet($account);
+		// construct object
+		//$r0->create('1')->parametersRaw($message->getParameters())->in($location);
+		// construct set request
+		//$r1 = new MailSet($account);
+		// construct object
+		//$r1->delete($id);
+		// construct set request
 		$r0 = new MailSet($account);
 		// construct object
-		$r0->create('1')->parametersRaw($message->getParameters())->in($location);
-		// construct set request
-		$r1 = new MailSet($account);
-		// construct object
-		$r1->delete($id);
+		$messageData = $message->getParameters();
+		$messageData['id'] = $id;
+		$r0->update($id)->parametersRaw($messageData);
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
 		// return collection information
-		return (string) $response->created()['1']['id'];
+		return array_key_exists($id, $response->updated()) ? (string) $id : '';
     }
     
     /**
@@ -293,7 +336,7 @@ class RemoteMailService {
 		// extract response
 		$response = $bundle->response(0);
 		// return collection information
-		return (string) $response->updated()[0];
+		return array_key_exists($id, $response->updated()) ? (string) $id : '';
     }
 
 	/**
@@ -334,7 +377,7 @@ class RemoteMailService {
      * @since Release 1.0.0
      * 
 	 */
-	public function entityList(string $account, string $location, IRange $range = null, string $sort = null): array {
+	public function entityList(string $account, string $location, IRange $range = null, string $sort = null, string $particulars = 'D'): array {
 		// construct query request
 		$r0 = new MailQuery($account);
 		// set location constraint
@@ -363,12 +406,21 @@ class RemoteMailService {
 		$r1 = new MailGet($account);
 		// set target to query request
 		$r1->targetFromRequest($r0, '/ids');
+		// determine what view to return
+		if ($particulars = 'B') {
+			$r1->bodyAll(true);
+		}
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0, $r1]);
 		// extract response
 		$response = $bundle->response(1);
-		// return collection information
-		return $response->objects();
+		// convert json objects to message objects
+		$list = $response->objects();
+		foreach ($list as $id => $message) {
+			$list[$id] = new Message($message->parametersRaw());
+		}
+		// return message collection
+		return $list;
     }
 
 	/**
@@ -377,7 +429,7 @@ class RemoteMailService {
      * @since Release 1.0.0
      * 
 	 */
-	public function entitySearch(string $account, string $location, array $filter = null, IRange $range = null, string $sort = null, string $scope = null): array {
+	public function entitySearch(string $account, string $location, array $filter = null, IRange $range = null, string $sort = null, string $particulars = 'D'): array {
 		// construct query request
 		$r0 = new MailQuery($account);
 		// set location constraint
@@ -417,12 +469,21 @@ class RemoteMailService {
 		$r1 = new MailGet($account);
 		// set target to query request
 		$r1->targetFromRequest($r0, '/ids');
+		// determine what view to return
+		if ($particulars = 'B') {
+			$r1->bodyAll(true);
+		}
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0, $r1]);
 		// extract response
 		$response = $bundle->response(1);
-		// return collection information
-		return $response->objects();
+		// convert json objects to message objects
+		$list = $response->objects();
+		foreach ($list as $id => $message) {
+			$list[$id] = new Message($message->parametersRaw());
+		}
+		// return message collection
+		return $list;
     }
 
 	/**
