@@ -102,7 +102,7 @@ try {
 	// test service list
 	$services = $MailManager->services('user1');
 	// test service find
-	$service = $MailManager->findServiceByAddress('user1', 'user-test@testmail.com');
+	$service = $MailManager->findServiceByAddress('user1', 'user1@testmail.com');
 	// test new service
 	//$serviceNew = $providers['jmapc']->initiateService();
 	// test new message
@@ -116,7 +116,10 @@ try {
 	$collectionSearch1 = $service->collectionSearch('', 'Inbox', '');
 	$collectionSearch2 = $service->collectionSearch('', 'Drafts', '');
 	$collectionSearch3 = $service->collectionSearch('', 'Junk Mail', '');
-
+	if (empty($collectionSearch3)) {
+		$collectionSearch3 = $service->collectionSearch('', 'Spam', '');
+	}
+	
 	// create collection inside inbox
 	$collectionCreated = $service->collectionCreate($collectionSearch1[0]->id(), 'This is a test bvmnxbmvcmx');
 	// move collection from inbox to drafts
@@ -152,6 +155,15 @@ try {
 	//////// $entityUpdate = $service->entityUpdate($collectionSearch2[0]->id(), $entityCreate, $messageUpdate);
 	// move message to junk mail
 	$entityMoved = $service->entityMove($collectionSearch2[0]->id(), $entityCreate, $collectionSearch3[0]->id());
+
+	// create new message
+	$messageSend = $service->initiateMessage();
+	$messageSend->setFrom(new \OCP\Mail\Provider\Address('user1@testmail.com', 'User 1'));
+	$messageSend->setTo(new \OCP\Mail\Provider\Address('user2@testmail.com', 'User 2'));
+	$messageSend->setSubject('World domination');
+	$messageSend->setBodyPlain('I have the most brilliant plan. Let me tell you all about it. What we do is, we');
+	$service->entitySend($messageSend);
+
 
 	exit;
 

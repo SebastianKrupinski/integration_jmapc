@@ -29,18 +29,21 @@ namespace OCA\JMAPC\Providers;
 
 class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 
+	private string $_AccessId = '';
 	private string $_AccessToken = '';
 	private array $_AccessScope = [];
-	private string $_AccessExpiry = '';
+	private int $_AccessExpiry = 3600;
 	private string $_RefreshToken = '';
 	private string $_RefreshLocation = '';
 
 	public function __construct(
+		string $id = '',
 		string $access = '',
 		int $expiry = 0,
 		string $refresh = ''
 	) {
 
+		$this->_AccessId = $id;
 		$this->_AccessToken = $access;
 		$this->_AccessExpiry = $expiry;
 		$this->_RefreshToken = $refresh;
@@ -64,6 +67,26 @@ class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 	public function label(): string {
 		
 		return 'Bearer Authentication';
+
+	}
+
+		/**
+	 * 
+	 * @since 1.0.0
+	 */
+	public function getAccessId(): string {
+
+		return $this->_AccessId;
+
+	}
+
+	/**
+	 * 
+	 * @since 1.0.0
+	 */
+	public function setAccessId(string $value) {
+
+		$this->_AccessId = $value;
 
 	}
 

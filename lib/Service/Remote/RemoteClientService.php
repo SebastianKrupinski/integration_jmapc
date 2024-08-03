@@ -68,7 +68,7 @@ class RemoteClientService {
 		$client->setHost($location->getHost() . ':' . $location->getPort());
 
 		if ($identity->type() == 'OAUTH') {
-			$client->setAuthentication(new Bearer());
+			$client->setAuthentication(new Bearer($identity->getAccessId(), $identity->getAccessToken(), $identity->getAccessExpiry()));
 		}
 
 		if ($identity->type() == 'BAUTH') {

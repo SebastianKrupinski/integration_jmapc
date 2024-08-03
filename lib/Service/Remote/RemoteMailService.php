@@ -25,12 +25,14 @@
 namespace OCA\JMAPC\Service\Remote;
 
 use JmapClient\Client;
+use JmapClient\Requests\Identity\IdentityGet;
 use JmapClient\Requests\Mail\MailboxGet;
 use JmapClient\Requests\Mail\MailboxSet;
 use JmapClient\Requests\Mail\MailboxQuery;
 use JmapClient\Requests\Mail\MailGet;
 use JmapClient\Requests\Mail\MailSet;
 use JmapClient\Requests\Mail\MailQuery;
+use JmapClient\Requests\Mail\MailSubmissionSet;
 
 use OCA\JMAPC\Providers\IRange;
 use OCA\JMAPC\Providers\Mail\ICollection;
@@ -360,15 +362,59 @@ class RemoteMailService {
     }
 
 	/**
-     * send entity in remote storage
+     * send entity
      * 
      * @since Release 1.0.0
      * 
 	 */
-    public function entitySend(string $account, IMessage $message): string {
+    public function entitySend(string $account, string $identity, IMessage $message, string $presendLocation = null, string $postsendLocation = null): string {
+		// determain if pre-send location is present
+		if ($presendLocation === null || empty($presendLocation)) {
+			throw new Exception("Pre-Send Location is missing", 1);
+		}
+		// determain if post-send location is present
+		if ($postsendLocation === null || empty($postsendLocation)) {
+			throw new Exception("Post-Send Location is missing", 1);
+		}
 
-		
-
+		// extract required data from message
+		$from = $message->getFrom();
+		$to = $message->getTo();
+		$cc = $message->getCc();
+		$bcc = $message->getBcc();
+		// determine if we have the basic required data and fail otherwise
+		if (empty($from->getAddress())) {
+			throw new Exception("Missing Requirements: Message MUST have a From address", 1);
+		}
+		if (empty($to)) {
+			throw new Exception("Missing Requirements: Message MUST have a To address(es)", 1);
+		}
+		// convert from address object to string
+		$from = $from->getAddress();
+		// convert to, cc and bcc address object arrays to single strings array
+		$to = array_map(
+			function($entry) { return $entry->getAddress(); }, 
+			array_merge($to, $cc, $bcc)
+		);
+		unset($cc, $bcc);
+		// construct set request
+		$r0 = new MailSet($account);
+		// construct object
+		$r0->create('1')->parametersRaw($message->getParameters())->in($presendLocation);
+		// construct set request
+		$r1 = new MailSubmissionSet($account);
+		// construct envelope
+		$e1 = $r1->create('2');
+		$e1->identity($identity);
+		$e1->message('#1');
+		$e1->from($from);
+		$e1->to($to);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0, $r1]);
+		// extract response
+		$response = $bundle->response(1);
+		// return collection information
+		return (string) $response->created()['2']['id'];
     }
 
 	/**
@@ -514,6 +560,23 @@ class RemoteMailService {
 	 */
 	public function deleteAttachment(array $batch): array {
 
+    }
+
+	/**
+     * retrieve identity from remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function identityFetch(string $account): array {
+		// construct set request
+		$r0 = new IdentityGet($account);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// convert json object to message object and return
+		return $response->objects();
     }
 
 	// Recursive function to build JSON Pointer

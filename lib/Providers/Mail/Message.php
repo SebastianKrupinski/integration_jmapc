@@ -205,7 +205,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 			return $values;
 		}
 		// otherwise return null
-		return null;
+		return [];
 	}
 
 	/**
@@ -245,7 +245,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 			return $values;
 		}
 		// otherwise return null
-		return null;
+		return [];
 	}
 
 	/**
@@ -285,7 +285,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 			return $values;
 		}
 		// otherwise return null
-		return null;
+		return [];
 	}
 
 	/**

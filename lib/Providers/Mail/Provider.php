@@ -187,6 +187,10 @@ class Provider implements IProvider {
 
 		if ($entry['auth'] == 'OA') {
 			$identity = new ServiceIdentityOAuth(
+				$entry['oauth_id'],
+				$entry['oauth_access_token'],
+				$entry['oauth_access_expiry'],
+				$entry['oauth_refresh_token'],
 			);
 		} else {
 			$identity = new ServiceIdentityBAuth(
