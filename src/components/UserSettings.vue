@@ -1,6 +1,6 @@
 <!--
 *
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+* @copyright Copyright (c) 2024 Sebastian Krupinski <krupinski01@gmail.com>
 *
 * @author Sebastian Krupinski <krupinski01@gmail.com>
 *
@@ -23,68 +23,134 @@
 
 <template>
 	<div id="jmapc_settings" class="section">
-		<div class="jmap-section-heading">
+		<div class="jmapc-section-heading">
 			<JmapIcon :size="32" /><h2> {{ t('integration_jmapc', 'JMAP Connector') }}</h2>
 		</div>
-		<div class="jmap-content">
+		<div class="jmapc-section-services">
+			<label>
+				{{ t('integration_jmapc', 'Services') }}
+			</label>
+			<NcSelect :clearable="false"
+				:searchable="false"
+				:options="availableServicesCollection"
+				:value="selectedService"
+				@option:selected="selectService" />
+		</div>
+		<div class="jmapc-content" v-if="selectedService !== null">
 			<h3>{{ t('integration_jmapc', 'Authentication') }}</h3>
-			<div v-if="state.account_connected !== '1'">
+			<div v-if="selectService.connected !== '1'">
 				<div>
 					<div class="settings-hint">
 						{{ t('integration_jmapc', 'Enter your JMAP Server and account information then press connect.') }}
 					</div>
 					<div class="fields">
 						<div class="line">
-							<label for="jmap-account-id">
+							<label for="jmapc-account-description">
+								<JmapIcon />
+								{{ t('integration_jmapc', 'Account Description') }}
+							</label>
+							<NcTextField id="jmapc-account-id"
+								v-model="selectedService.label"
+								type="text"
+								:placeholder="t('integration_jmapc', 'Description for this Account')"
+								autocomplete="off"
+								autocorrect="off"
+								autocapitalize="none" />
+						</div>
+						<div class="line">
+							<label for="jmapc-account-id">
 								<JmapIcon />
 								{{ t('integration_jmapc', 'Account ID') }}
 							</label>
-							<input id="jmap-account-id"
-								v-model="state.account_bauth_id"
+							<NcTextField id="jmapc-account-id"
+								v-model="selectedService.bauth_id"
 								type="text"
-								:placeholder="t('integration_jmapc', 'Authentication ID for your JMAP Account')"
+								:placeholder="t('integration_jmapc', 'Authentication ID for your Account')"
 								autocomplete="off"
 								autocorrect="off"
-								autocapitalize="none">
+								autocapitalize="none" />
 						</div>
 						<div class="line">
-							<label for="jmap-account-secret">
+							<label for="jmapc-account-secret">
 								<JmapIcon />
 								{{ t('integration_jmapc', 'Account Secret') }}
 							</label>
-							<input id="jmap-account-secret"
-								v-model="state.account_bauth_secret"
+							<NcPasswordField id="jmapc-account-secret"
+								v-model="selectedService.bauth_secret"
 								type="password"
-								:placeholder="t('integration_jmapc', 'Authentication secret for your JMAP Account')"
+								:placeholder="t('integration_jmapc', 'Authentication secret for your Account')"
 								autocomplete="off"
 								autocorrect="off"
-								autocapitalize="none">
+								autocapitalize="none" />
+						</div>
+						<div class="line">
+							<label for="jmapc-service-authentication">
+								<JmapIcon />
+								{{ t('integration_jmapc', 'Authentication Type') }}
+							</label>
+							<NcCheckboxRadioSwitch name="sharing_permission_radio"
+								v-model="selectedService.auth"
+								:button-variant="true"
+								value="BA"
+								type="radio"
+								button-variant-grouped="horizontal">
+								{{ t('integration_jmapc', 'Basic') }}
+							</NcCheckboxRadioSwitch>
+							<NcCheckboxRadioSwitch name="sharing_permission_radio"
+								v-model="selectedService.auth"
+								:button-variant="true"
+								value="OA"
+								type="radio"
+								button-variant-grouped="horizontal">
+								{{ t('integration_jmapc', 'OAuth') }}
+							</NcCheckboxRadioSwitch>
 						</div>
 						<div v-if="configureManually" class="line">
-							<label for="jmap-server">
+							<label for="jmapc-service-address">
 								<JmapIcon />
-								{{ t('integration_jmapc', 'Account Server') }}
+								{{ t('integration_jmapc', 'Service Address') }}
 							</label>
-							<input id="jmap-server"
-								v-model="state.account_server"
+							<NcTextField id="jmapc-service-address"
+								v-model="selectedService.location_host"
 								type="text"
-								:placeholder="t('integration_jmapc', 'Account Server Address')"
+								:placeholder="t('integration_jmapc', 'Service Address')"
 								autocomplete="off"
 								autocorrect="off"
-								autocapitalize="none">
+								autocapitalize="none" />
+						</div>
+						<div v-if="configureManually" class="line">
+							<label for="jmapc-service-port">
+								<JmapIcon />
+								{{ t('integration_jmapc', 'Service Port') }}
+							</label>
+							<NcTextField id="jmapc-service-port"
+								v-model="selectedService.location_port"
+								type="text"
+								:placeholder="t('integration_jmapc', 'Service Port')"
+								autocomplete="off"
+								autocorrect="off"
+								autocapitalize="none" />
+						</div>
+						<div v-if="configureManually" class="line">
+							<label for="jmapc-service-path">
+								<JmapIcon />
+								{{ t('integration_jmapc', 'Service Path') }}
+							</label>
+							<NcTextField id="jmapc-service-path"
+								v-model="selectedService.location_path"
+								type="text"
+								:placeholder="t('integration_jmapc', 'Service Path')"
+								autocomplete="off"
+								autocorrect="off"
+								autocapitalize="none" />
 						</div>
 						<div>
 							<NcCheckboxRadioSwitch :checked.sync="configureManually" type="switch">
 								{{ t('integration_jmapc', 'Configure server manually') }}
 							</NcCheckboxRadioSwitch>
 						</div>
-						<div>
-							<NcCheckboxRadioSwitch :checked.sync="configureMail" type="switch">
-								{{ t('integration_jmapc', 'Configure mail app on successful connection') }}
-							</NcCheckboxRadioSwitch>
-						</div>
 						<div class="line">
-							<label class="jmap-connect">
+							<label class="jmapc-connect">
 								&nbsp;
 							</label>
 							<NcButton @click="onConnectAlternateClick">
@@ -98,10 +164,10 @@
 				</div>
 			</div>
 			<div v-else>
-				<div class="jmap-connected">
+				<div class="jmapc-connected">
 					<JmapIcon />
 					<label>
-						{{ t('integration_jmapc', 'Connected as {0} to {1}', {0:state.account_id, 1:state.account_server}) }}
+						{{ t('integration_jmapc', 'Connected as {0} to {1}', {0:selectedService.address_primary, 1:selectedService.location_host}) }}
 					</label>
 					<NcButton @click="onDisconnectClick">
 						<template #icon>
@@ -115,14 +181,14 @@
 					{{ t('integration_jmapc', 'and finished on ') }} {{ formatDate(state.account_harmonization_end) }}
 				</div>
 				<br>
-				<div class="jmap-correlations-contacts">
+				<div class="jmapc-correlations-contacts">
 					<h3>{{ t('integration_jmapc', 'Contacts') }}</h3>
 					<div class="settings-hint">
 						{{ t('integration_jmapc', 'Select the remote contacts folder(s) you wish to synchronize by pressing the link button next to the contact folder name and selecting the local contacts address book to synchronize to.') }}
 					</div>
 					<div v-if="state.system_contacts == 1">
 						<ul v-if="availableContactCollections.length > 0">
-							<li v-for="ritem in availableContactCollections" :key="ritem.id" class="jmap-collectionlist-item">
+							<li v-for="ritem in availableContactCollections" :key="ritem.id" class="jmapc-collectionlist-item">
 								<NcCheckboxRadioSwitch type="switch"
 									:checked="establishedContactCorrelation(ritem.id, ritem.name)"
 									@update:checked="changeContactCorrelation(ritem.id, $event)" />
@@ -162,14 +228,14 @@
 					</div>
 					<br>
 				</div>
-				<div class="jmap-correlations-events">
+				<div class="jmapc-correlations-events">
 					<h3>{{ t('integration_jmapc', 'Calendars') }}</h3>
 					<div class="settings-hint">
 						{{ t('integration_jmapc', 'Select the remote calendar(s) you wish to synchronize by pressing the link button next to the calendars name and selecting the local calendar to synchronize to.') }}
 					</div>
 					<div v-if="state.system_events == 1">
 						<ul v-if="availableEventCollections.length > 0">
-							<li v-for="ritem in availableEventCollections" :key="ritem.id" class="jmap-collectionlist-item">
+							<li v-for="ritem in availableEventCollections" :key="ritem.id" class="jmapc-collectionlist-item">
 								<NcCheckboxRadioSwitch type="switch"
 									:checked="establishedEventCorrelation(ritem.id, ritem.name)"
 									@update:checked="changeEventCorrelation(ritem.id, $event)" />
@@ -211,14 +277,14 @@
 					</div>
 					<br>
 				</div>
-				<div class="jmap-correlations-tasks">
+				<div class="jmapc-correlations-tasks">
 					<h3>{{ t('integration_jmapc', 'Tasks') }}</h3>
 					<div class="settings-hint">
 						{{ t('integration_jmapc', 'Select the remote Task(s) folder you wish to synchronize by pressing the link button next to the folder name and selecting the local calendar to synchronize to.') }}
 					</div>
 					<div v-if="state.system_tasks == 1">
 						<ul v-if="availableTaskCollections.length > 0">
-							<li v-for="ritem in availableTaskCollections" :key="ritem.id" class="jmap-collectionlist-item">
+							<li v-for="ritem in availableTaskCollections" :key="ritem.id" class="jmapc-collectionlist-item">
 								<NcCheckboxRadioSwitch type="switch"
 									:checked="establishedTaskCorrelation(ritem.id, ritem.name)"
 									@update:checked="changeTaskCorrelation(ritem.id, $event)" />
@@ -260,7 +326,7 @@
 					</div>
 					<br>
 				</div>
-				<div class="jmap-actions">
+				<div class="jmapc-actions">
 					<NcButton @click="onSaveClick()">
 						<template #icon>
 							<CheckIcon />
@@ -285,6 +351,8 @@ import { generateUrl } from '@nextcloud/router'
 import { loadState } from '@nextcloud/initial-state'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 
+import NcTextField from '@nextcloud/vue/dist/Components/NcTextField.js'
+import NcPasswordField from '@nextcloud/vue/dist/Components/NcPasswordField.js'
 import NcButton from '@nextcloud/vue/dist/Components/NcButton.js'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/dist/Components/NcCheckboxRadioSwitch.js'
 import NcColorPicker from '@nextcloud/vue/dist/Components/NcColorPicker.js'
@@ -301,6 +369,8 @@ export default {
 	name: 'UserSettings',
 
 	components: {
+		NcTextField,
+		NcPasswordField,
 		NcButton,
 		NcCheckboxRadioSwitch,
 		NcColorPicker,
@@ -319,6 +389,8 @@ export default {
 		return {
 			readonly: true,
 			state: loadState('integration_jmapc', 'user-configuration'),
+			// services
+			availableServicesCollection: [],
 			// contacts
 			availableContactCollections: [],
 			establishedContactCorrelations: [],
@@ -332,6 +404,7 @@ export default {
 			configureManually: false,
 			configureMail: false,
 			selectedcolor: '',
+			selectedService: null,
 		}
 	},
 
@@ -355,11 +428,7 @@ export default {
 
 	methods: {
 		loadData() {
-			// get collections list if we are connected
-			if (this.state.account_connected === '1') {
-				this.fetchCorrelations()
-				this.fetchCollections()
-			}
+			this.listServices()
 		},
 		onConnectAlternateClick() {
 			const uri = generateUrl('/apps/integration_jmapc/connect-alternate')
@@ -460,6 +529,31 @@ export default {
 						+ ': ' + error.response?.request?.responseText
 					)
 				})
+		},
+		listServices() {
+			const uri = generateUrl('/apps/integration_jmapc/service-list')
+			axios.get(uri)
+				.then((response) => {
+					if (response.data) {
+						this.availableServicesCollection = response.data
+						showSuccess(('Found ' + this.availableServicesCollection.length + ' Configured Services'))
+					}
+				})
+				.catch((error) => {
+					showError(
+						t('integration_jmapc', 'Failed to load remote collections list')
+						+ ': ' + error.response?.request?.responseText
+					)
+				})
+				.then(() => {
+				})
+		},
+		selectService(option) {
+			if (!option) {
+				return
+			}
+
+			this.selectedService = option
 		},
 		fetchCollections() {
 			const uri = generateUrl('/apps/integration_jmapc/fetch-collections')
@@ -686,12 +780,12 @@ export default {
 
 <style scoped lang="scss">
 #jmapc_settings {
-	.jmap-section-heading {
+	.jmapc-section-heading {
 		display:inline-block;
 		vertical-align:middle;
 	}
 
-	.jmap-connected {
+	.jmapc-connected {
 		display: flex;
 		align-items: center;
 
@@ -701,7 +795,7 @@ export default {
 		}
 	}
 
-	.jmap-collectionlist-item {
+	.jmapc-collectionlist-item {
 		display: flex;
 		align-items: center;
 
@@ -711,7 +805,7 @@ export default {
 		}
 	}
 
-	.jmap-actions {
+	.jmapc-actions {
 		display: flex;
 		align-items: center;
 	}

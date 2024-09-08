@@ -217,4 +217,10 @@ class MailMessageService {
 
 	}
 
+	public function blobFetch(string $id): object {
+		
+		return $this->remoteMailService->blobFetch($this->serviceSelectedAccount, $id);
+
+	}
+
 }

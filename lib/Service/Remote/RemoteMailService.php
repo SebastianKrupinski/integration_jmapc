@@ -33,6 +33,9 @@ use JmapClient\Requests\Mail\MailGet;
 use JmapClient\Requests\Mail\MailSet;
 use JmapClient\Requests\Mail\MailQuery;
 use JmapClient\Requests\Mail\MailSubmissionSet;
+use JmapClient\Requests\Mail\MailParameters;
+use JmapClient\Requests\Blob\BlobGet;
+use JmapClient\Requests\Blob\BlobSet;
 
 use OCA\JMAPC\Providers\IRange;
 use OCA\JMAPC\Providers\Mail\ICollection;
@@ -40,10 +43,18 @@ use OCA\JMAPC\Providers\Mail\Collection;
 use OCA\JMAPC\Providers\Mail\Message;
 
 use OCP\Mail\Provider\IMessage;
+use OCP\Mail\Provider\IAttachment;
 
 class RemoteMailService {
 
 	protected Client $dataStore;
+
+	protected array $defaultMailProperties = [
+		"id", "blobId", "threadId", "mailboxIds", "keywords", "size",
+		"receivedAt", "messageId", "inReplyTo", "references", "sender", "from",
+		"to", "cc", "bcc", "replyTo", "subject", "sentAt", "hasAttachment",
+		"attachments", "preview", "bodyStructure", "bodyValues"
+	];
 
 	public function __construct () {
 
@@ -228,11 +239,9 @@ class RemoteMailService {
 		$r0 = new MailGet($account);
 		// construct object
 		$r0->target($id);
-		// determine what view to return
-		if ($particulars = 'B') {
-			$r0->bodyAll(true);
-		}
-		//$r0->bodyProperty('header:all');
+		// select properties to return
+		$r0->property(...$this->defaultMailProperties);
+		$r0->bodyAll(true);
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
@@ -368,38 +377,38 @@ class RemoteMailService {
      * 
 	 */
     public function entitySend(string $account, string $identity, IMessage $message, string $presendLocation = null, string $postsendLocation = null): string {
-		// determain if pre-send location is present
+		
+		// determine if pre-send location is present
 		if ($presendLocation === null || empty($presendLocation)) {
 			throw new Exception("Pre-Send Location is missing", 1);
 		}
-		// determain if post-send location is present
+		// determine if post-send location is present
 		if ($postsendLocation === null || empty($postsendLocation)) {
 			throw new Exception("Post-Send Location is missing", 1);
 		}
-
-		// extract required data from message
-		$from = $message->getFrom();
-		$to = $message->getTo();
-		$cc = $message->getCc();
-		$bcc = $message->getBcc();
 		// determine if we have the basic required data and fail otherwise
-		if (empty($from->getAddress())) {
+		if (empty($message->getFrom())) {
 			throw new Exception("Missing Requirements: Message MUST have a From address", 1);
 		}
-		if (empty($to)) {
+		if (empty($message->getTo())) {
 			throw new Exception("Missing Requirements: Message MUST have a To address(es)", 1);
 		}
+		
+		// determine if message has attachments
+		if (count($message->getAttachments()) > 0) {
+			// process attachments first
+			$message = $this->depositAttachmentsFromMessage($account, $message);
+		}
 		// convert from address object to string
-		$from = $from->getAddress();
+		$from = $message->getFrom()->getAddress();
 		// convert to, cc and bcc address object arrays to single strings array
 		$to = array_map(
 			function($entry) { return $entry->getAddress(); }, 
-			array_merge($to, $cc, $bcc)
+			array_merge($message->getTo(), $message->getCc(), $message->getBcc())
 		);
 		unset($cc, $bcc);
 		// construct set request
 		$r0 = new MailSet($account);
-		// construct object
 		$r0->create('1')->parametersRaw($message->getParameters())->in($presendLocation);
 		// construct set request
 		$r1 = new MailSubmissionSet($account);
@@ -452,10 +461,9 @@ class RemoteMailService {
 		$r1 = new MailGet($account);
 		// set target to query request
 		$r1->targetFromRequest($r0, '/ids');
-		// determine what view to return
-		if ($particulars = 'B') {
-			$r1->bodyAll(true);
-		}
+		// select properties to return
+		$r1->property(...$this->defaultMailProperties);
+		$r1->bodyAll(true);
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0, $r1]);
 		// extract response
@@ -515,10 +523,9 @@ class RemoteMailService {
 		$r1 = new MailGet($account);
 		// set target to query request
 		$r1->targetFromRequest($r0, '/ids');
-		// determine what view to return
-		if ($particulars = 'B') {
-			$r1->bodyAll(true);
-		}
+		// select properties to return
+		$r1->property(...$this->defaultMailProperties);
+		$r1->bodyAll(true);
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0, $r1]);
 		// extract response
@@ -533,13 +540,101 @@ class RemoteMailService {
     }
 
 	/**
+     * retrieve blob/attachment from remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function blobFetch(string $account, string $id): Object {
+
+		// TODO: testing remove later
+		//$data = '';
+		//$this->dataStore->download($account, $id, $data);
+		//return null;
+
+		// construct get request
+		$r0 = new BlobGet($account);
+		// construct object
+		$r0->target($id);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// convert json object to message object and return
+		return $response->object(0);
+
+	}
+
+	/**
+     * deposit bolb/attachment to remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function blobDeposit(string $account, string $type, &$data): array {
+
+		// TODO: testing remove later
+		$response = $this->dataStore->upload($account, $type, $data);
+		// convert response to object
+		$response = json_decode($response, true);
+
+		return  $response;
+
+		/*
+		// construct set request
+		$r0 = new BlobSet($account);
+		// construct object
+		$r0->target($id);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// convert json object to message object and return
+		return $response->object(0);
+		*/
+
+	}
+
+	/**
      * retrieve collection entity attachment from remote storage
      * 
      * @since Release 1.0.0
      * 
 	 */
-	public function fetchAttachment(array $batch): array {
+	public function depositAttachmentsFromMessage(string $account, Message $message): Message {
+		
+		$parameters = $message->getParameters();
+		$attachments = $message->getAttachments();
+		$matches = [];
 
+		$this->findAttachmentParts($parameters['bodyStructure'], $matches);
+
+		foreach ($attachments as $attachment) {
+			$part = $attachment->getParameters();
+			if (isset($matches[$part->getId()])) {
+				// deposit attachment in data store
+				$response = $this->blobDeposit($account, $part->getType(), $attachment->getContents());
+				// transfer blobId and size to mail part
+				$matches[$part->getId()]->blobId = $response['blobId'];
+				$matches[$part->getId()]->size = $response['size'];
+				unset($matches[$part->getId()]->partId);
+			}
+		}
+
+		return new Message($parameters);
+		
+	}
+
+	protected function findAttachmentParts(object &$part, array &$matches) {
+
+		if ($part->disposition === 'attachment' || $part->disposition === 'inline') {
+			$matches[$part->partId] = $part;
+		}
+
+		foreach ($part->subParts as $entry) {
+			$this->findAttachmentParts($entry, $matches);
+		}
+		
 	}
 
     /**
@@ -548,7 +643,10 @@ class RemoteMailService {
      * @since Release 1.0.0
      * 
 	 */
-	public function createAttachment(string $aid, array $batch): array {
+	public function createAttachment(string $account, IAttachment ...$attachment): array {
+		
+		// http://LAPTOP-7DVOR6NC:8080/jmap/upload/{accountId}/
+
 
     }
 
@@ -558,7 +656,7 @@ class RemoteMailService {
      * @since Release 1.0.0
      * 
 	 */
-	public function deleteAttachment(array $batch): array {
+	public function deleteAttachment(string $account, string ...$id): array {
 
     }
 

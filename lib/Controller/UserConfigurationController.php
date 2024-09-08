@@ -37,37 +37,45 @@ use OCA\JMAPC\AppInfo\Application;
 use OCA\JMAPC\Service\ConfigurationService;
 use OCA\JMAPC\Service\CoreService;
 use OCA\JMAPC\Service\HarmonizationService;
+use OCA\JMAPC\Service\ServicesService;
 
 class UserConfigurationController extends Controller {
+	
+	public function __construct(
+		string $appName,
+		IRequest $request,
+		private ConfigurationService $ConfigurationService,
+		private CoreService $CoreService,
+		private HarmonizationService $HarmonizationService,
+		private ServicesService $ServicesService,
+		private string $userId
+	) {
+		parent::__construct($appName, $request);
+	}
 
 	/**
-	 * @var string|null
+	 * handles services list request
+	 * 
+	 * @NoAdminRequired
+	 *
+	 * @return DataResponse
 	 */
-	private $userId;
-	/**
-	 * @var ConfigurationService
-	 */
-	private $ConfigurationService;
-	/**
-	 * @var CoreService
-	 */
-	private $CoreService;
-	/**
-	 * @var HarmonizationService
-	 */
-	private $HarmonizationService;
-	
-	public function __construct(string $appName,
-								IRequest $request,
-								ConfigurationService $ConfigurationService,
-								CoreService $CoreService,
-								HarmonizationService $HarmonizationService,
-								string $userId) {
-		parent::__construct($appName, $request);
-		$this->ConfigurationService = $ConfigurationService;
-		$this->CoreService = $CoreService;
-		$this->HarmonizationService = $HarmonizationService;
-		$this->userId = $userId;
+	public function listServices(): DataResponse {
+		
+		// evaluate if user id is present
+		if ($this->userId === null) {
+			return new DataResponse([], Http::STATUS_BAD_REQUEST);
+		}
+		// retrieve services
+		$rs = $this->ServicesService->fetchByUserId($this->userId);
+		// return response
+		if (isset($rs)) {
+			return new DataResponse($rs);
+		} else {
+			
+			return new DataResponse($rs['error'], 401);
+		}
+
 	}
 
 	/**

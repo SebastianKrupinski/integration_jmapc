@@ -12,6 +12,9 @@ use OCP\Mail\Provider\Address;
 use OCP\Mail\Provider\IAddress;
 use OCP\Mail\Provider\IAttachment;
 
+use OCA\JMAPC\Providers\Mail\MessagePart;
+use OCA\JMAPC\Providers\Mail\MessageAttachment;
+
 /**
  * Mail Message Object
  *
@@ -21,24 +24,106 @@ use OCP\Mail\Provider\IAttachment;
  *
  */
 class Message implements \OCP\Mail\Provider\IMessage {
-
-	protected string $bodyPlainId = '1';
-	protected string $bodyHtmlId = '2';
-	protected bool $bodyPlainStatus = false;
-	protected bool $bodyHtmlStatus = false;
+	
+	protected array $headers = [];
+	protected array $attachments = [];
+	protected ?string $messageText = null;
+	protected ?string $messageHtml = null;
+	protected ?MessagePart $bodyContents = null;
+	protected array $bodyContentsText = [];
+	protected array $bodyContentsHtml = [];
+	protected array $bodyContentsContainers = [];
+	protected array $bodyContentsAttachments = [];
 
 	/**
 	 * initialize the mail message object
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array $data						message data array
+	 * @param array $parameters					message data array
 	 */
 	public function __construct(
-		protected array $data = [],
+		protected array $parameters = [],
 	) {
-		$this->setParameters($data);
+		$this->setParameters($parameters);
 	}
+
+	/**
+	 * sets the attachments of this message
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array $value						collection of all message parameters
+	 *
+	 * @return self                             return this object for command chaining
+	 */
+	public function setParameters(array $parameters): self {
+
+		// replace parameters store
+		$this->parameters = $parameters;
+
+		// decode body structure
+		if (isset($this->parameters['bodyStructure'])) {
+			if (is_object($this->parameters['bodyStructure'])) {
+				$this->parameters['bodyStructure'] = get_object_vars($this->parameters['bodyStructure']);
+			}
+			$this->bodyContents = new MessagePart($this->parameters['bodyStructure']);
+			$this->analyzeContents();
+		}
+		// return this object for command chaining
+		return $this;
+
+	}
+
+	/**
+	 * gets the attachments of this message
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array					collection of all message parameters
+	 */
+	public function getParameters(): array {
+
+		// copy parameter value
+		$message = $this->parameters;
+		// create / reset properties
+		$message['bodyStructure'] = null;
+		$message['bodyValues'] = [];
+		// determine if any attachments are present
+		if (count($this->attachments) > 0) {
+			$message['bodyStructure'] = (object)['type' => 'multipart/mixed', 'subParts' => []];
+			$rootContainer =& $message['bodyStructure'];
+		}
+		
+		if (isset($rootContainer)) {
+			$rootContainer->subParts[] = (object)['type' => 'multipart/alternative', 'subParts' => []];
+			$messageContainer =& $rootContainer->subParts[0];
+		} else {
+			$message['bodyStructure'] = (object)['type' => 'multipart/alternative', 'subParts' => []];
+			$rootContainer =& $message['bodyStructure'];
+			$messageContainer =& $rootContainer;
+		}
+
+		// add text
+		if ($this->messageText !== null) {
+			$messageContainer->subParts[] = (object)['type' => 'text/plain', 'partId' => 'text'];		
+			$message['bodyValues']['text'] = ['isTruncated' => false, 'value' => $this->messageText];
+		}
+		
+		// add html
+		if ($this->messageHtml !== null) {
+			$messageContainer->subParts[] = (object)['type' => 'text/html', 'partId' => 'html'];		
+			$message['bodyValues']['html'] = ['isTruncated' => false, 'value' => $this->messageHtml];
+		}
+
+		foreach ($this->attachments as $attachment) {
+			$rootContainer->subParts[] = (object)$attachment->getParameters()->getParameters();
+		}
+
+		// evaluate if data store field exists and return value(s) or null otherwise
+		return $message;
+	}
+
 
 	/**
 	 * arbitrary unique text string identifying this message
@@ -49,7 +134,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function id(): string {
 		// return id of message
-		return isset($this->data['id']) ? $this->data['id'] : '';
+		return isset($this->parameters['id']) ? $this->parameters['id'] : '';
 	}
 
 	/**
@@ -61,7 +146,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function in(): string | array | null {
 		// return id of message
-		return isset($this->data['mailboxIds']) ? array_keys($this->data['mailboxIds']) : null;
+		return isset($this->parameters['mailboxIds']) ? array_keys($this->parameters['mailboxIds']) : null;
 	}
 
 	/**
@@ -73,7 +158,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function size(): int {
 		// return size of message
-		return isset($this->data['size']) ? $this->data['size'] : 0;
+		return isset($this->parameters['size']) ? $this->parameters['size'] : 0;
 	}
 
 	/**
@@ -85,7 +170,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function received(): string | null {
 		// return received date of message
-		return isset($this->data['receivedAt']) ? $this->data['receivedAt'] : null;
+		return isset($this->parameters['receivedAt']) ? $this->parameters['receivedAt'] : null;
 	}
 
 	/**
@@ -97,7 +182,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function sent(): string | null {
 		// return sent date of message
-		return isset($this->data['sentAt']) ? $this->data['sentAt'] : null;
+		return isset($this->parameters['sentAt']) ? $this->parameters['sentAt'] : null;
 	}
 
 	/**
@@ -111,7 +196,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function setFrom(IAddress $value): self {
 		// create or update field in data store with value
-		$this->data['from'][0] = ['email' => $value->getAddress(), 'name' => $value->getLabel()];
+		$this->parameters['from'][0] = ['email' => $value->getAddress(), 'name' => $value->getLabel()];
 		// return this object for command chaining
 		return $this;
 	}
@@ -125,8 +210,8 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function getFrom(): IAddress | null {
 		// evaluate if data store field exists and return value(s)
-		if (isset($this->data['from'][0])) {
-			$entry = $this->data['from'][0];
+		if (isset($this->parameters['from'][0])) {
+			$entry = $this->parameters['from'][0];
 			$value = new Address($entry['email'], $entry['name']);
 			return $value;
 		}
@@ -145,7 +230,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function setReplyTo(IAddress $value): self {
 		// create or update field in data store with value
-		$this->data['replyTo'][0] = ['email' => $value->getAddress(), 'name' => $value->getLabel()];
+		$this->parameters['replyTo'][0] = ['email' => $value->getAddress(), 'name' => $value->getLabel()];
 		// return this object for command chaining
 		return $this;
 	}
@@ -159,8 +244,8 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function getReplyTo(): IAddress | null {
 		// evaluate if data store field exists and return value(s)
-		if (isset($this->data['replyTo'][0])) {
-			$entry = $this->data['replyTo'][0];
+		if (isset($this->parameters['replyTo'][0])) {
+			$entry = $this->parameters['replyTo'][0];
 			$value = new Address($entry['email'], $entry['name']);
 			return $value;
 		}
@@ -180,7 +265,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	public function setTo(IAddress ...$value): self {
 		// create or update field in data store with value
 		foreach ($value as $entry) {
-			$this->data['to'][] = ['name' => $entry->getLabel(), 'email' => $entry->getAddress()];
+			$this->parameters['to'][] = ['name' => $entry->getLabel(), 'email' => $entry->getAddress()];
 		}
 		// return this object for command chaining
 		return $this;
@@ -195,8 +280,8 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function getTo(): array {
 		// evaluate if data store field exists and return value(s)
-		if (isset($this->data['to']) && is_array($this->data['to'])) {
-			foreach ($this->data['to'] as $entry) {
+		if (isset($this->parameters['to']) && is_array($this->parameters['to'])) {
+			foreach ($this->parameters['to'] as $entry) {
 				$values[] = new Address(
 					$entry['email'], 
 					$entry['name']
@@ -220,7 +305,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	public function setCc(IAddress ...$value): self {
 		// create or update field in data store with value
 		foreach ($value as $entry) {
-			$this->data['cc'][] = ['name' => $entry->getLabel(), 'email' => $entry->getAddress()];
+			$this->parameters['cc'][] = ['name' => $entry->getLabel(), 'email' => $entry->getAddress()];
 		}
 		// return this object for command chaining
 		return $this;
@@ -235,8 +320,8 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function getCc(): array {
 		// evaluate if data store field exists and return value(s)
-		if (isset($this->data['cc']) && is_array($this->data['cc'])) {
-			foreach ($this->data['cc'] as $entry) {
+		if (isset($this->parameters['cc']) && is_array($this->parameters['cc'])) {
+			foreach ($this->parameters['cc'] as $entry) {
 				$values[] = new Address(
 					$entry['email'], 
 					$entry['name']
@@ -260,7 +345,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	public function setBcc(IAddress ...$value): self {
 		// create or update field in data store with value
 		foreach ($value as $entry) {
-			$this->data['bcc'][] = ['name' => $entry->getLabel(), 'email' => $entry->getAddress()];
+			$this->parameters['bcc'][] = ['name' => $entry->getLabel(), 'email' => $entry->getAddress()];
 		}
 		// return this object for command chaining
 		return $this;
@@ -275,8 +360,8 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function getBcc(): array {
 		// evaluate if data store field exists and return value(s)
-		if (isset($this->data['bcc']) && is_array($this->data['bcc'])) {
-			foreach ($this->data['bcc'] as $entry) {
+		if (isset($this->parameters['bcc']) && is_array($this->parameters['bcc'])) {
+			foreach ($this->parameters['bcc'] as $entry) {
 				$values[] = new Address(
 					$entry['email'], 
 					$entry['name']
@@ -299,7 +384,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function setSubject(string $value): self {
 		// create or update field in data store with value
-		$this->data['subject'] = $value;
+		$this->parameters['subject'] = $value;
 		// return this object for command chaining
 		return $this;
 	}
@@ -313,7 +398,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 */
 	public function getSubject(): string | null {
 		// evaluate if data store field exists and return value(s) or null otherwise
-		return isset($this->data['subject']) ? $this->data['subject'] : null;
+		return isset($this->parameters['subject']) ? $this->parameters['subject'] : null;
 	}
 
 	/**
@@ -367,13 +452,10 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 * @return self                             return this object for command chaining
 	 */
 	public function setBodyHtml(string $value): self {
-		// create or update field(s) in data store with value
-		$this->data['bodyStructure']['type'] = 'multipart/alternative';
-		$this->data['bodyStructure']['subParts'][] = ['partId' => $this->bodyHtmlId, 'type' => 'text/html'];		
-		$this->data['bodyValues'][$this->bodyHtmlId] = ['value' => $value, 'isTruncated' => false];
-		$this->bodyPlainStatus = true;
-		// return this object for command chaining
+		
+		$this->messageHtml = $value;
 		return $this;
+
 	}
 
 	/**
@@ -384,8 +466,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 * @param string|null                       html body of this message or null if one is not set
 	 */
 	public function getBodyHtml(): string | null {
-		// evaluate if data store field exists and return value(s) or null otherwise
-		return $this->bodyHtmlStatus ? $this->data['bodyValues'][$this->bodyHtmlId]['value'] : null;
+
+		return $this->messageHtml;
+
 	}
 
 	/**
@@ -398,12 +481,10 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 * @return self                 			return this object for command chaining
 	 */
 	public function setBodyPlain(string $value): self {
-		// create or update field(s) in data store with value
-		$this->data['bodyStructure']['type'] = 'multipart/alternative';
-		$this->data['bodyStructure']['subParts'][] = ['partId' => $this->bodyPlainId, 'type' => 'text/plain'];		
-		$this->data['bodyValues'][$this->bodyPlainId] = ['value' => $value, 'isTruncated' => false];
-		// return this object for command chaining
+		
+		$this->messageText = $value;
 		return $this;
+
 	}
 
 	/**
@@ -414,8 +495,133 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 * @param string|null						plain text body of this message or null if one is not set
 	 */
 	public function getBodyPlain(): string | null {
-		// evaluate if data store field exists and return value(s) or null otherwise
-		return $this->bodyPlainStatus ? $this->data['bodyValues'][$this->bodyPlainId]['value'] : null;
+
+		return $this->messageText;
+
+	}
+
+	/**
+	 * sets the contents of this message
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param MessagePart						collection of or one or more mail attachment objects
+	 *
+	 * @return self                             return this object for command chaining
+	 */
+	public function setContents(MessagePart $value): self {
+		
+		$this->bodyContents = $value;
+		$this->analyzeContents();
+		return $this;
+
+	}
+
+	/**
+	 * gets the contents of this message
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return MessagePart
+	 */
+	public function getContents(): MessagePart {
+
+		return $this->bodyContents;
+
+	}
+
+	protected function analyzeContents() {
+
+		// analyze all parts
+		$this->analyzeContentsPart($this->bodyContents);
+
+		// iterate through attachment mail parts and convert them to message text
+		foreach ($this->bodyContentsText as $entry) {
+			if (!empty($entry->getId()) && isset($this->parameters['bodyValues'][$entry->getId()])) {
+				$this->messageText .= $this->parameters['bodyValues'][$entry->getId()]['value'];
+			}
+		}
+
+		// iterate through attachment mail parts and convert them to message html
+		foreach ($this->bodyContentsHtml as $entry) {
+			if (!empty($entry->getId()) && isset($this->parameters['bodyValues'][$entry->getId()])) {
+				$this->messageHtml .= $this->parameters['bodyValues'][$entry->getId()]['value'];
+			}
+		}
+
+		// iterate through attachment mail parts and convert them to message attachment
+		foreach ($this->bodyContentsAttachments as $entry) {
+			if (!empty($entry->getId()) && isset($this->parameters['bodyValues'][$entry->getId()])) {
+				$this->attachments[] = new MessageAttachment(
+					$entry,
+					$this->parameters['bodyValues'][$entry->getId()]['value']
+				);
+			} else {
+				$this->attachments[] = new MessageAttachment(
+					$entry,
+					null
+				);
+			}
+		}
+
+	}
+
+	protected function analyzeContentsPart(MessagePart $part) {
+
+		if ($part->getDisposition() == 'attachment') {
+			$this->bodyContentsAttachments[] = $part;
+		} else {
+			match ($part->getType()) {
+				'multipart/mixed' => $this->bodyContentsContainers[] = $part,
+				'multipart/alternative' => $this->bodyContentsContainers[] = $part,
+				'text/plain' => $this->bodyContentsText[] = $part,
+				'text/html' => $this->bodyContentsHtml[] = $part,
+				default => ''
+			};
+		}
+
+		foreach ($part->getParts() as $part) {
+			$this->analyzeContentsPart($part);
+		}
+		
+	}
+
+	protected function constructContentsContainerPart(?MessagePart $part = null, string $type): MessagePart {
+		
+		// determine if part is empty and has the correct type
+		// then create a new part and copy existing contents if necessary
+		if ($part === null) {
+			$part = new MessagePart(['type' => $type]);
+		}
+		elseif ($part !== null && $part->getType() !== $type) {
+			$part = (new MessagePart(['type' => $type]))->setParts($part);
+		}
+
+		return $part;
+
+	}
+
+	/**
+	 * generates fresh attachment
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return MessageAttachment
+	 */
+	public function newAttachment(string $content, string $name, string $type, bool $embedded = false): MessageAttachment {
+
+		$part = new MessagePart();
+		$part->setId(uniqid());
+		if ($embedded) {
+			$part->setDisposition('inline');
+		} else {
+			$part->setDisposition('attachment');
+		}
+		$part->setType($type);
+		$part->setName($name);
+
+		return new MessageAttachment($part, $content);
+
 	}
 
 	/**
@@ -428,10 +634,10 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 * @return self                             return this object for command chaining
 	 */
 	public function setAttachments(IAttachment ...$value): self {
-		// create or update field in data store with value
-		$this->data['attachments'] = $value;
-		// return this object for command chaining
+
+		$this->attachments = $value;
 		return $this;
+
 	}
 
 	/**
@@ -442,69 +648,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 * @return array<int,IAttachment>		    collection of all mail attachment objects
 	 */
 	public function getAttachments(): array {
-		// evaluate if data store field exists and return value(s) or null otherwise
-		return isset($this->data['attachments']) ? $this->data['attachments'] : [];
-	}
 
-	/**
-	 * sets the attachments of this message
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param array $value						collection of all message parameters
-	 *
-	 * @return self                             return this object for command chaining
-	 */
-	public function setParameters(array $data): self {
-		// replace parameters store
-		$this->data = $data;
-		// decode body structure
-		if (isset($data['bodyStructure']) && isset($data['bodyStructure']['subParts'])) {
-			foreach ($data['bodyStructure']['subParts'] as $entry) {
-				if ($entry['type'] === 'text/plain') {
-					$this->bodyPlainStatus = true;
-					$this->bodyPlainId = $entry['partId'];
-				}
-				elseif ($entry['type'] === 'text/html') {
-					$this->bodyHtmlStatus = true;
-					$this->bodyHtmlId = $entry['partId'];
-				}
-			}
-		}
-		elseif (isset($data['bodyStructure']) && isset($data['bodyStructure']['partId'])) {
-			if ($data['bodyStructure']['type'] === 'text/plain') {
-				$this->bodyPlainStatus = true;
-				$this->bodyPlainId = $data['bodyStructure']['partId'];
-			}
-			elseif ($data['bodyStructure']['type'] === 'text/html') {
-				$this->bodyHtmlStatus = true;
-				$this->bodyHtmlId = $data['bodyStructure']['partId'];
-			}
-		}
-		
-		if (isset($data['textBody'])) {
-			$this->bodyHtmlStatus = true;
-			$this->bodyHtmlId = $data['textBody'][0]['partId'];
-		}
+		return $this->attachments;
 
-		if (isset($data['htmlBody'])) {
-			$this->bodyHtmlStatus = true;
-			$this->bodyHtmlId = $data['htmlBody'][0]['partId'];
-		}
-		// return this object for command chaining
-		return $this;
-	}
-
-	/**
-	 * gets the attachments of this message
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array					collection of all message parameters
-	 */
-	public function getParameters(): array {
-		// evaluate if data store field exists and return value(s) or null otherwise
-		return (isset($this->data)) ? $this->data : [];
 	}
 
 }

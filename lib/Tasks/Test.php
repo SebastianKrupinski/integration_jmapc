@@ -75,21 +75,12 @@ try {
 	// load all apps to get all api routes properly setup
 	//OC_App::loadApps();
 	
-	// initilize required services
+	// initialize required services
 	//$ConfigurationService = \OC::$server->get(\OCA\JMAPC\Service\ConfigurationService::class);
 	//$CoreService = \OC::$server->get(\OCA\JMAPC\Service\CoreService::class);
 	//$HarmonizationService = \OC::$server->get(\OCA\JMAPC\Service\HarmonizationService::class);
 	// $RemoteCommonService = \OC::$server->get(\OCA\JMAPC\Service\Remote\RemoteCommonService::class);
 	// $RemoteEventsService = \OC::$server->get(\OCA\JMAPC\Service\Remote\RemoteEventsService::class);
-
-	/////////////// CalDAV Test //////////////////
-	/*
-	$CalDavBackend = \OC::$server->get(\OCA\DAV\CalDAV\CalDavBackend::class);
-
-	$results = $CalDavBackend->getChangesForCalendar('4512', '0', 1);
-
-	exit;
-	*/
 	
 	// execute initial harmonization
 	//$HarmonizationService->performHarmonization($uid, 'S');
@@ -103,11 +94,97 @@ try {
 	$services = $MailManager->services('user1');
 	// test service find
 	$service = $MailManager->findServiceByAddress('user1', 'user1@testmail.com');
-	// test new service
-	//$serviceNew = $providers['jmapc']->initiateService();
-	// test new message
-	//$messageNew = $serviceNew->initiateMessage();
 
+	/*
+	$client = new \JmapClient\Client();
+	$client->configureTransportMode($service->getLocation()->getScheme());
+	$client->setHost($service->getLocation()->getHost() . ':' . $service->getLocation()->getPort());
+
+	if ($service->getIdentity()->type() == 'OAUTH') {
+		$client->setAuthentication(new \JmapClient\Authentication\Bearer($service->getIdentity()->getAccessId(), $service->getIdentity()->getAccessToken(), $service->getIdentity()->getAccessExpiry()));
+	}
+
+	if ($service->getIdentity()->type() == 'BAUTH') {
+		$client->setAuthentication(new \JmapClient\Authentication\Basic($service->getIdentity()->getIdentity(), $service->getIdentity()->getSecret()));
+	}
+
+	// connect client
+	$client->connect();
+	$account = 'b0';
+	*/
+
+	/*
+	// construct query request
+	$r0 = new \JmapClient\Requests\Mail\MailboxQuery($account);
+	$r0->filter()->in('');
+	$r0->sort()->name(true);
+	*/
+
+	/*
+	// construct get request
+	$r1 = new \JmapClient\Requests\Mail\MailboxGet($account);
+	// set target to query request
+	$r1->target('1');
+	*/
+
+	/*
+	// open/read file
+	$file = file_get_contents(__DIR__ . '/message-001.eml', true);
+	//$file = fopen(__DIR__ . '/message-001.eml', 'r');
+	// upload blob
+	$data = $client->upload($account, 'text/plain', $file);
+	// close file
+	//fclose($file);
+	// convert response to object
+	$data = json_decode($data, true);
+	*/
+
+	/*
+	// construct prase request
+	$r0 = new \JmapClient\Requests\Mail\MailParse($account);
+	// set target to query request
+	$r0->target($data['blobId']);
+	$r0->property("id", "blobId", "threadId", "mailboxIds", "keywords", "size",
+		"receivedAt", "messageId", "inReplyTo", "references", "sender", "from",
+		"to", "cc", "bcc", "replyTo", "subject", "sentAt", "hasAttachment",
+		"attachments", "preview", "bodyStructure", "bodyValues");
+
+	// transmit request and receive response
+	$bundle = $client->perform([$r0]);
+	// extract response
+	$response = $bundle->response(0);
+	// convert json objects to collection objects
+	$list = $response->objects();
+	*/
+
+	/*
+	// construct set request
+	$r0 = new \JmapClient\Requests\Mail\MailSet($account);
+	$m0 = $r0->create('1');
+	$m0->subject('This is a test');
+	$p1 = $m0->structure();
+	$p1->type('multipart/mixed');
+	$sp1 = $p1->subPart();
+	$sp1->type('multipart/alternative');
+	*/
+	
+	//exit;
+
+	/*
+	$data = file_get_contents(__DIR__ . '/MessageWithAttachment.json', true);
+
+	$data = json_decode($data, true);
+
+	$message = $service->initiateMessage();
+	$message->setParameters($data);
+
+	$content = $message->getContents();
+
+	$type = $content->getType();
+	*/
+
+	//exit;
+	
 	// retrieve all collections information
 	$collectionList = $service->collectionList('', '');
 	// retrieve single collection information
@@ -120,15 +197,21 @@ try {
 		$collectionSearch3 = $service->collectionSearch('', 'Spam', '');
 	}
 	
+	/*
+	*	Test mail box manipulation - Create, Update, Delete, Move
+	*/
 	// create collection inside inbox
-	$collectionCreated = $service->collectionCreate($collectionSearch1[0]->id(), 'This is a test bvmnxbmvcmx');
+	//$collectionCreated = $service->collectionCreate($collectionSearch1[0]->id(), 'This is a test bvmnxbmvcmx');
 	// move collection from inbox to drafts
-	$collectionMoved = $service->collectionMove($collectionSearch1[0]->id(), $collectionCreated, $collectionSearch2[0]->id());
+	//$collectionMoved = $service->collectionMove($collectionSearch1[0]->id(), $collectionCreated, $collectionSearch2[0]->id());
 	// update collection inside drafts
-	$collectionUpdated = $service->collectionUpdate($collectionSearch2[0]->id(), $collectionCreated, 'This is a test 20240101');
+	//$collectionUpdated = $service->collectionUpdate($collectionSearch2[0]->id(), $collectionCreated, 'This is a test 20240101');
 	// delete collection inside drafts
-	$collectionDeleted = $service->collectionDelete($collectionSearch2[0]->id(), $collectionCreated);
+	//$collectionDeleted = $service->collectionDelete($collectionSearch2[0]->id(), $collectionCreated);
 
+	/*
+	*	Test message retrieval - List, Search, Fetch
+	*/
 	// construct range object
 	$range = new \OCA\JMAPC\Providers\RangeAbsolute(0, 1);
 	// list messages inside inbox without range
@@ -138,32 +221,60 @@ try {
 	// find message inside inbox
 	$entitySearch = $service->entitySearch($collectionSearch1[0]->id(), ['text' => 'test']);
 	// retrieve message from inbox
-	$entityFetch = $service->entityFetch($entityListWithRange[0]->in()[0], $entityListWithRange[0]->id());
+	if (!empty($entitySearch)) {
+		$entityFetch = $service->entityFetch($entityListWithRange[0]->in()[0], $entityListWithRange[0]->id());
+		$entityFetchPlain = $entityFetch->getBodyPlain();
+		$entityFetchPlain = $entityFetch->getBodyHtml();
+	}
+	// retrieve attachment/blob
+	foreach ($entityListNoRange as $entry) {
+		if (count($entry->getAttachments()) > 0) {
+			$attachmentFetch = $service->blobFetch($entry->getAttachments()[0]->id());
+			break;
+		}
+	}
+
+	/*
+	*	Test message manipulation - Create, Update, Move
+	*/
 	// create new message
 	$messageCreate = $service->initiateMessage();
 	// create new message
 	$messageCreate->setFrom(new \OCP\Mail\Provider\Address('joe@example.com', 'Joe Bloggs'));
 	$messageCreate->setSubject('World domination');
 	$messageCreate->setBodyPlain('I have the most brilliant plan. Let me tell you all about it. What we do is, we');
+	$messageCreate->getParameters();
 	// create message in drafts
 	$entityCreate = $service->entityCreate($collectionSearch2[0]->id(), $messageCreate);
 	// fetch created message
 	$messageUpdate = $service->entityFetch($collectionSearch2[0]->id(), $entityCreate);
 	// update subject of message
-	$messageUpdate->setSubject('World domination Modified');
+	//$messageUpdate->setSubject('World domination Modified');
 	// update message in drafts
 	//////// $entityUpdate = $service->entityUpdate($collectionSearch2[0]->id(), $entityCreate, $messageUpdate);
 	// move message to junk mail
 	$entityMoved = $service->entityMove($collectionSearch2[0]->id(), $entityCreate, $collectionSearch3[0]->id());
 
+
+	/*
+	*	Test message manipulation - Create, Update, Move
+	*/
+	// import message to inbox
+	$entityCreate = $service->entityCreate($collectionSearch2[0]->id(), $messageCreate);
+
+
+	/*
+	*	Test message sending
+	*/
 	// create new message
 	$messageSend = $service->initiateMessage();
 	$messageSend->setFrom(new \OCP\Mail\Provider\Address('user1@testmail.com', 'User 1'));
 	$messageSend->setTo(new \OCP\Mail\Provider\Address('user2@testmail.com', 'User 2'));
 	$messageSend->setSubject('World domination');
 	$messageSend->setBodyPlain('I have the most brilliant plan. Let me tell you all about it. What we do is, we');
-	$service->entitySend($messageSend);
-
+	$messageSend->setBodyHtml('<b>I have the most brilliant plan. Let me tell you all about it. What we do is, we</b>');
+	$messageSend->setAttachments($messageSend->newAttachment('This is our great plan', 'plan.txt', 'text/plain'));
+	$messageSent = $service->entitySend($messageSend);
 
 	exit;
 

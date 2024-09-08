@@ -474,4 +474,11 @@ class Service implements IService, IMessageSend {
 
 	}
 
+	public function blobFetch(string $id, array $options = []): object {
+
+		// perform action
+		return $this->mailService()->blobFetch($id, $options);
+
+	}
+
 }

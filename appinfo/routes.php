@@ -26,6 +26,7 @@ declare(strict_types=1);
 return [
 	'routes' => [
 		['name' => 'AdminConfiguration#depositConfiguration', 'url' => '/admin-configuration', 'verb' => 'PUT'],
+		['name' => 'UserConfiguration#listServices', 'url' => '/service-list', 'verb' => 'GET'],
 		['name' => 'UserConfiguration#ConnectAlternate', 'url' => '/connect-alternate', 'verb' => 'GET'],
 		['name' => 'UserConfiguration#ConnectMS365', 'url' => '/connect-ms365', 'verb' => 'GET'],
 		['name' => 'UserConfiguration#Disconnect', 'url' => '/disconnect', 'verb' => 'GET'],
