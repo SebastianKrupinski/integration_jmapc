@@ -28,35 +28,81 @@ namespace OCA\JMAPC\Service\Remote;
 use Datetime;
 use DateTimeZone;
 use DateInterval;
-use Psr\Log\LoggerInterface;
+use Exception;
 
-use OCA\JMAPC\Service\Remote\RemoteCommonService;
+use JmapClient\Client;
+
+use JmapClient\Responses\Calendar\EventParameters as EventParametersResponse;
+
+use JmapClient\Responses\ResponseException;
+use JmapClient\Requests\Calendar\CalendarGet;
+use JmapClient\Requests\Calendar\CalendarSet;
+use JmapClient\Requests\Calendar\CalendarQuery;
+use JmapClient\Requests\Calendar\CalendarChanges;
+
+use JmapClient\Requests\Calendar\EventGet;
+use JmapClient\Requests\Calendar\EventSet;
+use JmapClient\Requests\Calendar\EventQuery;
+use JmapClient\Requests\Calendar\EventChanges;
+use JmapClient\Requests\Calendar\EventQueryChanges;
+use JmapClient\Requests\Calendar\EventParameters;
+
+use OCA\JMAPC\Exceptions\JmapUnknownMethod;
 use OCA\JMAPC\Objects\EventCollectionObject;
 use OCA\JMAPC\Objects\EventObject;
 use OCA\JMAPC\Objects\EventAttachmentObject;
-use OCA\JMAPC\Utile\Eas\EasClient;
-use OCA\JMAPC\Utile\Eas\EasCollection;
-use OCA\JMAPC\Utile\Eas\EasObject;
-use OCA\JMAPC\Utile\Eas\EasProperty;
-use OCA\JMAPC\Utile\Eas\EasTypes;
+use OCA\JMAPC\Providers\Calendar\EventCollection;
 
 class RemoteEventsService {
-	
-	private RemoteCommonService $RemoteCommonService;
-	public ?EasClient $DataStore = null;
 
 	public ?DateTimeZone $SystemTimeZone = null;
 	public ?DateTimeZone $UserTimeZone = null;
 
-	public function __construct (RemoteCommonService $RemoteCommonService) {
-		
-		$this->RemoteCommonService = $RemoteCommonService;
-		
+	protected Client $dataStore;
+    protected string $dataAccount;
+
+    protected ?string $resourceNamespace = null;
+    protected ?string $resourceCollectionLabel = null;
+    protected ?string $resourceEntityLabel = null;
+
+	protected array $collectionPropertiesDefault = [];
+	protected array $collectionPropertiesBasic = [];
+	protected array $entityPropertiesDefault = [];
+	protected array $entityPropertiesBasic = [
+		'id', 'calendarIds', 'uid', 'created', 'updated'
+	];
+
+	public function __construct () {
+
 	}
 
-    public function initialize(EasClient $DataStore) {
+	public function initialize(Client $dataStore, ?string $dataAccount = null) {
 
-		$this->DataStore = $DataStore;
+		$this->dataStore = $dataStore;
+        // evaluate if client is connected 
+		if (!$this->dataStore->sessionStatus()) {
+			$this->dataStore->connect();
+		}
+        // determine capabilities
+		// FastMail Calendar uses standard capabilities name space and resource name
+		/*
+        if ($this->dataStore->sessionCapable('https://www.fastmail.com/dev/calendars', false)) {
+            $this->resourceNamespace = 'https://www.fastmail.com/dev/calendars';
+            $this->resourceCollectionLabel = 'Calendar';
+            $this->resourceEntityLabel = 'CalendarEvent';
+        }
+		*/
+        // determine account
+        if ($dataAccount === null) {
+            if ($this->resourceNamespace !== null) {
+                $this->dataAccount = $dataStore->sessionAccountDefault($this->resourceNamespace, false);
+            } else {
+                $this->dataAccount = $dataStore->sessionAccountDefault('calendars');
+            }
+        }
+        else {
+            $this->dataAccount = $dataAccount;
+        }
 
 	}
 
@@ -65,60 +111,49 @@ class RemoteEventsService {
      * 
      * @since Release 1.0.0
      * 
-	 * @param string $cht				Collections Hierarchy Synchronization Token
-	 * @param string $chl				Collections Hierarchy Location
-	 * @param string $cid				Collection Id
-	 * 
-	 * @return EventCollectionObject	EventCollectionObject on success / Null on failure
 	 */
-	public function fetchCollection(string $cht, string $chl, string $cid): ?EventCollectionObject {
-
-        // execute command
-		$cr = $this->RemoteCommonService->fetchFolder($this->DataStore, $cid, false, 'I', $this->constructDefaultCollectionProperties());
-        // process response
-		if (isset($cr) && (count($cr->ContactsFolder) > 0)) {
-		    $ec = new ContactCollectionObject(
-				$cr->ContactsFolder[0]->FolderId->Id,
-				$cr->ContactsFolder[0]->DisplayName,
-				$cr->ContactsFolder[0]->FolderId->ChangeKey,
-				$cr->ContactsFolder[0]->TotalCount
-			);
-			if (isset($cr->ContactsFolder[0]->ParentFolderId->Id)) {
-				$ec->AffiliationId = $cr->ContactsFolder[0]->ParentFolderId->Id;
-			}
-			return $ec;
+	public function collectionFetch(string $location, string $id): ?object {
+		// construct get request
+		$r0 = new CalendarGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		$r0->target($id);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// convert json object to message object and return
+		if ($response->object(0)) {
+			$ro = $response->object(0);
+			return new EventCollectionObject(
+                $ro->id(),
+                $ro->name(),
+                $ro->priority(),
+                $ro->visible(),
+                $ro->color(),
+            );
 		} else {
 			return null;
 		}
-        
     }
 
 	/**
      * create collection in remote storage
      * 
      * @since Release 1.0.0
-     * 
-	 * @param string $cht				Collections Hierarchy Synchronization Token
-	 * @param string $chl				Collections Hierarchy Location
-	 * @param string $name				Collection Name
 	 * 
-	 * @return EventCollectionObject	EventCollectionObject on success / Null on failure
 	 */
-	public function createCollection(string $cht, string $chl, string $name): ?EventCollectionObject {
-        
-		// execute command
-		$rs = $RemoteCommonService->createCollection($this->DataStore, $cht, $chl, $name, EasTypes::COLLECTION_TYPE_USER_CALENDAR);
-        // process response
-		if (isset($rs->Status) && $rs->Status->getContents() == '1') {
-		    return new EventCollectionObject(
-				$rs->Id->getContents(),
-				$name,
-				$rs->SyncKey->getContents()
-			);
-		} else {
-			return null;
-		}
-
+	public function collectionCreate(string $location, string $label): string {
+		// construct set request
+		$r0 = new CalendarSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// construct object
+		$m0 = $r0->create('1');
+		$m0->in($location);
+		$m0->label($label);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return (string) $response->created()['1']['id'];
     }
 
     /**
@@ -126,28 +161,19 @@ class RemoteEventsService {
      * 
      * @since Release 1.0.0
      * 
-	 * @param string $cht				Collections Hierarchy Synchronization Token
-	 * @param string $chl				Collections Hierarchy Location
-	 * @param string $cid				Collection Id
-	 * @param string $name				Collection Name
-	 * 
-	 * @return EventCollectionObject	EventCollectionObject on success / Null on failure
 	 */
-	public function updateCollection(string $cht, string $chl, string $cid, string $name): ?EventCollectionObject {
-        
-		// execute command
-		$rs = $RemoteCommonService->updateCollection($this->DataStore, $cht, $chl, $cid, $name);
-        // process response
-		if (isset($rs->Status) && $rs->Status->getContents() == '1') {
-		    return new EventCollectionObject(
-				$rs->Id->getContents(),
-				$name,
-				$rs->SyncKey->getContents()
-			);
-		} else {
-			return null;
-		}
-
+	public function collectionUpdate(string $location, string $id, string $label): string {
+        // construct set request
+		$r0 = new CalendarSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// construct object
+		$m0 = $r0->update($id);
+		$m0->label($label);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return array_key_exists($id, $response->updated()) ? (string) $id : '';
     }
 
     /**
@@ -155,221 +181,389 @@ class RemoteEventsService {
      * 
      * @since Release 1.0.0
      * 
-     * @param string $cht				Collections Hierarchy Synchronization Token
-	 * @param string $cid				Collection Id
-	 * 
-	 * @return bool 					True on success / Null on failure
 	 */
-    public function deleteCollection(string $cht, string $cid): bool {
-        
-		// execute command
-        $rs = $this->RemoteCommonService->deleteCollection($this->DataStore, $cht, $cid);
-		// process response
-        if (isset($rs->CollectionDelete->Status) && $rs->CollectionDelete->Status->getContents() == '1') {
-            return true;
-        } else {
-            return false;
-        }
+    public function collectionDelete(string $location, string $id): string {
+        // construct set request
+		$r0 = new CalendarSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// construct object
+		$r0->delete($id);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return (string) $response->deleted()[0];
+    }
 
+	/**
+     * move collection in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function collectionMove(string $sourceLocation, string $id, string $destinationLocation): string {
+        // construct set request
+		$r0 = new CalendarSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// construct object
+		$m0 = $r0->update($id);
+		$m0->in($destinationLocation);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return array_key_exists($id, $response->updated()) ? (string) $id : '';
+    }
+
+	/**
+     * list of collections in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function collectionList(?string $location = null, ?string $scope = null): array {
+		// construct get request
+ 		$r0 = new CalendarGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// set target to query request
+        if ($location !== null) {
+            $r0->target($location);
+        }
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+        // determine if command errored
+        if ($response instanceof ResponseException) {
+            if ($response->type() === 'unknownMethod') {
+                throw new JmapUnknownMethod($response->description(), 1);
+            } else {
+                throw new Exception($response->type() . ': ' . $response->description(), 1);
+            }
+        }
+		// convert json objects to collection objects
+        $list = [];
+		foreach ($response->objects() as $ro) {
+            $collection = new EventCollectionObject(
+                $ro->id(),
+                $ro->name(),
+                $ro->priority(),
+                $ro->visible(),
+                $ro->color(),
+            );
+			$list[] = $collection;
+		}
+		// return collection of collections
+		return $list;
+	}
+
+	/**
+     * search for collection in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function collectionSearch(string $location, string $filter, string $scope): array {
+        // construct set request
+		$r0 = new CalendarQuery($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// set location constraint
+		if (!empty($location)) {
+			$r0->filter()->in($location);
+		}
+		// set name constraint
+		if (!empty($filter)) {
+			$r0->filter()->Name($filter);
+		}
+		// construct get request
+		$r1 = new CalendarGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// set target to query request
+		$r1->targetFromRequest($r0, '/ids');
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0, $r1]);
+		// extract response
+		$response = $bundle->response(1);
+		// convert json objects to collection objects
+		$list = $response->objects();
+		foreach ($list as $id => $message) {
+			$list[$id] = new Collection($message->parametersRaw());
+		}
+		// return collection of collections
+		return $list;
+    }
+
+	/**
+     * retrieve entity from remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function entityFetch(string $location, string $id, string $particulars = 'D'): EventObject|null {
+		// construct set request
+		$r0 = new EventGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		$r0->target($id);
+		// select properties to return
+		//$r0->property(...$this->defaultMailProperties);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// convert EventParameter object to EventObject object and return
+		$eo = $this->toEventObject($response->object(0));
+
+		return $eo;
+    }
+    
+	/**
+     * create entity in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function entityCreate(string $location, IMessage $message): string {
+		// construct set request
+		$r0 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		$r0->create('1')->parametersRaw($message->getParameters())->in($location);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return (string) $response->created()['1']['id'];
     }
 
     /**
-	 * retrieve alteration for specific collection
+     * update entity in remote storage
      * 
      * @since Release 1.0.0
-	 * 
-     * @param string $cid		Collection ID
-	 * @param string $cst		Collections Synchronization Token
-	 * 
-	 * @return object
+     * 
 	 */
-	public function reconcileCollection(string $cid, string $cst): ?object {
+	public function entityModify(string $location, string $id, IMessage $message): string {
+		//
+		//TODO: Replace this code with an actual property update instead of replacement
+		//
+		// construct set request
+		//$r0 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		//$r0->create('1')->parametersRaw($message->getParameters())->in($location);
+		// construct set request
+		//$r1 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		//$r1->delete($id);
+		// construct set request
+		$r0 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		$messageData = $message->getParameters();
+		$messageData['id'] = $id;
+		$r0->update($id)->parametersRaw($messageData);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return array_key_exists($id, $response->updated()) ? (string) $id : '';
+    }
+    
+    /**
+     * delete entity from remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function entityDelete(string $location, string $id): string {
+        // construct set request
+		$r0 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		$r0->delete($id);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return (string) $response->deleted()[0];
+    }
 
-        // evaluate synchronization token, if empty or 0 retrieve initial synchronization token
-        if (empty($cst) || $cst == '0') {
-            // execute command
-            $rs1 = $this->RemoteCommonService->reconcileCollection($this->DataStore, '0', $cid, []);
-            // extract synchronization token
-            $cst = $rs1->SyncKey->getContents();
+	/**
+     * copy entity in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function entityCopy(string $sourceLocation, string $id, string $destinationLocation): string {
+        
+    }
+
+	/**
+     * move entity in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function entityMove(string $sourceLocation, string $id, string $destinationLocation): string {
+        // construct set request
+		$r0 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		$m0 = $r0->update($id);
+		$m0->in($destinationLocation);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return array_key_exists($id, $response->updated()) ? (string) $id : '';
+    }
+
+	/**
+     * retrieve entities from remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function entityList(string $location, IRange $range = null, string $sort = null, string $particulars = 'D'): array {
+		// construct query request
+		$r0 = new EventQuery($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// set location constraint
+        if (!empty($location)) {
+        	//$r0->filter()->in($location);
         }
-        // execute command
-        $rs2 = $this->RemoteCommonService->reconcileCollection($this->DataStore, $cst, $cid, ['CHANGES' => 1, 'LIMIT' => 32, 'FILTER' => 0, 'BODY' => EasTypes::BODY_TYPE_TEXT]);
-        // evaluate response(s)
-		// return collection delta response
-		if (isset($rs2->Status) && $rs2->Status->getContents() == '1') {
-		    return $rs2;
+		// set range constraint
+		if ($range !== null) {
+			if ($range->type()->value === 'absolute') {
+				$r0->startAbsolute($range->getStart())->limitAbsolute($range->getCount());
+			}
+			if ($range->type()->value === 'relative') {
+				$r0->startRelative($range->getStart())->limitRelative($range->getCount());
+			}
 		}
-		// return initial response if normal response was null (work around for empty collection null responses)
-		elseif (isset($rs1->Status) && $rs1->Status->getContents() == '1') {
-		    return $rs1;
+		// set sort
+		if ($sort !== null) {
+			match($sort) {
+				'received' => $r0->sort()->received(),
+				'sent' => $r0->sort()->sent(),
+				'from' => $r0->sort()->from(),
+				'to' => $r0->sort()->to(),
+				'subject' => $r0->sort()->subject(),
+				'size' => $r0->sort()->size(),
+			};
 		}
-		else {
-			return null;
-		}
+
+		// construct get request
+		$r1 = new EventGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// set target to query request
+		$r1->targetFromRequest($r0, '/ids');
+		// select properties to return
+        if ($particulars === 'B') {
+            $r1->property(...$this->entityPropertiesBasic);
+        }
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0, $r1]);
+		// extract response
+		$response = $bundle->response(1);
+		// convert json objects to message objects
+		$state = $response->state();
+		$list = $response->objects();
+		// return message collection
+		return ['list' => $list, 'state' => $state];
 		
     }
 
 	/**
-     * retrieve collection entity in remote storage
+     * search for entities from remote storage
      * 
      * @since Release 1.0.0
      * 
-	 * @param string $cid			Collection ID
-     * @param string $cst           Collection Signature Token
-	 * @param string $eid			Entity ID
-	 * 
-	 * @return EventObject        EventObject on success / Null on failure
 	 */
-	public function fetchEntity(string $cid, string &$cst, string $eid): ?EventObject {
-
-        // execute command
-		$ro = $this->RemoteCommonService->fetchEntity($this->DataStore, $cid, $eid, ['BODY' => EasTypes::BODY_TYPE_TEXT]);
-        // validate response
-		if (isset($ro->Status) && $ro->Status->getContents() == '1') {
-            // convert to contact object
-            $eo = $this->toEventObject($ro->Properties);
-            $eo->ID = ($ro->EntityId) ? $ro->EntityId->getContents() : $eid;
-            $eo->CID = ($ro->CollectionId) ? $ro->CollectionId->getContents() : $cid;
-            $eo->RCID = $eo->CID;
-            $eo->REID = $eo->ID;
-            // generate a signature for the data
-            // this a crude but nessary as EAS does not transmit a harmonization signature for entities
-            $eo->Signature = $this->generateSignature($eo);
-            // retrieve attachment(s) from remote data store
-			if (count($eo->Attachments) > 0) {
-				// retrieve all attachments
-				$ro = $this->RemoteCommonService->fetchAttachment($this->DataStore, array_column($eo->Attachments, 'Id'));
-				// evaluate returned object
-				if (count($ro) > 0) {
-					foreach ($ro as $entry) {
-						// evaluate status
-						if (isset($entry->Status) && $entry->Status->getContents() == '1') {
-							$key = array_search($entry->FileReference->getContents(), array_column($eo->Attachments, 'Id'));
-							if ($key !== false) {
-								$eo->Attachments[$key]->Data = base64_decode($entry->Properties->Data->getContents());
-							}
-						}
-					}
+	public function entitySearch(string $location, array $filter = null, IRange $range = null, string $sort = null, string $particulars = 'D'): array {
+		// construct query request
+		$r0 = new EventQuery($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// set location constraint
+		$r0->filter()->in($location);
+		// set filter constraints
+		if (!empty($filter)) {
+			// extract request filter
+			$rf = $r0->filter();
+			// iterate filter values
+			foreach ($filter as $key => $value) {
+				if (method_exists($rf, $key)) {
+					$rf->$key($value);
 				}
 			}
-            // return object
-		    return $eo;
-        } else {
-            // return null
-            return null;
-        }
-
+		}
+		// set range constraint
+		if ($range !== null) {
+			if ($range->type()->value === 'absolute') {
+				$r0->startAbsolute($range->getStart())->limitAbsolute($range->getCount());
+			}
+			if ($range->type()->value === 'relative') {
+				$r0->startRelative($range->getStart())->limitRelative($range->getCount());
+			}
+		}
+		// set sort
+		if ($sort !== null) {
+			match($sort) {
+				'received' => $r0->sort()->received(),
+				'sent' => $r0->sort()->sent(),
+				'from' => $r0->sort()->from(),
+				'to' => $r0->sort()->to(),
+				'subject' => $r0->sort()->subject(),
+				'size' => $r0->sort()->size(),
+			};
+		}
+		// construct get request
+		$r1 = new EventGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// set target to query request
+		$r1->targetFromRequest($r0, '/ids');
+		// select properties to return
+		$r1->property(...$this->defaultMailProperties);
+		$r1->bodyAll(true);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0, $r1]);
+		// extract response
+		$response = $bundle->response(1);
+		// convert json objects to message objects
+		$list = $response->objects();
+		foreach ($list as $id => $message) {
+			$list[$id] = new Message($message->parametersRaw());
+		}
+		// return message collection
+		return $list;
     }
-    
+
 	/**
-     * create collection entity in remote storage
+     * delta of changes for collection in remote storage
      * 
      * @since Release 1.0.0
      * 
-	 * @param string $cid			Collection Id
-	 * @param string $cst			Collection Synchronization Token
-     * @param EventObject $so     	Source Object
-	 * 
-	 * @return EventObject        	EventObject on success / Null on failure
 	 */
-	public function createEntity(string $cid, string &$cst, EventObject $so): ?EventObject {
-
-        // convert source EventObject to EasObject
-        $eo = $this->fromEventObject($so);
-	    // execute command
-	    $ro = $this->RemoteCommonService->createEntity($this->DataStore, $cid, $cst, EasTypes::ENTITY_TYPE_CALENDAR, $eo);
-        // evaluate response
-        if (isset($ro->Status) && $ro->Status->getContents() == '1') {
-            // extract signature token
-            $cst = $ro->SyncKey->getContents();
-            //
-			$eo = clone $so;
-            $eo->Origin = 'R';
-            $eo->ID = ($ro->Responses->Add->EntityId) ? $ro->Responses->Add->EntityId->getContents() : $eid;
-            $eo->CID = ($ro->CollectionId) ? $ro->CollectionId->getContents() : $cid;
-            $eo->RCID = $eo->CID;
-            $eo->REID = $eo->ID;
-			// deposit attachment(s)
-			if (count($eo->Attachments) > 0) {
-				// create attachments in remote data store
-				$eo->Attachments = $this->createCollectionItemAttachment($eo->ID, $eo->Attachments);
-				$eo->Signature = $eo->Attachments[0]->AffiliateState;
-			}
-            // generate a signature for the entity
-			// this a crude but nessary as EAS does not transmit a harmonization signature for entities
-			$eo->Signature = $this->generateSignature($eo);
-            return $eo;
-        } else {
-            return null;
+    public function entityDelta(string $location, string $state, string $particulars = 'D'): array {
+        // construct set request
+		$r0 = new EventQueryChanges($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// set location constraint
+		if (!empty($location)) {
+			$r0->filter()->in($location);
+		}
+		// set state constraint
+		if (!empty($state)) {
+			$r0->state($state);
+		} else {
+			$r0->state('0');
+		}
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// determine if command errored
+        if ($response instanceof ResponseException) {
+            if ($response->type() === 'unknownMethod') {
+                throw new JmapUnknownMethod($response->description(), 1);
+            } else {
+                throw new Exception($response->type() . ': ' . $response->description(), 1);
+            }
         }
-
-    }
-
-     /**
-     * update collection entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param string $cid			Collection ID
-	 * @param string $cst			Collection Signature Token
-     * @param string $eid           Entity ID
-     * @param EventObject $so     	Source Object
-	 * 
-	 * @return EventObject        	EventObject on success / Null on failure
-	 */
-	public function updateEntity(string $cid, string &$cst, string $eid, EventObject $so): ?EventObject {
-
-		// convert source EventObject to EasObject
-        $ro = $this->fromEventObject($so);
-	    // execute command
-	    $ro = $this->RemoteCommonService->updateEntity($this->DataStore, $cid, $cst, $eid, $ro);
-        // evaluate response
-        if (isset($ro->Status) && $ro->Status->getContents() == '1') {
-            // extract signature token
-            $cst = $ro->SyncKey->getContents();
-            //
-			$eo = clone $so;
-			$eo->Origin = 'R';
-            $eo->ID = ($ro->Responses->Modify->EntityId) ? $ro->Responses->Modify->EntityId->getContents() : $eid;
-            $eo->CID = ($ro->CollectionId) ? $ro->CollectionId->getContents() : $cid;
-			// deposit attachment(s)
-			if (count($so->Attachments) > 0) {
-				// create attachments in remote data store
-				$eo->Attachments = $this->createCollectionItemAttachment($eo->ID, $eo->Attachments);
-				$eo->Signature = $eo->Attachments[0]->AffiliateState;
-			}
-            // generate a signature for the entity
-			// this a crude but nessary as EAS does not transmit a harmonization signature for entities
-			$eo->Signature = $this->generateSignature($eo);
-            return $eo;
-        } else {
-            return null;
-        }
-        
-    }
-    
-    /**
-     * delete collection entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param string $cid			Collection Id
-	 * @param string $cst			Collection Synchronization Token
-	 * @param string $eid			Entity Id
-	 * 
-	 * @return bool                 True on success / False on failure
-	 */
-    public function deleteEntity(string $cid, string $cst, string $eid): bool {
-        
-        // execute command
-        $rs = $this->RemoteCommonService->deleteEntity($this->DataStore, $cid, $cst, $eid);
-        // evaluate response
-        if ($rs) {
-            return true;
-        } else {
-            return false;
-        }
-
+		// convert json objects to collection objects
+		$list = $response->objects();
+		// return collection of collections
+		return $list;
     }
 
 	/**
@@ -501,68 +695,79 @@ class RemoteEventsService {
     }
 
 	/**
-     * convert remote EasObject to local ContactObject
+     * convert remote object to local object
      * 
      * @since Release 1.0.0
      * 
-	 * @param EasObject $so     entity as EasObject
+	 * @param EventParameters $so	remote entity object
 	 * 
-	 * @return EventObject		entity as ContactObject
+	 * @return EventObject			local entity object
 	 */
-	public function toEventObject(EasObject $so): EventObject {
+	public function toEventObject(EventParametersResponse $so): EventObject {
 		// create object
 		$eo = new EventObject();
-		// Origin
+		// source origin
 		$eo->Origin = 'R';
-        // Modification Date
-        if (!empty($so->DtStamp)) {
-            $eo->ModifiedOn = new DateTime($so->DtStamp->getContents());
+        // id
+        if ($so->id()){
+            $eo->ID = $so->id();
         }
-		// Time Zone
-        if (!empty($so->Timezone)) {
-        	$eo->TimeZone = $this->fromTimeZone($so->Timezone->getContents());
-			if (isset($eo->TimeZone)) {
-				if (!isset($eo->StartsTZ)) { $eo->StartsTZ = clone $eo->TimeZone; }
-				if (!isset($eo->EndsTZ)) { $eo->EndsTZ = clone $eo->TimeZone; }
-			}
+		// universal id
+        if ($so->uid()){
+            $eo->UUID = $so->uid();
+        }
+		// creation date
+        if ($so->created()){
+            $eo->CreatedOn = $so->created();
+        }
+		// modification date
+		if ($so->updated()){
+            $eo->ModifiedOn = $so->updated();
+        }
+		// time zone
+        if ($so->timezone()) {
+        	$eo->TimeZone = new DateTimeZone($so->timezone());
         }
 		// Start Date/Time
-		if (!empty($so->StartTime)) {
-			$eo->StartsOn = new DateTime($so->StartTime->getContents());
-			if (isset($eo->StartsTZ)) { $eo->StartsOn->setTimezone($eo->StartsTZ); }
+		if ($so->starts()) {
+			$eo->StartsOn = $so->starts();
+			$eo->StartsTZ = $eo->TimeZone;
 		}
 		// End Date/Time
-        if (!empty($so->EndTime)) {
-            $eo->EndsOn = new DateTime($so->EndTime->getContents());
-			if (isset($eo->EndsTZ)) { $eo->EndsOn->setTimezone($eo->EndsTZ); }
+        if ($so->ends()) {
+            $eo->EndsOn = $so->ends();
+			$eo->EndsTZ = $eo->TimeZone;
         }
 		// All Day Event
-		if(isset($so->AllDayEvent) && $so->AllDayEvent->getContents() == '1') {
+		if($so->timeless() && $so->timeless() === true) {
 			$eo->StartsOn->setTime(0,0,0,0);
 			$eo->EndsOn->setTime(0,0,0,0);
 		}
 		// Label
-        if (!empty($so->Subject)) {
-            $eo->Label = $so->Subject->getContents();
+        if ($so->label()) {
+            $eo->Label = $so->label();
         }
-		// Notes
-		if (!empty($so->Body->Data)) {
-			$eo->Notes = $so->Body->Data->getContents();
+		// Description
+		if ($so->descriptionContents()) {
+			$eo->Notes = $so->descriptionContents();
 		}
 		// Location
+		/*
 		if (!empty($so->Location)) {
 			$eo->Location = $so->Location->DisplayName->getContents();
 		}
+		*/
 		// Availability
-		if (!empty($so->BusyStatus)) {
-			$eo->Availability = $this->fromAvailability($so->BusyStatus->getContents());
+		if ($so->availability()) {
+			$eo->Availability = $this->fromAvailability($so->availability());
 		}
 		// Sensitivity
-		if (!empty($so->Sensitivity)) {
-			$eo->Sensitivity = $this->fromSensitivity($so->Sensitivity->getContents());
+		if ($so->privacy()) {
+			$eo->Sensitivity = $this->fromSensitivity($so->privacy());
 		}
 		// Tag(s)
-        if (isset($so->Categories)) {
+		/*
+        if ($so->categories()) {
             if (!is_array($so->Categories->Category)) {
                 $so->Categories->Category = [$so->Categories->Category];
             }
@@ -570,14 +775,14 @@ class RemoteEventsService {
 				$eo->addTag($entry->getContents());
 			}
         }
-		// Organizer - Address
-		if (isset($so->OrganizerEmail)) {
-			$eo->Organizer->Address = $so->OrganizerEmail->getContents();
+		*/
+		// Organizer - Address and Name
+		if ($so->sender()) {
+			$sender = $this->fromSender($so->sender());
+			$eo->Organizer->Address = $sender['address'];
+			$eo->Organizer->Name = $sender['name'];
 		}
-		// Organizer - Name
-		if (isset($so->OrganizerName)) {
-			$eo->Organizer->Name = $so->OrganizerName->getContents();
-		}
+		/*
 		// Attendee(s)
 		if (isset($so->Attendees->Attendee)) {
 			foreach($so->Attendees->Attendee as $entry) {
@@ -720,6 +925,7 @@ class RemoteEventsService {
 				);
 			}
 		}
+		*/
 
 		return $eo;
 
@@ -884,7 +1090,7 @@ class RemoteEventsService {
         // clone self
         $o = clone $eo;
         // remove non needed values
-        unset($o->ID, $o->CID, $o->UUID, $o->RCID, $o->REID, $o->Origin, $o->Signature, $o->CreatedOn, $o->ModifiedOn);
+        unset($o->Origin, $o->ID, $o->CID, $o->UUID, $o->Signature, $o->CCID, $o->CEID, $o->CESN, $o->CreatedOn, $o->ModifiedOn);
         // generate signature
         return md5(json_encode($o));
 
@@ -981,6 +1187,67 @@ class RemoteEventsService {
 
 	}
 
+	function email_split( $str ){
+		
+		}
+
+
+	/**
+     * convert remote availability status to event object availability status
+	 * 
+     * @since Release 1.0.0
+     * 
+	 * @param string $value		remote availability status value
+	 * 
+	 * @return string			event object availability status value
+	 */
+	private function fromSender(?string $value): array {
+		
+		// Check if there are angle brackets
+		$bracketStart = strpos($value, '<');
+		$bracketEnd = strpos($value, '>');
+
+		// If brackets are present
+		if ($bracketStart !== false && $bracketEnd !== false) {
+			// Extract the name and address
+			$name = trim(substr($value, 0, $bracketStart));
+			$address = trim(substr($value, $bracketStart + 1, $bracketEnd - $bracketStart - 1));
+		} else {
+			$name = null;
+			$address = $value;
+		}
+
+		return ['address' => $address, 'name' => $name];
+		
+	}
+
+	/**
+     * convert event object availability status to remote availability status
+	 * 
+     * @since Release 1.0.0
+     * 
+	 * @param string $value		event object availability status value
+	 * 
+	 * @return string	 		remote availability status value
+	 */
+	private function toSender(string $address, ?string $name): string {
+		
+		// transposition matrix
+		$_tm = array(
+			'F' => 'free',
+			'B' => 'busy',
+		);
+		// evaluate if value exists
+		if (isset($_tm[$value])) {
+			// return transposed value
+			return $_tm[$value];
+		} else {
+			// return default value
+			return 'busy';
+		}
+
+	}
+
 	/**
      * convert remote availability status to event object availability status
 	 * 
@@ -994,11 +1261,8 @@ class RemoteEventsService {
 		
 		// transposition matrix
 		$_tm = array(
-			'0' => 'F', // Free
-			'1' => 'T',	// Tentative
-			'2' => 'B',	// Busy
-			'3' => 'O',	// Out of Office
-			'4' => 'E'	// Working elsewhere
+			'free' => 'F',
+			'busy' => 'B',
 		);
 		// evaluate if value exists
 		if (isset($_tm[$value])) {
@@ -1024,11 +1288,8 @@ class RemoteEventsService {
 		
 		// transposition matrix
 		$_tm = array(
-			'F' => '0', // Free
-			'T' => '1',	// Tentative
-			'B' => '2',	// Busy
-			'O' => '3',	// Out of Office
-			'E' => '4'	// Working elsewhere
+			'F' => 'free',
+			'B' => 'busy',
 		);
 		// evaluate if value exists
 		if (isset($_tm[$value])) {
@@ -1036,7 +1297,7 @@ class RemoteEventsService {
 			return $_tm[$value];
 		} else {
 			// return default value
-			return '2';
+			return 'busy';
 		}
 
 	}
@@ -1054,10 +1315,9 @@ class RemoteEventsService {
 		
 		// transposition matrix
 		$_tm = array(
-			'0' => 'N', // Normal
-			'1' => 'I',	// Personal/Individual
-			'2' => 'P',	// Private
-			'3' => 'C',	// Confidential
+			'public' => 'N',
+			'private' => 'P',
+			'secret' => 'S',
 		);
 		// evaluate if value exists
 		if (isset($_tm[$value])) {
@@ -1077,16 +1337,15 @@ class RemoteEventsService {
      * 
 	 * @param string $value		event object sensitivity status value
 	 * 
-	 * @return string	 			remote sensitivity status value
+	 * @return string	 		remote sensitivity status value
 	 */
 	private function toSensitivity(?string $value): string {
 		
 		// transposition matrix
 		$_tm = array(
-			'N' => '0', // Normal
-			'I' => '1',	// Personal/Individual
-			'P' => '2',	// Private
-			'C' => '3',	// Confidential
+			'N' => 'public',
+			'P' => 'private',
+			'S' => 'secret',
 		);
 		// evaluate if value exists
 		if (isset($_tm[$value])) {
@@ -1094,7 +1353,7 @@ class RemoteEventsService {
 			return $_tm[$value];
 		} else {
 			// return default value
-			return '2';
+			return 'public';
 		}
 
 	}

@@ -9,35 +9,25 @@ use Sabre\DAV\PropPatch;
 
 use OCA\JMAPC\AppInfo\Application;
 use OCA\JMAPC\Store\TaskStore;
+use OCA\JMAPC\Store\CollectionEntity as CollectionEntityData;
 
 class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 
 	private TaskStore $_store;
-	private int $_id;
-	private string $_uuid;
-	private string $_uid;
-	private string $_label;
-	private string $_color;
+	private CollectionEntityData $_data;
 
 	/**
 	 * Collection constructor.
 	 *
-	 * @param string $id
-	 * @param string $uid
-	 * @param string $uuid
-	 * @param string $label
-	 * @param string $color
+	 * @param TaskStore $store
+	 * @param CollectionEntityData $data
 	 */
-	public function __construct(TaskStore &$store, string $id, string $uid, string $uuid, string $label, string $color) {
+	public function __construct(TaskStore &$store, CollectionEntityData $data) {
 		
-		parent::__construct(Application::APP_ID, $uuid);
+		parent::__construct(Application::APP_ID, $data->getUuid());
 
 		$this->_store = $store;
-		$this->_id = $id;
-		$this->_uid = $uid;
-		$this->_uuid = $uuid;
-		$this->_label = $label;
-		$this->_color = $color;
+		$this->_data = $data;
 
 	}
 
@@ -50,7 +40,7 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
      */
 	function getOwner() {
 
-		return 'principals/users/' . $this->_uid;
+		return 'principals/users/' . $this->_data->getUid();
 
 	}
 
@@ -145,7 +135,7 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
      * standard structure.
      *
      * If null is returned from this method, the default privilege set is used,
-     * which is fine for most common usecases.
+     * which is fine for most common use cases.
      *
      * @return array|null
      */
@@ -177,11 +167,11 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 		}
 
 		// retrieve entries
-		$entries = $this->_store->findEntities($this->_uid, $this->_id, $limit, ['uuid']);
+		$entries = $this->_store->entityFind($this->_data->getId(), $limit, ['uuid']);
 		// list entries
 		$list = [];
 		foreach ($entries as $entry) {
-			$list[] = $entry['uuid'];
+			$list[] = $entry->getUuid();
 		}
 		// return list
 		return $list;
@@ -220,6 +210,7 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
         $lo['data'] = $data;
 		$lo['uuid'] = $id;
 		$lo['uid'] = $this->_uid;
+		$lo['sid'] = $this->_sid;
 		$lo['cid'] = $this->_id;
 		// calcualted properties
         $lo['size'] = strlen($data);
@@ -230,7 +221,7 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 		$lo['startson'] = (isset($vo->DTSTART)) ? $this->extractDateTime($vo->DTSTART)->setTimezone(new \DateTimeZone('UTC'))->format('U') : null;
 		$lo['dueon'] = (isset($vo->DUE)) ? $this->extractDateTime($vo->DUE)->setTimezone(new \DateTimeZone('UTC'))->format('U') : null;
 		// deposit entry to data store
-		$this->_store->createEntity($lo);
+		$this->_store->entityCreate($lo);
 		// return state
 		return $lo['signature'];
 
@@ -266,6 +257,7 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
         $lo['data'] = $data;
 		$lo['uuid'] = $uuid;
 		$lo['uid'] = $this->_uid;
+		$lo['sid'] = $this->_sid;
 		$lo['cid'] = $this->_id;
 		// calcualted properties
         $lo['size'] = strlen($data);
@@ -276,7 +268,7 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 		$lo['startson'] = (isset($vo->DTSTART)) ? $this->extractDateTime($vo->DTSTART)->setTimezone(new \DateTimeZone('UTC'))->format('U') : null;
 		$lo['dueon'] = (isset($vo->DUE)) ? $this->extractDateTime($vo->DUE)->setTimezone(new \DateTimeZone('UTC'))->format('U') : null;
 		// deposit entry to data store
-		$this->_store->modifyEntity($id, $lo);
+		$this->_store->entityModify($id, $lo);
 		// return state
 		return $lo['signature'];
 
@@ -292,7 +284,7 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 	function deleteFile($id) {
 
 		// delete entry from data store and return result
-		return $this->_store->deleteEntity($id);
+		return $this->_store->entityDelete($id);
 
 	}
 
@@ -304,11 +296,11 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 	function getChildren() {
 		
 		// retrieve entries
-		$entries = $this->_store->listEntitiesByCollection($this->_uid, $this->_id);
+		$entries = $this->_store->entityListByCollection($this->_data->getId());
 		// list entries
 		$list = [];
 		foreach ($entries as $entry) {
-			$list[] = new TaskEntity($this, $entry['id'], $entry['uuid'], $entry['label'], $entry);
+			$list[] = new TaskEntity($this, $entry);
 		}
 		// return list
 		return $list;
@@ -327,10 +319,10 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 		// remove extension
 		$id = str_replace('.ics', '', $id);
 		// retrieve object properties
-		$entry = $this->_store->fetchEntityByUUID($this->_uid, $id);
+		$entry = $this->_store->entityFetchByUUID($this->_data->getId(), $id);
 		// evaluate if object properties where retrieved 
-		if (isset($entry['uuid'])) {
-			return new TaskEntity($this, $entry['id'], $entry['uuid'], $entry['label'], $entry);
+		if ($entry->getUuid()) {
+			return new TaskEntity($this, $entry);
 		}
 		else {
 			return false;
@@ -352,10 +344,10 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 		// retrieve entities
 		foreach ($ids as $id) {
 			// retrieve object properties
-			$entry = $this->_store->fetchEntityByUUID($this->_uid, $id);
+			$entry = $this->_store->entityFetchByUUID($this->_data->getId(), $id);
 			// evaluate if object properties where retrieved 
-			if (isset($entry['uuid'])) {
-				$list[] = new TaskEntity($this, $entry['id'], $entry['uuid'], $entry['label'], $entry);
+			if ($entry->getUuid()) {
+				$list[] = new TaskEntity($this, $entry);
 			}
 		}
 		
@@ -375,8 +367,8 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 
 		// remove extension
 		$id = str_replace('.ics', '', $id);
-		// confim object exists
-		return $this->_store->confirmEntityByUUID($this->_uid, $id);
+		// confirm object exists
+		return $this->_store->entityConfirmByUUID($this->_data->getId(), $id);
 
 	}
 
@@ -386,19 +378,9 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 	function delete() {
 
 		// delete local entities
-		$this->_store->deleteEntitiesByCollection($this->_uid, $this->_id);
+		$this->_store->entityDeleteByCollection($this->_data->getId());
 		// delete local collection
-		$this->_store->deleteCollection($this->_id);
-		// initilize correlation service
-		$CorrelationsService = \OC::$server->get(\OCA\JMAPC\Service\CorrelationsService::class);
-		// retrieve correlation entry
-		$cr = $CorrelationsService->findByLocalId($this->_uid, $CorrelationsService::TaskCollection, $this->_id);
-		// evaluate if correlation was found
-		if (isset($cr)) {
-			// delete correlations
-			$CorrelationsService->deleteByCollectionId($cr->getuid(), $cr->getloid(), $cr->getroid());
-			$CorrelationsService->delete($cr);
-		}
+		$this->_store->collectionDelete($this->_data);
 
 	}
 
@@ -424,24 +406,24 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 		// retrieve mutations
 		$mutations = $propPatch->getMutations();
 		// evaluate if any mutations apply
-		if (isset($mutations['{DAV:}displayname']) || isset($mutations['{http://apple.com/ns/ical/}calendar-color'])) {
+		if (count($mutations) > 0) {
 			// retrieve collection
-			if ($this->_store->confirmCollection($this->_id)) {
-				// construct place holder
-				$entry = [];
+			if ($this->_store->collectionConfirm($this->_data->getId())) {
 				// evaluate if name was changed
 				if (isset($mutations['{DAV:}displayname'])) {
-					// assign new name
-					$entry['label'] = ($mutations['{DAV:}displayname']);
+					$this->_data->setLabel($mutations['{DAV:}displayname']);
 				}
 				// evaluate if color was changed
 				if (isset($mutations['{http://apple.com/ns/ical/}calendar-color'])) {
-					// assign new color
-					$entry['color'] = ($mutations['{http://apple.com/ns/ical/}calendar-color']);
+					$this->_data->setColor($mutations['{http://apple.com/ns/ical/}calendar-color']);
+				}
+				// evaluate if enabled was changed
+				if (isset($mutations['{http://owncloud.org/ns}calendar-enabled'])) {
+					$this->_data->setVisible((int)$mutations['{http://owncloud.org/ns}calendar-enabled']);
 				}
 				// update collection
-				if (count($entry) > 0) {
-					$this->_store->modifyCollection($this->_id, $entry);
+				if (count($this->_data->getUpdatedFields()) > 0) {
+					$this->_store->collectionModify($this->_data);
 				}
 			}
 		}
@@ -451,7 +433,7 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 	/**
      * retrieves a list of properties for this collection
      *
-     * The properties list is a list of propertynames the client requested,
+     * The properties list is a list of property names the client requested,
      * encoded in clark-notation {xmlnamespace}tagname
      *
      * @param array $properties
@@ -462,12 +444,14 @@ class TaskCollection extends ExternalCalendar implements \Sabre\DAV\IMultiGet {
 		
 		// return collection properties
 		return [
-			'{DAV:}displayname' => $this->_label,
-			'{http://apple.com/ns/ical/}calendar-color'  => $this->_color,
-			'{' . Plugin::NS_CALDAV . '}supported-calendar-component-set' => new SupportedCalendarComponentSet(['VTODO']),
+			'{DAV:}displayname' => $this->_data->getLabel(),
+			'{http://apple.com/ns/ical/}calendar-color' => $this->_data->getColor(),
+			'{http://owncloud.org/ns}calendar-enabled' => (string)$this->_data->getVisible(),
+			'{' . Plugin::NS_CALDAV . '}supported-calendar-component-set' => new SupportedCalendarComponentSet(['VEVENT']),
 		];
 		
 	}
+
 	
 	function extractString($property): string {
 		return trim($property->getValue());

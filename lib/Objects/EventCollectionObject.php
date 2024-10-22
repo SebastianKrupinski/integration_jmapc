@@ -26,23 +26,13 @@
 namespace OCA\JMAPC\Objects;
 
 class EventCollectionObject {
-    public string $Id;
-    public ?string $Name = null;
-    public ?string $Signature = null;
-    public ?int $Count = null;
-    public ?string $AffiliationId = null;
 
     public function __construct(
-        string $id,
-        string $name = null,
-        string $signature = null,
-        int $count = null,
-        string $aid = null
-    ) {
-        $this->Id = $id;
-        $this->Name = $name;
-        $this->Signature = $signature;
-        $this->Count = $count;
-        $this->AffiliationId = $aid;
-	}
+        public string $Id,
+        public ?string $Name = null,
+        public ?int $Priority = null,
+        public ?bool $Visibility = null,
+        public ?string $Color = null,    
+    ) {}
+    
 }

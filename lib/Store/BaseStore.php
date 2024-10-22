@@ -25,6 +25,7 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Store;
 
+use OCP\AppFramework\Db\Entity;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OC\DB\QueryBuilder\Literal;
 use OCP\IDBConnection;
@@ -34,18 +35,30 @@ class BaseStore {
 	protected IDBConnection $_Store;
 	protected string $_CollectionTable = '';
 	protected string $_CollectionIdentifier = '';
+	protected string $_CollectionClass = '';
 	protected string $_EntityTable = '';
 	protected string $_EntityIdentifier = '';
+	protected string $_EntityClass = '';
 	protected string $_ChronicleTable = '';
+
+	protected function toCollection(array $row): Entity {
+		unset($row['DOCTRINE_ROWNUM']); // remove doctrine/dbal helper column
+		return \call_user_func($this->_CollectionClass .'::fromRow', $row);
+	}
+
+	protected function toEntity(array $row): Entity {
+		unset($row['DOCTRINE_ROWNUM']); // remove doctrine/dbal helper column
+		return \call_user_func($this->_EntityClass .'::fromRow', $row);
+	}
 
 	/**
 	 * retrieve collections from data store
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @return array 			of collections
+	 * @return array<int, CollectionEntity>
 	 */
-	public function listCollections(): array {
+	public function collectionList(): array {
 		
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -53,16 +66,16 @@ class BaseStore {
 			->from($this->_CollectionTable)
 			->where($cmd->expr()->eq('type', $cmd->createNamedParameter($this->_CollectionIdentifier)));
 		// execute command
-		$data = $cmd->executeQuery()->fetchAll();
-		$cmd->executeQuery()->closeCursor();
-		// return result or empty array
-		if (is_array($data) && count($data) > 0) {
-			return $data;
+		$rsl = $cmd->executeQuery();
+		$entities = [];
+		try {
+			while ($data = $rsl->fetch()) {
+				$entities[] = $this->toCollection($data);
+			}
+			return $entities;
+		} finally {
+			$rsl->closeCursor();
 		}
-		else {
-			return [];
-		}
-
 	}
 
 	/**
@@ -72,9 +85,9 @@ class BaseStore {
 	 * 
 	 * @param string $uid		user id
 	 * 
-	 * @return array 			of collections
+	 * @return array<int, CollectionEntity>
 	 */
-	public function listCollectionsByUser(string $uid): array {
+	public function collectionListByUser(string $uid): array {
 		
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -83,15 +96,274 @@ class BaseStore {
 			->where($cmd->expr()->eq('type', $cmd->createNamedParameter($this->_CollectionIdentifier)))
 			->andWhere($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)));
 		// execute command
-		$data = $cmd->executeQuery()->fetchAll();
+		$rsl = $cmd->executeQuery();
+		$entities = [];
+		try {
+			while ($data = $rsl->fetch()) {
+				$entities[] = $this->toCollection($data);
+			}
+			return $entities;
+		} finally {
+			$rsl->closeCursor();
+		}
+
+	}
+
+	/**
+	 * retrieve collections for specific user from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param int $sid			service id
+	 * 
+	 * @return array<int, CollectionEntity>
+	 */
+	public function collectionListByService(int $sid): array {
+		
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select('*')
+			->from($this->_CollectionTable)
+			->where($cmd->expr()->eq('type', $cmd->createNamedParameter($this->_CollectionIdentifier)))
+			->andWhere($cmd->expr()->eq('sid', $cmd->createNamedParameter($sid)));
+		// execute command
+		$rsl = $cmd->executeQuery();
+		$entities = [];
+		try {
+			while ($data = $rsl->fetch()) {
+				$entities[] = $this->toCollection($data);
+			}
+			return $entities;
+		} finally {
+			$rsl->closeCursor();
+		}
+
+	}
+
+	/*
+	 * confirm collection exists in data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param int $id			collection id
+	 * 
+	 * @return int|bool			collection id on success / false on failure
+	 */
+	public function collectionConfirm(int $cid): int|bool {
+		
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select('id')
+			->from($this->_CollectionTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($cid)));
+		// execute command
+		$data = $cmd->executeQuery()->fetch();
 		$cmd->executeQuery()->closeCursor();
-		// return result or empty array
+		// evaluate if anything was found
 		if (is_array($data) && count($data) > 0) {
-			return $data;
+			return (int) $data['id'];
 		}
 		else {
-			return [];
+			return false;
 		}
+
+	}
+
+	/**
+	 * confirm collection exists in data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param string $uid		user id
+	 * @param string $uuid		collection uuid
+	 * 
+	 * @return int|bool			collection id on success / false on failure
+	 */
+	public function collectionConfirmByUUID(string $uid, string $uuid): int|bool {
+		
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select('id')
+			->from($this->_CollectionTable)
+			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
+			->andWhere($cmd->expr()->eq('uuid', $cmd->createNamedParameter($uuid)));
+		// execute command
+		$data = $cmd->executeQuery()->fetch();
+		$cmd->executeQuery()->closeCursor();
+		// evaluate if anything was found
+		if (is_array($data) && count($data) > 0) {
+			return (int) $data['id'];
+		}
+		else {
+			return false;
+		}
+
+	}
+
+	/**
+	 * retrieve collection from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param int $id			collection id
+	 * 
+	 * @return CollectionEntity
+	 */
+	public function collectionFetch(int $id): CollectionEntity {
+		
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select('*')
+			->from($this->_CollectionTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
+		// execute command
+		$rsl = $cmd->executeQuery();
+		try {
+			return $this->toCollection($rsl->fetch());
+		} finally {
+			$rsl->closeCursor();
+		}
+
+	}
+
+	/**
+	 * retrieve collection from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param string $uid		user id
+	 * @param string $uuid		collection uuid
+	 * 
+	 * @return CollectionEntity
+	 */
+	public function collectionFetchByUUID(string $uid, string $uuid): CollectionEntity {
+		
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select('*')
+			->from($this->_CollectionTable)
+			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
+			->andWhere($cmd->expr()->eq('uuid', $cmd->createNamedParameter($uuid)));
+		// execute command
+		$rsl = $cmd->executeQuery();
+		try {
+			return $this->toCollection($rsl->fetch());
+		} finally {
+			$rsl->closeCursor();
+		}
+
+	}
+
+	/**
+	 * create a collection entry in the data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param CollectionEntity $entity
+	 * 
+	 * @return CollectionEntity
+	 */
+	public function collectionCreate(CollectionEntity $entity): CollectionEntity {
+
+		// force type
+		$data['type'] = $this->_CollectionIdentifier;
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->insert($this->_CollectionTable);
+		// assign values
+		foreach (array_keys($entity->getUpdatedFields()) as $property) {
+			$column = $entity->propertyToColumn($property);
+			$getter = 'get' . ucfirst($property);
+			$value = $entity->$getter();
+			$cmd->set($column, $cmd->createNamedParameter($value));
+		}
+		// execute command
+		$cmd->executeStatement();
+		// determine if id needs to be assigned
+		if ($entity->id === null) {
+			$entity->setId($cmd->getLastInsertId());
+		}
+		
+		$entity->resetUpdatedFields();
+
+		return $entity;
+		
+	}
+	
+	/**
+	 * modify a collection entry in the data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param CollectionEntity $entity
+	 * 
+	 * @return CollectionEntity
+	 */
+	public function collectionModify(CollectionEntity $entity): CollectionEntity {
+
+		// force type
+		$entity->setType($this->_CollectionIdentifier);
+		// construct command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->update($this->_CollectionTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($entity->getId())));
+		// assign values
+		if (count($entity->getUpdatedFields())) {
+			foreach (array_keys($entity->getUpdatedFields()) as $property) {
+				$column = $entity->propertyToColumn($property);
+				$getter = 'get' . ucfirst($property);
+				$value = $entity->$getter();
+				$cmd->set($column, $cmd->createNamedParameter($value));
+			}
+			// execute command
+			$cmd->executeStatement();
+		}
+
+		$entity->resetUpdatedFields();
+
+		return $entity;
+
+	}
+
+	/**
+	 * delete a collection entry from the data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param CollectionEntity $entity
+	 * 
+	 * @return CollectionEntity
+	 */
+	public function collectionDelete(CollectionEntity $entity): CollectionEntity {
+
+		// construct command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->delete($this->_CollectionTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($entity->getId())));
+		// execute command
+		$cmd->executeStatement();
+		
+		return $entity;
+		
+	}
+
+	/**
+	 * delete collections for a specific user from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param string $cid		collection id
+	 * 
+	 * @return mixed
+	 */
+	public function collectionDeleteById(string $id): mixed {
+
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->delete($this->_CollectionTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
+		// execute command and return result
+		return $cmd->executeStatement();
 
 	}
 
@@ -104,7 +376,7 @@ class BaseStore {
 	 * 
 	 * @return mixed
 	 */
-	public function deleteCollectionsByUser(string $uid): mixed {
+	public function collectionDeleteByUser(string $uid): mixed {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -117,199 +389,24 @@ class BaseStore {
 	}
 
 	/**
-	 * confirm collection exists in data store
+	 * delete collections for a specific user from data store
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param int $id			collection id
+	 * @param string $sid		service id
 	 * 
-	 * @return int|bool			collection id on success / false on failure
+	 * @return mixed
 	 */
-	public function confirmCollection(string $id): int|bool {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('id')
-			->from($this->_CollectionTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
-		// execute command
-		$data = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// evaluate if anything was found
-		if (is_array($data) && count($data) > 0) {
-			return (int) $data['id'];
-		}
-		else {
-			return false;
-		}
-
-	}
-
-	/**
-	 * confirm collection exists in data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		user id
-	 * @param string $uuid		collection uuid
-	 * 
-	 * @return int|bool			collection id on success / false on failure
-	 */
-	public function confirmCollectionByUUID(string $uid, string $uuid): int|bool {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('id')
-			->from($this->_CollectionTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('uuid', $cmd->createNamedParameter($uuid)));
-		// execute command
-		$data = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// evaluate if anything was found
-		if (is_array($data) && count($data) > 0) {
-			return (int) $data['id'];
-		}
-		else {
-			return false;
-		}
-
-	}
-
-	/**
-	 * retrieve collection from data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param int $id			collection id
-	 * 
-	 * @return array 			of properties
-	 */
-	public function fetchCollection(int $id): array {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_CollectionTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
-		// execute command
-		$data = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// return result or empty array
-		if (is_array($data) && count($data) > 0) {
-			return $data;
-		}
-		else {
-			return [];
-		}
-
-	}
-
-	/**
-	 * retrieve collection from data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		user id
-	 * @param string $uuid		collection uuid
-	 * 
-	 * @return array 			of collections
-	 */
-	public function fetchCollectionByUUID(string $uid, string $uuid): array {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_CollectionTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('uuid', $cmd->createNamedParameter($uuid)));
-		// execute command
-		$data = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// return result or empty array
-		if (is_array($data) && count($data) > 0) {
-			return $data;
-		}
-		else {
-			return [];
-		}
-
-	}
-
-	/**
-	 * create a collection entry in the data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param array $data		collection data
-	 * 
-	 * @return int				collection id
-	 */
-	public function createCollection(array $data) : int {
-
-		// force type
-		$data['type'] = $this->_CollectionIdentifier;
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->insert($this->_CollectionTable);
-		foreach ($data as $column => $value) {
-			$cmd->setValue($column, $cmd->createNamedParameter($value));
-		}
-		// execute command
-		$cmd->executeStatement();
-		// return result
-		return $cmd->getLastInsertId();
-		
-	}
-	
-	/**
-	 * modify a collection entry in the data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param int $id		collection id
-	 * @param array $data		collection data
-	 * 
-	 * @return bool
-	 */
-	public function modifyCollection(int $id, array $data) : bool {
-
-		// force type
-		$data['type'] = $this->_CollectionIdentifier;
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->update($this->_CollectionTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
-		foreach ($data as $column => $value) {
-			$cmd->set($column, $cmd->createNamedParameter($value));
-		}
-		// execute command
-		$cmd->executeStatement();
-		// return result
-		return true;
-		
-	}
-
-	/**
-	 * delete a collection entry from the data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param int $id		collection id
-	 * 
-	 * @return bool
-	 */
-	public function deleteCollection(int $id) : bool {
+	public function collectionDeleteByService(int $sid): mixed {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->delete($this->_CollectionTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
-		// execute command
-		$cmd->executeStatement();
-		// return result
-		return true;
-		
+			->where($cmd->expr()->eq('sid', $cmd->createNamedParameter($sid)))
+			->andWhere($cmd->expr()->eq('type', $cmd->createNamedParameter($this->_CollectionIdentifier)));
+		// execute command and return result
+		return $cmd->executeStatement();
+
 	}
 
 	/**
@@ -321,15 +418,24 @@ class BaseStore {
 	 * 
 	 * @return array 			of entities
 	 */
-	public function listEntities(string $uid): array {
+	public function entityList(string $uid): array {
 		
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select('*')
 			->from($this->_EntityTable)
 			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)));
-		// execute command and return results
-		return $this->findEntities($cmd);
+		// execute command
+		$rsl = $cmd->executeQuery();
+		$entities = [];
+		try {
+			while ($data = $rsl->fetch()) {
+				$entities[] = $this->toEntity($data);
+			}
+			return $entities;
+		} finally {
+			$rsl->closeCursor();
+		}
 
 	}
 
@@ -338,28 +444,87 @@ class BaseStore {
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid		user id
-	 * @param string $cid		collection id
+	 * @param int $cid			collection id
 	 * 
 	 * @return array 			of entities
 	 */
-	public function listEntitiesByCollection(string $uid, string $cid): array {
+	public function entityListByCollection(int $cid): array {
 		
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select('*')
 			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)));;
+			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)));
 		// execute command
-		$data = $cmd->executeQuery()->fetchAll();
+		$rsl = $cmd->executeQuery();
+		$entities = [];
+		try {
+			while ($data = $rsl->fetch()) {
+				$entities[] = $this->toEntity($data);
+			}
+			return $entities;
+		} finally {
+			$rsl->closeCursor();
+		}
+
+	}
+
+	/**
+	 * confirm entity exists in data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param int $id			entity id
+	 * 
+	 * @return int|bool			entry id on success / false on failure
+	 */
+	public function entityConfirm(int $id): int|bool {
+
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select('id')
+			->from($this->_EntityTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
+		// execute command
+		$data = $cmd->executeQuery()->fetch();
 		$cmd->executeQuery()->closeCursor();
-		// return result or empty array
+		// evaluate if anything was found
 		if (is_array($data) && count($data) > 0) {
-			return $data;
+			return (int) $data['id'];
 		}
 		else {
-			return [];
+			return false;
+		}
+
+	}
+
+	/**
+	 * check if entity exists in data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param int $cid			collection id
+	 * @param string $uuid		entity uuid
+	 * 
+	 * @return int|bool			entry id on success / false on failure
+	 */
+	public function entityConfirmByUUID(int $cid, string $uuid): int|bool {
+
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select('id')
+			->from($this->_EntityTable)
+			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)))
+			->andWhere($cmd->expr()->eq('uuid', $cmd->createNamedParameter($uuid)));
+		// execute command
+		$data = $cmd->executeQuery()->fetch();
+		$cmd->executeQuery()->closeCursor();
+		// evaluate if anything was found
+		if (is_array($data) && count($data) > 0) {
+			return (int) $data['id'];
+		}
+		else {
+			return false;
 		}
 
 	}
@@ -369,14 +534,13 @@ class BaseStore {
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid		user id
-	 * @param string $cid		collection id
+	 * @param int $cid 			collection id
 	 * @param array $filter		filter options
 	 * @param array $elements	data fields
 	 * 
 	 * @return array 			of entities
 	 */
-	public function findEntities(string $uid, string $cid, array $filter, array $elements = []): array {
+	public function entityFind(int $cid, array $filter, array $elements = []): array {
 		
 		// evaluate if specific elements where requested
 		if (!is_array($elements)) {
@@ -386,8 +550,7 @@ class BaseStore {
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select($elements)
 			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)));
+			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)));
 		
 		foreach ($filter as $entry) {
 			if (is_array($entry) && count($entry) == 3) {
@@ -414,16 +577,216 @@ class BaseStore {
 			}
 		}
 		// execute command
-		$data = $cmd->executeQuery()->fetchAll();
-		$cmd->executeQuery()->closeCursor();
-		// return result or empty array
-		if (is_array($data) && count($data) > 0) {
-			return $data;
-		}
-		else {
-			return [];
+		$rsl = $cmd->executeQuery();
+		$entities = [];
+		try {
+			while ($data = $rsl->fetch()) {
+				$entities[] = $this->toEntity($data);
+			}
+			return $entities;
+		} finally {
+			$rsl->closeCursor();
 		}
 
+	}
+
+	/**
+	 * retrieve entity from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param int $id		entity id
+	 * 
+	 * @return Entity|null
+	 */
+	public function entityFetch(int $id): Entity|null {
+
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select('*')
+			->from($this->_EntityTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
+		// execute command
+		$rsl = $cmd->executeQuery();
+		try {
+			$entity = $rsl->fetch();
+			if (is_array($entity)) {
+				return $this->toEntity($entity);
+			} else {
+				return null;
+			}
+		} finally {
+			$rsl->closeCursor();
+		}
+
+	}
+
+	/**
+	 * retrieve entity from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param int $cid			collection id
+	 * @param string $uuid		entity uuid
+	 *  
+	 * @return Entity|null
+	 */
+	public function entityFetchByUUID(int $cid, string $uuid): Entity|null {
+
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select('*')
+			->from($this->_EntityTable)
+			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)))
+			->andWhere($cmd->expr()->eq('uuid', $cmd->createNamedParameter($uuid)));
+		// execute command
+		$rsl = $cmd->executeQuery();
+		try {
+			$entity = $rsl->fetch();
+			if ($entity) {
+				return $this->toEntity($entity);
+			} else {
+				return null;
+			}
+		} finally {
+			$rsl->closeCursor();
+		}
+
+	}
+
+	/**
+	 * retrieve entity from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param int $cid			collection id
+	 * @param string $ccid		correlation collection id
+	 * @param string $ceid		correlation entity id
+	 *  
+	 * @return Entity|null
+	 */
+	public function entityFetchByCorrelation(int $cid, string $ccid, string $ceid): Entity|null {
+
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select('*')
+			->from($this->_EntityTable)
+			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)))
+			->andWhere($cmd->expr()->eq('ccid', $cmd->createNamedParameter($ccid)))
+			->andWhere($cmd->expr()->eq('ceid', $cmd->createNamedParameter($ceid)));
+		// execute command
+		$rsl = $cmd->executeQuery();
+		try {
+			$entity = $rsl->fetch();
+			if ($entity) {
+				return $this->toEntity($entity);
+			}
+			else {
+				return null;
+			}
+		} finally {
+			$rsl->closeCursor();
+		}
+
+	}
+
+	/**
+	 * create a entity entry in the data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param Entity $entity
+	 * 
+	 * @return Entity
+	 */
+	public function entityCreate(Entity $entity): Entity {
+
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->insert($this->_EntityTable);
+		// assign values
+		foreach (array_keys($entity->getUpdatedFields()) as $property) {
+			$column = $entity->propertyToColumn($property);
+			$getter = 'get' . ucfirst($property);
+			$value = $entity->$getter();
+			$cmd->setValue($column, $cmd->createNamedParameter($value));
+		}
+		// execute command
+		$cmd->executeStatement();
+		// determine if id needs to be assigned
+		if ($entity->id === null) {
+			$entity->setId($cmd->getLastInsertId());
+		}
+		// chronicle operation
+		$this->chronicle($entity->getUid(), $entity->getSid(), $entity->getCid(), $entity->getId(), $entity->getUuid(), 1);
+
+		$entity->resetUpdatedFields();
+
+		return $entity;
+		
+	}
+	
+	/**
+	 * modify a entity entry in the data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param Entity $entity
+	 * 
+	 * @return Entity
+	 */
+	public function entityModify(Entity $entity): Entity {
+
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->update($this->_EntityTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($entity->getId())));
+		// assign values
+		if (count($entity->getUpdatedFields())) {
+			foreach (array_keys($entity->getUpdatedFields()) as $property) {
+				$column = $entity->propertyToColumn($property);
+				$getter = 'get' . ucfirst($property);
+				$value = $entity->$getter();
+				$cmd->set($column, $cmd->createNamedParameter($value));
+			}
+			// execute command
+			$cmd->executeStatement();
+			// determine if id needs to be assigned
+			if ($entity->id === null) {
+				$entity->setId($cmd->getLastInsertId());
+			}
+		}
+		// chronicle operation
+		$this->chronicle($entity->getUid(), $entity->getSid(), $entity->getCid(), $entity->getId(), $entity->getUuid(), 2);
+		
+		$entity->resetUpdatedFields();
+		
+		return $entity;
+		
+	}
+
+	/**
+	 * delete a entity from the data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param Entity $entity
+	 * 
+	 * @return Entity
+	 */
+	public function entityDelete(Entity $entity): Entity {
+
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->delete($this->_EntityTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($entity->getId())));
+		// execute command
+		$cmd->executeStatement();
+		// chronicle operation
+		$this->chronicle($entity->getUid(), $entity->getSid(), $entity->getCid(), $entity->getId(), $entity->getUuid(), 3);
+		// return result
+		return $entity;
+		
 	}
 
 	/**
@@ -435,7 +798,7 @@ class BaseStore {
 	 * 
 	 * @return mixed
 	 */
-	public function deleteEntitiesByUser(string $uid): mixed {
+	public function entityDeleteByUser(string $uid): mixed {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -447,258 +810,43 @@ class BaseStore {
 	}
 
 	/**
-	 * delete entities for a specific user collection from data store
+	 * delete entities for a specific service from data store
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid		user id
+	 * @param int $sid			service id
 	 * 
 	 * @return mixed
 	 */
-	public function deleteEntitiesByCollection(string $uid, string $cid): mixed {
+	public function entityDeleteByService(int $sid): mixed {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->delete($this->_EntityTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)));
+			->where($cmd->expr()->eq('sid', $cmd->createNamedParameter($sid)));
 		// execute command and return result
 		return $cmd->executeStatement();
 
 	}
 
 	/**
-	 * retrieve entity from data store
+	 * delete entities for a specific collection from data store
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param int $id		entity id
+	 * @param int $cid		collection id
 	 * 
-	 * @return array
+	 * @return mixed
 	 */
-	public function fetchEntity(int $id): array {
+	public function entityDeleteByCollection(int $cid): mixed {
 
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
-		// execute command
-		$data = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// return result or empty array
-		if (is_array($data) && count($data) > 0) {
-			return $data;
-		}
-		else {
-			return [];
-		}
-
-	}
-
-	/**
-	 * retrieve entity from data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		user id
-	 * @param string $uuid		entity uuid
-	 *  
-	 * @return array
-	 */
-	public function fetchEntityByUUID(string $uid, string $uuid): array {
-
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('uuid', $cmd->createNamedParameter($uuid)));
-		// execute command
-		$data = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// return result or empty array
-		if (is_array($data) && count($data) > 0) {
-			return $data;
-		}
-		else {
-			return [];
-		}
-	}
-
-	/**
-	 * retrieve entity from data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		user id
-	 * @param string $rcid		remote collection id
-	 * @param string $reid		remote entitiy id
-	 *  
-	 * @return array
-	 */
-	public function fetchEntityByRID(string $uid, string $rcid, string $reid): array {
-
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('rcid', $cmd->createNamedParameter($rcid)))
-			->andWhere($cmd->expr()->eq('reid', $cmd->createNamedParameter($reid)));
-		// execute command
-		$data = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// return result or empty array
-		if (is_array($data) && count($data) > 0) {
-			return $data;
-		}
-		else {
-			return [];
-		}
-
-	}
-
-	/**
-	 * confirm entity exists in data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $id		entity id
-	 * 
-	 * @return int|bool			entry id on success / false on failure
-	 */
-	public function confirmEntity(string $id): int|bool {
-
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('id')
-			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
-		// execute command
-		$data = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// evaluate if anything was found
-		if (is_array($data) && count($data) > 0) {
-			return (int) $data['id'];
-		}
-		else {
-			return false;
-		}
-
-	}
-
-	/**
-	 * check if entity exists in data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		user id
-	 * @param string $uuid		entity uuid
-	 * 
-	 * @return int|bool			entry id on success / false on failure
-	 */
-	public function confirmEntityByUUID(string $uid, string $uuid): int|bool {
-
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('id')
-			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('uuid', $cmd->createNamedParameter($uuid)));
-		// execute command
-		$data = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// evaluate if anything was found
-		if (is_array($data) && count($data) > 0) {
-			return (int) $data['id'];
-		}
-		else {
-			return false;
-		}
-
-	}
-
-	/**
-	 * create a entity entry in the data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param array $data		entity data
-	 * 
-	 * @return int				entity id
-	 */
-	public function createEntity(array $data) : int {
-
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->insert($this->_EntityTable);
-		foreach ($data as $column => $value) {
-			$cmd->setValue($column, $cmd->createNamedParameter($value));
-		}
-		// execute command
-		$cmd->executeStatement();
-		// retreive id
-		$id = $cmd->getLastInsertId();
-		// chronicle operation
-		$this->chronicle($data['uid'], $data['cid'], $id, $data['uuid'], 1);
-		// return result
-		return (int) $id;
-		
-	}
-	
-	/**
-	 * modify a entity entry in the data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param int $id			entity id
-	 * @param array $data		entity data
-	 * 
-	 * @return bool
-	 */
-	public function modifyEntity(int $id, array $data) : bool {
-
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->update($this->_EntityTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
-		foreach ($data as $column => $value) {
-			$cmd->set($column, $cmd->createNamedParameter($value));
-		}
-		// execute command
-		$cmd->executeStatement();
-		// chronicle operation
-		$this->chronicle($data['uid'], $data['cid'], $id, $data['uuid'], 2);
-		// return result
-		return true;
-		
-	}
-
-	/**
-	 * delete a entity entry from the data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param int $id		entity id
-	 * 
-	 * @return bool
-	 */
-	public function deleteEntity(int $id) : bool {
-
-		// retrieve original entity so we can chonicle it later
-		$data = $this->fetchEntity($id);
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->delete($this->_EntityTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
-		// execute command
-		$cmd->executeStatement();
-		// chronicle operation
-		$this->chronicle($data['uid'], $data['cid'], $id, $data['uuid'], 3);
-		// return result
-		return true;
-		
+			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)));
+		// execute command and return result
+		return $cmd->executeStatement();
+
 	}
 
 	/**
@@ -707,14 +855,15 @@ class BaseStore {
 	 * @since Release 1.0.0
 	 * 
 	 * @param string $uid		user id
+	 * @param int $sid			service id
 	 * @param string $cid		collection id
 	 * @param string $eid		entity id
 	 * @param string $euuid		entity uuid
 	 * @param string $operation		operation type (1 - Created, 2 - Modified, 3 - Deleted)
 	 * 
-	 * @return bool
+	 * @return string
 	 */
-	public function chronicle(string $uid, int $cid, int $eid, string $euuid, int $operation) : string {
+	public function chronicle(string $uid, int $sid, int $cid, int $eid, string $euuid, int $operation): string {
 
 		// capture current microtime
 		$stamp = microtime(true);
@@ -722,6 +871,7 @@ class BaseStore {
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->insert($this->_ChronicleTable);
 		$cmd->setValue('uid', $cmd->createNamedParameter($uid));
+		$cmd->setValue('sid', $cmd->createNamedParameter($sid));
 		$cmd->setValue('tag', $cmd->createNamedParameter($this->_EntityIdentifier));
 		$cmd->setValue('cid', $cmd->createNamedParameter($cid));
 		$cmd->setValue('eid', $cmd->createNamedParameter($eid));
@@ -740,23 +890,21 @@ class BaseStore {
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid		user id
 	 * @param int $cid			collection id
 	 * @param string $stamp		time stamp
 	 * @param int $limit		results limit
 	 * @param int $offset		results offset
 	 * 
-	 * @return bool
+	 * @return array
 	 */
-	public function reminisce(string $uid, int $cid, string $stamp, ?int $limit = null, ?int $offset = null) : array {
+	public function reminisce(int $cid, string $stamp, ?int $limit = null, ?int $offset = null): array {
 
 		// retrieve apex stamp
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select($cmd->func()->max('stamp'))
 			->from($this->_ChronicleTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('tag', $cmd->createNamedParameter($this->_EntityIdentifier)))
-			->andWhere($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)));
+			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)))
+			->andWhere($cmd->expr()->eq('tag', $cmd->createNamedParameter($this->_EntityIdentifier)));
 		$stampApex = $cmd->executeQuery()->fetchOne();
 		$cmd->executeQuery()->closeCursor();
 		// decode nadir stamp
@@ -767,9 +915,8 @@ class BaseStore {
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select('eid', 'euuid', new Literal('MAX(operation) AS operation'))
 			->from($this->_ChronicleTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
+			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)))
 			->andWhere($cmd->expr()->eq('tag', $cmd->createNamedParameter($this->_EntityIdentifier)))
-			->andWhere($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)))
 			->groupBy('eid');
 		// evaluate if this is a initial reconciliation
 		if ($initial) {

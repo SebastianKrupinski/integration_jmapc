@@ -23,8 +23,11 @@
 
 <template>
 	<div id="jmapc_settings" class="section">
-		<div class="jmapc-section-heading">
-			<JmapIcon :size="32" /><h2> {{ t('integration_jmapc', 'JMAP Connector') }}</h2>
+		<div class="jmapc-page-title">
+			<JmapIcon class="logo" :size="32" />
+			<h2 class="label">
+				{{ t('integration_jmapc', 'JMAP Connector') }}
+			</h2>
 		</div>
 		<div class="jmapc-section-services">
 			<label>
@@ -32,135 +35,178 @@
 			</label>
 			<NcSelect :clearable="false"
 				:searchable="false"
-				:options="availableServicesCollection"
+				:options="configuredServices"
 				:value="selectedService"
-				@option:selected="selectService" />
+				@option:selected="serviceSelect" />
+			<NcButton @click="freshService">
+				<template #icon>
+					<AccountAddIcon :size="20" />
+				</template>
+			</NcButton>
 		</div>
-		<div class="jmapc-content" v-if="selectedService !== null">
-			<h3>{{ t('integration_jmapc', 'Authentication') }}</h3>
-			<div v-if="selectService.connected !== '1'">
+		<div v-if="selectedService !== null" class="jmapc-section-content">
+			<h3>{{ t('integration_jmapc', 'Connection') }}</h3>
+			<div v-if="!Boolean(selectedService.connected)" class="jmapc-section-parameters">
+				<div class="description">
+					{{ t('integration_jmapc', 'Enter your JMAP Server and account information then press connect.') }}
+				</div>
+				<div class="parameter">
+					<label for="jmapc-account-description">
+						{{ t('integration_jmapc', 'Account Description') }}
+					</label>
+					<NcTextField id="jmapc-account-description"
+						type="text"
+						autocomplete="off"
+						autocorrect="off"
+						autocapitalize="none"
+						:value.sync="selectedService.label"
+						:label-outside="true"
+						:style="{ width: '48ch' }"
+						:placeholder="t('integration_jmapc', 'Description for this Account')" />
+				</div>
+				<div v-if="selectedService.auth === 'BA' || selectedService.auth === 'JB'" class="parameter">
+					<label for="jmapc-account-bauth-id">
+						{{ t('integration_jmapc', 'Account ID') }}
+					</label>
+					<NcTextField id="jmapc-account-bauth-id"
+						type="text"
+						autocomplete="off"
+						autocorrect="off"
+						autocapitalize="none"
+						:value.sync="selectedService.bauth_id"
+						:style="{ width: '48ch' }"
+						:placeholder="t('integration_jmapc', 'Authentication ID for your Account')" />
+				</div>
+				<div v-if="selectedService.auth === 'BA' || selectedService.auth === 'JB'" class="parameter">
+					<label for="jmapc-account-bauth-secret">
+						{{ t('integration_jmapc', 'Account Secret') }}
+					</label>
+					<NcPasswordField id="jmapc-account-bauth-secret"
+						type="password"
+						autocomplete="off"
+						autocorrect="off"
+						autocapitalize="none"
+						:value.sync="selectedService.bauth_secret"
+						:style="{ width: '48ch' }"
+						:placeholder="t('integration_jmapc', 'Authentication secret for your Account')" />
+				</div>
+				<div v-if="selectedService.auth === 'OA'" class="parameter">
+					<label for="jmapc-account-oauth-id">
+						{{ t('integration_jmapc', 'Account ID') }}
+					</label>
+					<NcTextField id="jmapc-account-oauth-id"
+						type="text"
+						autocomplete="off"
+						autocorrect="off"
+						autocapitalize="none"
+						:value.sync="selectedService.oauth_id"
+						:style="{ width: '48ch' }"
+						:placeholder="t('integration_jmapc', 'Authentication ID for your Account')" />
+				</div>
+				<div v-if="selectedService.auth === 'OA'" class="parameter">
+					<label for="jmapc-account-oauth-token">
+						{{ t('integration_jmapc', 'Account Token') }}
+					</label>
+					<NcPasswordField id="jmapc-account-oauth-token"
+						type="password"
+						autocomplete="off"
+						autocorrect="off"
+						autocapitalize="none"
+						:value.sync="selectedService.oauth_access_token"
+						:style="{ width: '48ch' }"
+						:placeholder="t('integration_jmapc', 'Authentication secret for your Account')" />
+				</div>
+				<div class="parameter">
+					<label for="jmapc-service-authentication">
+						{{ t('integration_jmapc', 'Authentication Type') }}
+					</label>
+					<NcCheckboxRadioSwitch name="service_auth"
+						type="radio"
+						value="BA"
+						button-variant-grouped="horizontal"
+						:button-variant="true"
+						:checked.sync="selectedService.auth"
+						@update:checked="(value) => selectedService.auth = value">
+						{{ t('integration_jmapc', 'Basic') }}
+					</NcCheckboxRadioSwitch>
+					<NcCheckboxRadioSwitch name="service_auth"
+						type="radio"
+						value="OA"
+						button-variant-grouped="horizontal"
+						:button-variant="true"
+						:checked.sync="selectedService.auth"
+						@update:checked="(value) => selectedService.auth = value">
+						{{ t('integration_jmapc', 'OAuth') }}
+					</NcCheckboxRadioSwitch>
+					<NcCheckboxRadioSwitch name="service_auth"
+						type="radio"
+						value="JB"
+						button-variant-grouped="horizontal"
+						:button-variant="true"
+						:checked.sync="selectedService.auth"
+						@update:checked="(value) => selectedService.auth = value">
+						{{ t('integration_jmapc', 'Json Basic') }}
+					</NcCheckboxRadioSwitch>
+				</div>
+				<div v-if="configureManually" class="parameter">
+					<NcCheckboxRadioSwitch :checked.sync="selectedService.location_security" type="switch">
+						{{ t('integration_ews', 'Secure Transport Verification (SSL Certificate Verification). Should always be ON, unless connecting to a Exchange system over an internal LAN.') }}
+					</NcCheckboxRadioSwitch>
+				</div>
+				<div v-if="configureManually" class="parameter">
+					<label for="jmapc-service-address">
+						{{ t('integration_jmapc', 'Service Address') }}
+					</label>
+					<NcTextField id="jmapc-service-address"
+						type="text"
+						autocomplete="off"
+						autocorrect="off"
+						autocapitalize="none"
+						:value.sync="selectedService.location_host"
+						:style="{ width: '48ch' }"
+						:placeholder="t('integration_jmapc', 'Service Address')" />
+				</div>
+				<div v-if="configureManually" class="parameter">
+					<label for="jmapc-service-port">
+						{{ t('integration_jmapc', 'Service Port') }}
+					</label>
+					<NcTextField id="jmapc-service-port"
+						type="text"
+						autocomplete="off"
+						autocorrect="off"
+						autocapitalize="none"
+						:value.sync="selectedService.location_port"
+						:style="{ width: '48ch' }"
+						:placeholder="t('integration_jmapc', 'Service Port')" />
+				</div>
+				<div v-if="configureManually" class="parameter">
+					<label for="jmapc-service-path">
+						{{ t('integration_jmapc', 'Service Path') }}
+					</label>
+					<NcTextField id="jmapc-service-path"
+						type="text"
+						autocomplete="off"
+						autocorrect="off"
+						autocapitalize="none"
+						:value.sync="selectedService.location_path"
+						:style="{ width: '48ch' }"
+						:placeholder="t('integration_jmapc', 'Service Path')" />
+				</div>
 				<div>
-					<div class="settings-hint">
-						{{ t('integration_jmapc', 'Enter your JMAP Server and account information then press connect.') }}
-					</div>
-					<div class="fields">
-						<div class="line">
-							<label for="jmapc-account-description">
-								<JmapIcon />
-								{{ t('integration_jmapc', 'Account Description') }}
-							</label>
-							<NcTextField id="jmapc-account-id"
-								v-model="selectedService.label"
-								type="text"
-								:placeholder="t('integration_jmapc', 'Description for this Account')"
-								autocomplete="off"
-								autocorrect="off"
-								autocapitalize="none" />
-						</div>
-						<div class="line">
-							<label for="jmapc-account-id">
-								<JmapIcon />
-								{{ t('integration_jmapc', 'Account ID') }}
-							</label>
-							<NcTextField id="jmapc-account-id"
-								v-model="selectedService.bauth_id"
-								type="text"
-								:placeholder="t('integration_jmapc', 'Authentication ID for your Account')"
-								autocomplete="off"
-								autocorrect="off"
-								autocapitalize="none" />
-						</div>
-						<div class="line">
-							<label for="jmapc-account-secret">
-								<JmapIcon />
-								{{ t('integration_jmapc', 'Account Secret') }}
-							</label>
-							<NcPasswordField id="jmapc-account-secret"
-								v-model="selectedService.bauth_secret"
-								type="password"
-								:placeholder="t('integration_jmapc', 'Authentication secret for your Account')"
-								autocomplete="off"
-								autocorrect="off"
-								autocapitalize="none" />
-						</div>
-						<div class="line">
-							<label for="jmapc-service-authentication">
-								<JmapIcon />
-								{{ t('integration_jmapc', 'Authentication Type') }}
-							</label>
-							<NcCheckboxRadioSwitch name="sharing_permission_radio"
-								v-model="selectedService.auth"
-								:button-variant="true"
-								value="BA"
-								type="radio"
-								button-variant-grouped="horizontal">
-								{{ t('integration_jmapc', 'Basic') }}
-							</NcCheckboxRadioSwitch>
-							<NcCheckboxRadioSwitch name="sharing_permission_radio"
-								v-model="selectedService.auth"
-								:button-variant="true"
-								value="OA"
-								type="radio"
-								button-variant-grouped="horizontal">
-								{{ t('integration_jmapc', 'OAuth') }}
-							</NcCheckboxRadioSwitch>
-						</div>
-						<div v-if="configureManually" class="line">
-							<label for="jmapc-service-address">
-								<JmapIcon />
-								{{ t('integration_jmapc', 'Service Address') }}
-							</label>
-							<NcTextField id="jmapc-service-address"
-								v-model="selectedService.location_host"
-								type="text"
-								:placeholder="t('integration_jmapc', 'Service Address')"
-								autocomplete="off"
-								autocorrect="off"
-								autocapitalize="none" />
-						</div>
-						<div v-if="configureManually" class="line">
-							<label for="jmapc-service-port">
-								<JmapIcon />
-								{{ t('integration_jmapc', 'Service Port') }}
-							</label>
-							<NcTextField id="jmapc-service-port"
-								v-model="selectedService.location_port"
-								type="text"
-								:placeholder="t('integration_jmapc', 'Service Port')"
-								autocomplete="off"
-								autocorrect="off"
-								autocapitalize="none" />
-						</div>
-						<div v-if="configureManually" class="line">
-							<label for="jmapc-service-path">
-								<JmapIcon />
-								{{ t('integration_jmapc', 'Service Path') }}
-							</label>
-							<NcTextField id="jmapc-service-path"
-								v-model="selectedService.location_path"
-								type="text"
-								:placeholder="t('integration_jmapc', 'Service Path')"
-								autocomplete="off"
-								autocorrect="off"
-								autocapitalize="none" />
-						</div>
-						<div>
-							<NcCheckboxRadioSwitch :checked.sync="configureManually" type="switch">
-								{{ t('integration_jmapc', 'Configure server manually') }}
-							</NcCheckboxRadioSwitch>
-						</div>
-						<div class="line">
-							<label class="jmapc-connect">
-								&nbsp;
-							</label>
-							<NcButton @click="onConnectAlternateClick">
-								<template #icon>
-									<CheckIcon />
-								</template>
-								{{ t('integration_jmapc', 'Connect') }}
-							</NcButton>
-						</div>
-					</div>
+					<NcCheckboxRadioSwitch :checked.sync="configureManually" type="switch">
+						{{ t('integration_jmapc', 'Configure server manually') }}
+					</NcCheckboxRadioSwitch>
+				</div>
+				<div class="actions">
+					<label class="jmapc-connect">
+						&nbsp;
+					</label>
+					<NcButton @click="onConnectClick">
+						<template #icon>
+							<CheckIcon />
+						</template>
+						{{ t('integration_jmapc', 'Connect') }}
+					</NcButton>
 				</div>
 			</div>
 			<div v-else>
@@ -177,152 +223,125 @@
 					</NcButton>
 				</div>
 				<div>
-					{{ t('integration_jmapc', 'Synchronization was last started on ') }} {{ formatDate(state.account_harmonization_start) }}
-					{{ t('integration_jmapc', 'and finished on ') }} {{ formatDate(state.account_harmonization_end) }}
+					{{ t('integration_jmapc', 'Synchronization was last started on ') }} {{ formatDate(selectedService.harmonization_start) }}
+					{{ t('integration_jmapc', 'and finished on ') }} {{ formatDate(selectedService.harmonization_end) }}
 				</div>
 				<br>
 				<div class="jmapc-correlations-contacts">
 					<h3>{{ t('integration_jmapc', 'Contacts') }}</h3>
 					<div class="settings-hint">
-						{{ t('integration_jmapc', 'Select the remote contacts folder(s) you wish to synchronize by pressing the link button next to the contact folder name and selecting the local contacts address book to synchronize to.') }}
+						{{ t('integration_jmapc', 'Select the contacts collection(s) you wish to synchronize by using the toggle') }}
 					</div>
-					<div v-if="state.system_contacts == 1">
-						<ul v-if="availableContactCollections.length > 0">
-							<li v-for="ritem in availableContactCollections" :key="ritem.id" class="jmapc-collectionlist-item">
+					<div v-if="systemConfiguration.system_contacts">
+						<ul v-if="remoteContactCollections.length > 0">
+							<li v-for="ritem in remoteContactCollections" :key="ritem.id" class="jmapc-collectionlist-item">
 								<NcCheckboxRadioSwitch type="switch"
-									:checked="establishedContactCorrelation(ritem.id, ritem.name)"
+									:checked="establishedContactCorrelation(ritem.id)"
 									@update:checked="changeContactCorrelation(ritem.id, $event)" />
 								<ContactIcon :inline="true" :style="{ color: establishedContactCorrelationColor(ritem.id) }" />
 								<label>
-									{{ ritem.name }} ({{ ritem.count }} Contacts)
+									{{ ritem.name }}
+								</label>
+								<label v-if="ritem.count > 0">
+									({{ ritem.count }} {{ t('integration_jmapc', 'Contacts') }})
+								</label>
+								<label v-if="establishedContactCorrelationHarmonized(ritem.id) > 0">
+									{{ t('integration_jmapc', 'Last Harmonized') }} {{ formatDate(establishedContactCorrelationHarmonized(ritem.id))}}
+								</label>
+								<label v-else>
+									{{ t('integration_jmapc', 'Last Harmonized never') }}
 								</label>
 							</li>
 						</ul>
-						<div v-else-if="availableContactCollections.length == 0">
-							{{ t('integration_jmapc', 'No contacts collections where found in the connected account.') }}
+						<div v-else-if="remoteContactCollections.length == 0">
+							{{ t('integration_jmapc', 'No contacts collections where found in the connected account') }}
 						</div>
 						<div v-else>
-							{{ t('integration_jmapc', 'Loading contacts collections from the connected account.') }}
-						</div>
-						<br>
-						<div>
-							<label>
-								{{ t('integration_jmapc', 'Synchronize ') }}
-							</label>
-							<NcSelect v-model="state.contacts_harmonize"
-								:reduce="item => item.id"
-								:options="[{label: 'Never', id: '-1'}, {label: 'Manually', id: '0'}, {label: 'Automatically', id: '5'}]" />
-							<label>
-								{{ t('integration_jmapc', 'and if there is a conflict') }}
-							</label>
-							<NcSelect v-model="state.contacts_prevalence"
-								:reduce="item => item.id"
-								:options="[{label: 'Remote', id: 'R'}, {label: 'Local', id: 'L'}, {label: 'Chronology', id: 'C'}]" />
-							<label>
-								{{ t('integration_jmapc', 'prevails') }}
-							</label>
+							{{ t('integration_jmapc', 'Loading contacts collections from the connected account') }}
 						</div>
 					</div>
 					<div v-else>
-						{{ t('integration_jmapc', 'The contacts app is either disabled or not installed. Please contact your administrator to install or enable the app.') }}
+						{{ t('integration_jmapc', 'The contacts app is either disabled or not installed. Please contact your administrator to install or enable the app') }}
 					</div>
 					<br>
 				</div>
 				<div class="jmapc-correlations-events">
 					<h3>{{ t('integration_jmapc', 'Calendars') }}</h3>
 					<div class="settings-hint">
-						{{ t('integration_jmapc', 'Select the remote calendar(s) you wish to synchronize by pressing the link button next to the calendars name and selecting the local calendar to synchronize to.') }}
+						{{ t('integration_jmapc', 'Select the events collection(s) you wish to synchronize by using the toggle') }}
 					</div>
-					<div v-if="state.system_events == 1">
-						<ul v-if="availableEventCollections.length > 0">
-							<li v-for="ritem in availableEventCollections" :key="ritem.id" class="jmapc-collectionlist-item">
+					<div v-if="systemConfiguration.system_events">
+						<ul v-if="remoteEventCollections.length > 0">
+							<li v-for="ritem in remoteEventCollections" :key="ritem.id" class="jmapc-collectionlist-item">
 								<NcCheckboxRadioSwitch type="switch"
-									:checked="establishedEventCorrelation(ritem.id, ritem.name)"
+									:checked="establishedEventCorrelation(ritem.id)"
 									@update:checked="changeEventCorrelation(ritem.id, $event)" />
 								<NcColorPicker v-model="color" :advanced-fields="true">
 									<CalendarIcon :inline="true" :style="{ color: establishedEventCorrelationColor(ritem.id) }" />
 								</NcColorPicker>
 								<label>
-									{{ ritem.name }} ({{ ritem.count }} Events)
+									{{ ritem.name }}
+								</label>
+								<label v-if="ritem.count > 0">
+									({{ ritem.count }} {{ t('integration_jmapc', 'Events') }})
+								</label>
+								<label v-if="establishedEventCorrelationHarmonized(ritem.id) > 0">
+									{{ t('integration_jmapc', 'Last Harmonized') }} {{ formatDate(establishedEventCorrelationHarmonized(ritem.id))}}
+								</label>
+								<label v-else>
+									{{ t('integration_jmapc', 'Last Harmonized never') }}
 								</label>
 							</li>
 						</ul>
-						<div v-else-if="availableEventCollections.length == 0">
-							{{ t('integration_jmapc', 'No events collections where found in the connected account.') }}
+						<div v-else-if="remoteEventCollections.length == 0">
+							{{ t('integration_jmapc', 'No events collections where found in the connected account') }}
 						</div>
 						<div v-else>
-							{{ t('integration_jmapc', 'Loading events collections from the connected account.') }}
-						</div>
-						<br>
-						<div>
-							<label>
-								{{ t('integration_jmapc', 'Synchronize ') }}
-							</label>
-							<NcSelect v-model="state.events_harmonize"
-								:reduce="item => item.id"
-								:options="[{label: 'Never', id: '-1'}, {label: 'Manually', id: '0'}, {label: 'Automatically', id: '5'}]" />
-							<label>
-								{{ t('integration_jmapc', 'and if there is a conflict') }}
-							</label>
-							<NcSelect v-model="state.events_prevalence"
-								:reduce="item => item.id"
-								:options="[{label: 'Remote', id: 'R'}, {label: 'Local', id: 'L'}, {label: 'Chronology', id: 'C'}]" />
-							<label>
-								{{ t('integration_jmapc', 'prevails') }}
-							</label>
+							{{ t('integration_jmapc', 'Loading events collections from the connected account') }}
 						</div>
 					</div>
 					<div v-else>
-						{{ t('integration_jmapc', 'The contacts app is either disabled or not installed. Please contact your administrator to install or enable the app.') }}
+						{{ t('integration_jmapc', 'The calendar app is either disabled or not installed. Please contact your administrator to install or enable the app') }}
 					</div>
 					<br>
 				</div>
 				<div class="jmapc-correlations-tasks">
 					<h3>{{ t('integration_jmapc', 'Tasks') }}</h3>
 					<div class="settings-hint">
-						{{ t('integration_jmapc', 'Select the remote Task(s) folder you wish to synchronize by pressing the link button next to the folder name and selecting the local calendar to synchronize to.') }}
+						{{ t('integration_jmapc', 'Select the task collection(s) you wish to synchronize by using the toggle') }}
 					</div>
-					<div v-if="state.system_tasks == 1">
-						<ul v-if="availableTaskCollections.length > 0">
-							<li v-for="ritem in availableTaskCollections" :key="ritem.id" class="jmapc-collectionlist-item">
+					<div v-if="systemConfiguration.system_tasks">
+						<ul v-if="remoteTaskCollections.length > 0">
+							<li v-for="ritem in remoteTaskCollections" :key="ritem.id" class="jmapc-collectionlist-item">
 								<NcCheckboxRadioSwitch type="switch"
-									:checked="establishedTaskCorrelation(ritem.id, ritem.name)"
+									:checked="establishedTaskCorrelation(ritem.id)"
 									@update:checked="changeTaskCorrelation(ritem.id, $event)" />
 								<NcColorPicker v-model="color" :advanced-fields="true">
 									<CalendarIcon :inline="true" :style="{ color: establishedTaskCorrelationColor(ritem.id) }" />
 								</NcColorPicker>
 								<label>
-									{{ ritem.name }} ({{ ritem.count }} Tasks)
+									{{ ritem.name }}
+								</label>
+								<label v-if="ritem.count > 0">
+									({{ ritem.count }} {{ t('integration_jmapc', 'Tasks') }})
+								</label>
+								<label v-if="establishedTaskCorrelationHarmonized(ritem.id) > 0">
+									{{ t('integration_jmapc', 'Last Harmonized') }} {{ formatDate(establishedTaskCorrelationHarmonized(ritem.id))}}
+								</label>
+								<label v-else>
+									{{ t('integration_jmapc', 'Last Harmonized never') }}
 								</label>
 							</li>
 						</ul>
-						<div v-else-if="availableTaskCollections.length == 0">
+						<div v-else-if="remoteTaskCollections.length == 0">
 							{{ t('integration_jmapc', 'No tasks collections where found in the connected account.') }}
 						</div>
 						<div v-else>
 							{{ t('integration_jmapc', 'Loading tasks collections from the connected account.') }}
 						</div>
-						<br>
-						<div>
-							<label>
-								{{ t('integration_jmapc', 'Synchronize ') }}
-							</label>
-							<NcSelect v-model="state.tasks_harmonize"
-								:reduce="item => item.id"
-								:options="[{label: 'Never', id: '-1'}, {label: 'Manually', id: '0'}, {label: 'Automatically', id: '5'}]" />
-							<label>
-								{{ t('integration_jmapc', 'and if there is a conflict') }}
-							</label>
-							<NcSelect v-model="state.tasks_prevalence"
-								:reduce="item => item.id"
-								:options="[{label: 'Remote', id: 'R'}, {label: 'Local', id: 'L'}, {label: 'Chronology', id: 'C'}]" />
-							<label>
-								{{ t('integration_jmapc', 'prevails') }}
-							</label>
-						</div>
 					</div>
 					<div v-else>
-						{{ t('integration_jmapc', 'The contacts app is either disabled or not installed. Please contact your administrator to install or enable the app.') }}
+						{{ t('integration_jmapc', 'The tasks app is either disabled or not installed. Please contact your administrator to install or enable the app.') }}
 					</div>
 					<br>
 				</div>
@@ -359,6 +378,7 @@ import NcColorPicker from '@nextcloud/vue/dist/Components/NcColorPicker.js'
 import NcSelect from '@nextcloud/vue/dist/Components/NcSelect.js'
 
 import JmapIcon from './icons/JmapIcon.vue'
+import AccountAddIcon from 'vue-material-design-icons/AccountPlus.vue'
 import CheckIcon from 'vue-material-design-icons/Check.vue'
 import CloseIcon from 'vue-material-design-icons/Close.vue'
 import CalendarIcon from 'vue-material-design-icons/Calendar.vue'
@@ -376,6 +396,7 @@ export default {
 		NcColorPicker,
 		NcSelect,
 		JmapIcon,
+		AccountAddIcon,
 		CheckIcon,
 		CloseIcon,
 		CalendarIcon,
@@ -388,18 +409,18 @@ export default {
 	data() {
 		return {
 			readonly: true,
-			state: loadState('integration_jmapc', 'user-configuration'),
+			systemConfiguration: loadState('integration_jmapc', 'system-configuration'),
 			// services
-			availableServicesCollection: [],
+			configuredServices: [],
 			// contacts
-			availableContactCollections: [],
-			establishedContactCorrelations: [],
+			remoteContactCollections: [],
+			localContactCollections: [],
 			// calendars
-			availableEventCollections: [],
-			establishedEventCorrelations: [],
+			remoteEventCollections: [],
+			localEventCollections: [],
 			// tasks
-			availableTaskCollections: [],
-			establishedTaskCorrelations: [],
+			remoteTaskCollections: [],
+			localTaskCollections: [],
 
 			configureManually: false,
 			configureMail: false,
@@ -428,24 +449,20 @@ export default {
 
 	methods: {
 		loadData() {
-			this.listServices()
+			this.serviceList()
 		},
-		onConnectAlternateClick() {
-			const uri = generateUrl('/apps/integration_jmapc/connect-alternate')
+		onConnectClick() {
+			const uri = generateUrl('/apps/integration_jmapc/connect')
 			const data = {
 				params: {
-					account_bauth_id: this.state.account_bauth_id,
-					account_bauth_secret: this.state.account_bauth_secret,
-					account_server: this.state.account_server,
-					flag: this.configureMail,
+					service: this.selectedService,
 				},
 			}
 			axios.get(uri, data)
 				.then((response) => {
 					if (response.data === 'success') {
 						showSuccess(('Successfully connected to JMAP account'))
-						this.state.account_connected = '1'
-						this.fetchPreferences()
+						this.selectedService.connected = 1
 						this.loadData()
 					}
 				})
@@ -456,40 +473,25 @@ export default {
 					)
 				})
 		},
-		onConnectMS365Click() {
-			const ssoWindow = window.open(
-				this.state.system_ms365_authrization_uri,
-				t('integration_jmapc', 'Sign in Nextcloud JMAP Connector'),
-				' width=600, height=700'
-			)
-			ssoWindow.focus()
-			window.addEventListener('message', (event) => {
-				console.debug('Child window message received', event)
-				this.state.account_connected = '1'
-				this.fetchPreferences()
-				this.loadData()
-			})
-		},
 		onDisconnectClick() {
 			const uri = generateUrl('/apps/integration_jmapc/disconnect')
 			axios.get(uri)
 				.then((response) => {
 					showSuccess(('Successfully disconnected from JMAP account'))
 					// state
-					this.state.account_connected = '0'
-					this.fetchPreferences()
+					this.selectedService.connected = 0
 					// contacts
-					this.availableContactCollections = []
+					this.remoteContactCollections = []
 					this.availableLocalContactCollections = []
-					this.establishedContactCorrelations = []
+					this.localContactCollections = []
 					// events
-					this.availableEventCollections = []
+					this.remoteEventCollections = []
 					this.availableLocalEventCollections = []
-					this.establishedEventCorrelations = []
+					this.localEventCollections = []
 					// tasks
-					this.availableTaskCollections = []
+					this.remoteTaskCollections = []
 					this.availableLocalTaskCollections = []
-					this.establishedTaskCorrelations = []
+					this.localTaskCollections = []
 				})
 				.catch((error) => {
 					showError(
@@ -501,20 +503,17 @@ export default {
 				})
 		},
 		onSaveClick() {
+			/*
 			this.depositPreferences({
-				contacts_prevalence: this.state.contacts_prevalence,
-				contacts_harmonize: this.state.contacts_harmonize,
-				contacts_actions_local: this.state.contacts_actions_local,
-				contacts_actions_remote: this.state.contacts_actions_remote,
-				events_prevalence: this.state.events_prevalence,
-				events_harmonize: this.state.events_harmonize,
-				events_actions_local: this.state.events_actions_local,
-				events_actions_remote: this.state.events_actions_remote,
-				tasks_prevalence: this.state.tasks_prevalence,
-				tasks_harmonize: this.state.tasks_harmonize,
-				tasks_actions_local: this.state.tasks_actions_local,
-				tasks_actions_remote: this.state.tasks_actions_remote,
+				id: this.selectedService.id,
+				contacts_prevalence: this.selectedService.contacts_prevalence,
+				contacts_harmonize: this.selectedService.contacts_harmonize,
+				events_prevalence: this.selectedService.events_prevalence,
+				events_harmonize: this.selectedService.events_harmonize,
+				tasks_prevalence: this.selectedService.tasks_prevalence,
+				tasks_harmonize: this.selectedService.tasks_harmonize,
 			})
+			*/
 			this.depositCorrelations()
 		},
 		onHarmonizeClick() {
@@ -530,104 +529,115 @@ export default {
 					)
 				})
 		},
-		listServices() {
+		serviceList() {
 			const uri = generateUrl('/apps/integration_jmapc/service-list')
 			axios.get(uri)
 				.then((response) => {
 					if (response.data) {
-						this.availableServicesCollection = response.data
-						showSuccess(('Found ' + this.availableServicesCollection.length + ' Configured Services'))
+						this.configuredServices = response.data
+						showSuccess(('Found ' + this.configuredServices.length + ' Configured Services'))
 					}
 				})
 				.catch((error) => {
 					showError(
-						t('integration_jmapc', 'Failed to load remote collections list')
+						t('integration_jmapc', 'Failed to load service list')
 						+ ': ' + error.response?.request?.responseText
 					)
 				})
 				.then(() => {
 				})
 		},
-		selectService(option) {
+		serviceSelect(option) {
 			if (!option) {
 				return
 			}
-
 			this.selectedService = option
+			this.remoteCollectionsFetch()
+			this.localCollectionsFetch()
 		},
-		fetchCollections() {
-			const uri = generateUrl('/apps/integration_jmapc/fetch-collections')
-			axios.get(uri)
+		freshService() {
+			this.selectedService = { label: 'New Connection' }
+		},
+		remoteCollectionsFetch() {
+			const uri = generateUrl('/apps/integration_jmapc/remote-collections-fetch')
+			const params = {
+				sid: this.selectedService.id,
+			}
+			axios.get(uri, { params })
 				.then((response) => {
 					if (response.data.ContactCollections) {
-						this.availableContactCollections = response.data.ContactCollections
-						showSuccess(('Found ' + this.availableContactCollections.length + ' Remote Contacts Collections'))
+						this.remoteContactCollections = response.data.ContactCollections
+						showSuccess(('Found ' + this.remoteContactCollections.length + ' Remote Contacts Collections'))
 					}
 					if (response.data.EventCollections) {
-						this.availableEventCollections = response.data.EventCollections
-						showSuccess(('Found ' + this.availableEventCollections.length + ' Remote Events Collections'))
+						this.remoteEventCollections = response.data.EventCollections
+						showSuccess(('Found ' + this.remoteEventCollections.length + ' Remote Events Collections'))
 					}
 					if (response.data.TaskCollections) {
-						this.availableTaskCollections = response.data.TaskCollections
-						showSuccess(('Found ' + this.availableTaskCollections.length + ' Remote Tasks Collections'))
+						this.remoteTaskCollections = response.data.TaskCollections
+						showSuccess(('Found ' + this.remoteTaskCollections.length + ' Remote Tasks Collections'))
 					}
 				})
 				.catch((error) => {
 					showError(
-						t('integration_jmapc', 'Failed to load remote collections list')
+						t('integration_jmapc', 'Failed to load remote collections')
 						+ ': ' + error.response?.request?.responseText
 					)
 				})
 				.then(() => {
 				})
 		},
-		fetchCorrelations() {
-			const uri = generateUrl('/apps/integration_jmapc/fetch-correlations')
-			axios.get(uri)
+		localCollectionsFetch() {
+			const uri = generateUrl('/apps/integration_jmapc/local-collections-fetch')
+			const params = {
+				sid: this.selectedService.id,
+			}
+			axios.get(uri, { params })
 				.then((response) => {
-					if (response.data.ContactCorrelations) {
-						this.establishedContactCorrelations = response.data.ContactCorrelations
-						showSuccess(('Found ' + this.establishedContactCorrelations.length + ' Contact Collection Correlations'))
+					if (response.data.ContactCollections) {
+						this.localContactCollections = response.data.ContactCollections
+						showSuccess(('Found ' + this.localContactCollections.length + ' Local Contact Collections'))
 					}
-					if (response.data.EventCorrelations) {
-						this.establishedEventCorrelations = response.data.EventCorrelations
-						showSuccess(('Found ' + this.establishedEventCorrelations.length + ' Event Collection Correlations'))
+					if (response.data.EventCollections) {
+						this.localEventCollections = response.data.EventCollections
+						showSuccess(('Found ' + this.localEventCollections.length + ' Local Event Collections'))
 					}
-					if (response.data.TaskCorrelations) {
-						this.establishedTaskCorrelations = response.data.TaskCorrelations
-						showSuccess(('Found ' + this.establishedTaskCorrelations.length + ' Task Collection Correlations'))
+					if (response.data.TaskCollections) {
+						this.localTaskCollections = response.data.TaskCollections
+						showSuccess(('Found ' + this.localTaskCollections.length + ' Local Task Collections'))
 					}
 				})
 				.catch((error) => {
 					showError(
-						t('integration_jmapc', 'Failed to load collection correlations list')
+						t('integration_jmapc', 'Failed to load remote collections')
 						+ ': ' + error.response?.request?.responseText
 					)
 				})
 				.then(() => {
 				})
 		},
-		depositCorrelations() {
-			const uri = generateUrl('/apps/integration_jmapc/deposit-correlations')
+		localCollectionsDeposit() {
+			const uri = generateUrl('/apps/integration_jmapc/local-collections-deposit')
 			const data = {
-				ContactCorrelations: this.establishedContactCorrelations,
-				EventCorrelations: this.establishedEventCorrelations,
-				TaskCorrelations: this.establishedTaskCorrelations,
+				id: this.selectedService.id,
+				ContactCorrelations: this.localContactCollections,
+				EventCorrelations: this.localEventCollections,
+				TaskCorrelations: this.localTaskCollections,
 			}
 			axios.put(uri, data)
 				.then((response) => {
 					showSuccess('Saved correlations')
 					if (response.data.ContactCorrelations) {
-						this.establishedContactCorrelations = response.data.ContactCorrelations
-						showSuccess('Found ' + this.establishedContactCorrelations.length + ' Contact Collection Correlations')
+						this.localContactCollections = response.data.ContactCorrelations
+						showSuccess('Found ' + this.localContactCollections.length + ' Contact Collection Correlations')
 					}
 					if (response.data.EventCorrelations) {
-						this.establishedEventCorrelations = response.data.EventCorrelations
-						showSuccess('Found ' + this.establishedEventCorrelations.length + ' Event Collection Correlations')
+						this.localEventCollections = response.data.EventCorrelations
+						showSuccess('Found ' + this.localEventCollections.length + ' Event Collection Correlations')
 					}
 					if (response.data.TaskCorrelations) {
-						this.establishedTaskCorrelations = response.data.TaskCorrelations
-						showSuccess('Found ' + this.establishedTaskCorrelations.length + ' Task Collection Correlations')
+						this.localTaskCollections = response.data.TaskCorrelations
+						showSuccess('Found ' + this.localTaskCollections.length + ' Task Collection Correlations')
 					}
 				})
 				.catch((error) => {
@@ -639,129 +649,103 @@ export default {
 				})
 
 		},
-		fetchPreferences() {
-			const uri = generateUrl('/apps/integration_jmapc/fetch-preferences')
-			axios.get(uri)
-				.then((response) => {
-					if (response.data) {
-						this.state = response.data
-					}
-				})
-				.catch((error) => {
-					showError(
-						t('integration_jmapc', 'Failed to retrieve preferences')
-						+ ': ' + error.response.request.responseText
-					)
-				})
-				.then(() => {
-				})
-		},
-		depositPreferences(values) {
-			const data = {
-				values,
-			}
-			const uri = generateUrl('/apps/integration_jmapc/deposit-preferences')
-			axios.put(uri, data)
-				.then((response) => {
-					showSuccess(t('integration_jmapc', 'Saved preferences'))
-				})
-				.catch((error) => {
-					showError(
-						t('integration_jmapc', 'Failed to save preferences')
-						+ ': ' + error.response.request.responseText
-					)
-				})
-				.then(() => {
-				})
-		},
 		changeContactCorrelation(roid, e) {
-			const cid = this.establishedContactCorrelations.findIndex(i => String(i.roid) === String(roid))
+			const cid = this.localContactCollections.findIndex(i => String(i.roid) === String(roid))
 
 			if (cid === -1) {
-				this.establishedContactCorrelations.push({ id: null, roid, type: 'CC', enabled: e })
+				this.localContactCollections.push({ id: null, roid, type: 'CC', enabled: e })
 			} else {
-				this.establishedContactCorrelations[cid].enabled = e
+				this.localContactCollections[cid].enabled = e
 			}
 		},
 		changeEventCorrelation(roid, e) {
-			const cid = this.establishedEventCorrelations.findIndex(i => String(i.roid) === String(roid))
+			const cid = this.localEventCollections.findIndex(i => String(i.roid) === String(roid))
 
 			if (cid === -1) {
-				this.establishedEventCorrelations.push({ id: null, roid, type: 'EC', enabled: e })
+				this.localEventCollections.push({ id: null, roid, type: 'EC', enabled: e })
 			} else {
-				this.establishedEventCorrelations[cid].enabled = e
+				this.localEventCollections[cid].enabled = e
 			}
 		},
 		changeTaskCorrelation(roid, e) {
-			const cid = this.establishedTaskCorrelations.findIndex(i => String(i.roid) === String(roid))
+			const cid = this.localTaskCollections.findIndex(i => String(i.roid) === String(roid))
 
 			if (cid === -1) {
-				this.establishedTaskCorrelations.push({ id: null, roid, type: 'TC', enabled: e })
+				this.localTaskCollections.push({ id: null, roid, type: 'TC', enabled: e })
 			} else {
-				this.establishedTaskCorrelations[cid].enabled = e
+				this.localTaskCollections[cid].enabled = e
 			}
 		},
-		establishedContactCorrelation(roid, label) {
-			const citem = this.establishedContactCorrelations.find(i => String(i.roid) === String(roid))
-			if (typeof citem !== 'undefined') {
-				if (Boolean(citem.enabled) === true) {
-					return true
-				} else {
-					return false
-				}
+		establishedContactCorrelation(ccid) {
+			const collection = this.localContactCollections.find(i => String(i.ccid) === String(ccid))
+			if (typeof collection !== 'undefined') {
+				return true
 			} else {
-				this.establishedContactCorrelations.push({ id: null, roid, type: 'CC', label, color: this.randomColor(), enabled: false })
 				return false
 			}
 		},
-		establishedEventCorrelation(roid, label) {
-			const citem = this.establishedEventCorrelations.find(i => String(i.roid) === String(roid))
-			if (typeof citem !== 'undefined') {
-				if (Boolean(citem.enabled) === true) {
-					return true
-				} else {
-					return false
-				}
+		establishedEventCorrelation(ccid) {
+			const collection = this.localEventCollections.find(i => String(i.ccid) === String(ccid))
+			if (typeof collection !== 'undefined') {
+				return true
 			} else {
-				this.establishedEventCorrelations.push({ id: null, roid, type: 'EC', label, color: this.randomColor(), enabled: false })
 				return false
 			}
 		},
-		establishedTaskCorrelation(roid, label) {
-			const citem = this.establishedTaskCorrelations.find(i => String(i.roid) === String(roid))
-			if (typeof citem !== 'undefined') {
-				if (Boolean(citem.enabled) === true) {
-					return true
-				} else {
-					return false
-				}
+		establishedTaskCorrelation(ccid) {
+			const collection = this.localTaskCollections.find(i => String(i.ccid) === String(ccid))
+			if (typeof collection !== 'undefined') {
+				return true
 			} else {
-				this.establishedTaskCorrelations.push({ id: null, roid, type: 'TC', label, color: this.randomColor(), enabled: false })
 				return false
 			}
 		},
-		establishedContactCorrelationColor(roid) {
-			const citem = this.establishedContactCorrelations.find(i => String(i.roid) === String(roid))
-			if (typeof citem !== 'undefined') {
-				return citem.color || this.randomColor()
+		establishedContactCorrelationColor(ccid) {
+			const collection = this.localContactCollections.find(i => String(i.ccid) === String(ccid))
+			if (typeof collection !== 'undefined') {
+				return collection.color || this.randomColor()
 			} else {
 				return this.randomColor()
 			}
 		},
-		establishedEventCorrelationColor(roid) {
-			const citem = this.establishedEventCorrelations.find(i => String(i.roid) === String(roid))
-			if (typeof citem !== 'undefined') {
-				return citem.color || this.randomColor()
+		establishedEventCorrelationColor(ccid) {
+			const collection = this.localEventCollections.find(i => String(i.ccid) === String(ccid))
+			if (typeof collection !== 'undefined') {
+				return collection.color || this.randomColor()
 			} else {
 				return this.randomColor()
 			}
 		},
-		establishedTaskCorrelationColor(roid) {
-			const citem = this.establishedTaskCorrelations.find(i => String(i.roid) === String(roid))
-			if (typeof citem !== 'undefined') {
-				return citem.color || this.randomColor()
+		establishedTaskCorrelationColor(ccid) {
+			const collection = this.localTaskCollections.find(i => String(i.ccid) === String(ccid))
+			if (typeof collection !== 'undefined') {
+				return collection.color || this.randomColor()
 			} else {
 				return this.randomColor()
+			}
+		},
+		establishedContactCorrelationHarmonized(ccid) {
+			const collection = this.localContactCollections.find(i => String(i.ccid) === String(ccid))
+			if (typeof collection !== 'undefined') {
+				return collection.hlockhb || 0
+			} else {
+				return 0
+			}
+		},
+		establishedEventCorrelationHarmonized(ccid) {
+			const collection = this.localEventCollections.find(i => String(i.ccid) === String(ccid))
+			if (typeof collection !== 'undefined') {
+				return collection.hlockhb || 0
+			} else {
+				return 0
+			}
+		},
+		establishedTaskCorrelationHarmonized(ccid) {
+			const collection = this.localTaskCollections.find(i => String(i.ccid) === String(ccid))
+			if (typeof collection !== 'undefined') {
+				return collection.hlockhb || 0
+			} else {
+				return 0
 			}
 		},
 		formatDate(dt) {
@@ -780,46 +764,75 @@ export default {
 
 <style scoped lang="scss">
 #jmapc_settings {
-	.jmapc-section-heading {
-		display:inline-block;
-		vertical-align:middle;
+	.jmapc-page-title {
+		display: ruby;
 	}
-
-	.jmapc-connected {
+	.jmapc-page-title h2 {
+		padding-left: 1%;
+	}
+	.jmapc-page-title .logo {
+		vertical-align: sub;
+		padding-left: 1%;
+	}
+	.jmapc-section-services {
+		display: flex;
+		padding-left: 1%;
+	}
+	.jmapc-section-services label {
+		display: inline-block;
+		width: 25ch;
+		vertical-align: middle;
+	}
+	.jmapc-section-connect h3 {
+		font-weight: bolder;
+		font-size: larger;
+	}
+	.jmapc-section-parameters {
+		padding-bottom: 1%;
+	}
+	.jmapc-section-parameters .description {
+		padding-bottom: 1%;
+	}
+	.jmapc-section-parameters .parameter {
+		display: flex;
+		padding-bottom: 1%;
+	}
+	.jmapc-section-parameters .parameter label {
+		display: inline-block;
+		width: 25ch;
+	}
+	.jmapc-section-parameters .actions {
+		padding-top: 1%;
+	}
+	.jmapc-section-connected h3 {
+		font-weight: bolder;
+		font-size: larger;
+	}
+	.jmapc-section-connected-status {
 		display: flex;
 		align-items: center;
-
-		label {
-			padding-left: 1em;
-			padding-right: 1em;
-		}
 	}
-
+	.jmapc-section-connected-status label {
+		padding-right: 1%;
+	}
+	.jmapc-section-connected .description {
+		padding-bottom: 1%;
+	}
+	.jmapc-section-connected ul {
+		padding-bottom: 1%;
+	}
+	.jmapc-section-connected .actions {
+		display: flex;
+		align-items: center;
+	}
 	.jmapc-collectionlist-item {
 		display: flex;
 		align-items: center;
 
 		label {
-			padding-left: 1em;
-			padding-right: 1em;
+			padding-left: 1%;
+			padding-right: 1%;
 		}
-	}
-
-	.jmapc-actions {
-		display: flex;
-		align-items: center;
-	}
-
-	.external-label {
-		display: flex;
-		//width: 100%;
-		margin-top: 1rem;
-	}
-
-	.external-label label {
-		padding-top: 7px;
-		padding-right: 14px;
-		white-space: nowrap;
 	}
 }
 </style>

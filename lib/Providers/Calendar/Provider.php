@@ -2,14 +2,15 @@
 
 namespace OCA\JMAPC\Providers\Calendar;
 
+use OCP\Calendar\ICalendarProvider as ICalendarProvider1;
 use OCA\DAV\CalDAV\Integration\ExternalCalendar;
-use OCA\DAV\CalDAV\Integration\ICalendarProvider;
+use OCA\DAV\CalDAV\Integration\ICalendarProvider as ICalendarProvider2;
 
 use OCA\JMAPC\AppInfo\Application;
 use OCA\JMAPC\Store\EventStore;
 use OCA\JMAPC\Store\TaskStore;
 
-class Provider implements ICalendarProvider {
+class Provider implements ICalendarProvider1, ICalendarProvider2 {
 
 	private EventStore $_EventStore;
 	private TaskStore $_TaskStore;
@@ -29,21 +30,28 @@ class Provider implements ICalendarProvider {
 	/**
 	 * @inheritDoc
 	 */
+	public function getCalendars(string $principalUri, array $calendarUris = []): array {
+		return [];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
 	public function fetchAllForCalendarHome(string $principalUri): array {
 		
 		// construct collection objects list
 		$list = [];
 		// retrieve collection(s)
-		$collections = $this->_EventStore->listCollectionsByUser(substr($principalUri, 17), 'EC');
+		$collections = $this->_EventStore->collectionListByUser(substr($principalUri, 17), 'EC');
 		// add collections to list
 		foreach ($collections as $entry) {
-			$list[] = new EventCollection($this->_EventStore, $entry['id'], $entry['uid'], $entry['uuid'], $entry['label'], $entry['color']);
+			$list[] = new EventCollection($this->_EventStore, $entry);
 		}
 		// retrieve collection(s)
-		$collections = $this->_TaskStore->listCollectionsByUser(substr($principalUri, 17), 'TC');
+		$collections = $this->_TaskStore->collectionListByUser(substr($principalUri, 17), 'TC');
 		// add collections to list
 		foreach ($collections as $entry) {
-			$list[] = new TaskCollection($this->_TaskStore, $entry['id'], $entry['uid'], $entry['uuid'], $entry['label'], $entry['color']);
+			$list[] = new TaskCollection($this->_TaskStore, $entry);
 		}
 		// return collection objects list
 		return $list;
@@ -55,7 +63,7 @@ class Provider implements ICalendarProvider {
 	 */
 	public function hasCalendarInCalendarHome(string $principalUri, string $calendarUri): bool {
 
-		return $this->_EventStore->confirmCollectionByUUID(substr($principalUri, 17), $calendarUri);
+		return $this->_EventStore->collectionConfirmByUUID(substr($principalUri, 17), $calendarUri);
 
 	}
 
@@ -64,14 +72,14 @@ class Provider implements ICalendarProvider {
 	 */
 	public function getCalendarInCalendarHome(string $principalUri, string $calendarUri): ?ExternalCalendar {
 
-		$entry = $this->_EventStore->fetchCollectionByUUID(substr($principalUri, 17), $calendarUri);
+		$entry = $this->_EventStore->collectionFetchByUUID(substr($principalUri, 17), $calendarUri);
 
 		if (isset($entry)) {
-			if ($entry['type'] == 'EC') {
-				return new EventCollection($this->_EventStore, $entry['id'], $entry['uid'], $entry['uuid'], $entry['label'], $entry['color']);
+			if ($entry->getType() == 'EC') {
+				return new EventCollection($this->_EventStore, $entry);
 			}
-			elseif ($entry['type'] == 'TC') {
-				return new TaskCollection($this->_TaskStore, $entry['id'], $entry['uid'], $entry['uuid'], $entry['label'], $entry['color']);
+			elseif ($entry->getType() == 'TC') {
+				return new TaskCollection($this->_TaskStore, $entry);
 			}
 		}
 		else {

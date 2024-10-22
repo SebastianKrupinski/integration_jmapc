@@ -34,7 +34,8 @@ use OCA\JMAPC\Store\EventStore;
 use OCA\JMAPC\Objects\EventCollectionObject;
 use OCA\JMAPC\Objects\EventObject;
 use OCA\JMAPC\Objects\EventAttachmentObject;
-
+use OCA\JMAPC\Store\EventEntity;
+use OCA\JMAPC\Utile\UUID;
 use Sabre\VObject\Reader;
 use Sabre\VObject\Component\VEvent;
 
@@ -56,17 +57,17 @@ class LocalEventsService {
 	}
 
 	/**
-     * retrieve collection object from local storage
+     * retrieve collection from local storage
      * 
-	 * @param string $id            Collection ID
+	 * @param string $cid            Collection ID
 	 * 
 	 * @return EventCollectionObject  EventCollectionObject on success / null on fail
 	 */
-	public function fetchCollection(int $id): ?EventCollectionObject {
+	public function collectionFetch(int $cid): ?EventCollectionObject {
 
         // retrieve object properties
-        $lo = $this->_Store->fetchCollection($id);
-        // evaluate if object properties where retrieved
+        $lo = $this->_Store->collectionFetch($cid);
+        // evaluate if object properties where retrieve
         if (is_array($lo) && count($lo) > 0) {
             // construct object and return
             return new EventCollectionObject(
@@ -81,20 +82,50 @@ class LocalEventsService {
         }
 
     }
-    
-	/**
+
+    /**
+     * delete collection from local storage
+     * 
+     * @since Release 1.0.0
+     * 
+     * @param int $cid              collection id
+     * 
+     * @return void
+	 */
+    public function collectionDeleteById(int $cid): void {
+        
+        // delete entities from data store
+        $this->_Store->entityDeleteByCollection($cid);
+        $this->_Store->collectionDeleteById($cid);
+
+    }
+
+    /**
+     * retrieve list of entities from local storage
+     * 
+     * @param int $cid              collection id
+     * 
+     * @return array                collection of entities
+	 */
+	public function entityList(int $cid, string $particulars): array {
+
+        return $this->_Store->entityListByCollection($cid);
+
+    }
+
+    /**
      * retrieve the differences for specific collection from a specific point from local storage
      * 
-     * @param string $uid           User ID
-	 * @param string $cid           Collection ID
-     * @param string $stamp         
+     * @param string $uid           user id
+	 * @param int $cid              collection id
+     * @param string $signature     collection signature
 	 * 
-	 * @return array                Collection of differences
+	 * @return array                collection of differences
 	 */
-	public function reconcileCollection(string $uid, int $cid, string $stamp): array {
+	public function entityDelta(int $cid, string $signature): array {
 
         // retrieve collection differences
-        $lcc = $this->_Store->reminisce($uid, $cid, $stamp);
+        $lcc = $this->_Store->reminisce($cid, $signature);
         // return collection differences
 		return $lcc;
         
@@ -103,26 +134,27 @@ class LocalEventsService {
 	/**
      * retrieve entity object from local storage
      * 
-     * @param string $id            Entity ID
+     * @param int $id               entity id
 	 * 
-	 * @return EventObject        EventObject on success / null on fail
+	 * @return EventObject|null
 	 */
-	public function fetchEntity(int $id): ?EventObject {
+	public function entityFetch(int $id): EventObject|null {
 
         // retrieve object properties
-        $lo = $this->_Store->fetchEntity($id);
+        $lo = $this->_Store->entityFetch($id);
         // evaluate if object properties where retrieved
-        if (is_array($lo) && count($lo) > 0) {
+        if ($lo instanceof EventEntity) {
             // read object data
-            $eo = Reader::read($lo['data']);
+            $eo = Reader::read($lo->getData());
             // convert to contact object
             $eo = $this->toEventObject($eo->VEVENT);
-            $eo->ID = $lo['id'];
-            $eo->UUID = $lo['uuid'];
-            $eo->CID = $lo['cid'];
-            $eo->Signature = trim($lo['signature'],'"');
-            $eo->RCID = $lo['rcid'];
-            $eo->REID = $lo['reid'];
+            $eo->ID = $lo->getId();
+            $eo->UUID = $lo->getUuid();
+            $eo->CID = $lo->getCid();
+            $eo->Signature = $lo->getSignature();
+            $eo->CCID = $lo->getCcid();
+            $eo->CEID = $lo->getCeid();
+            $eo->CESN = $lo->getCesn();
             // return contact object
             return $eo;
         } else {
@@ -133,30 +165,32 @@ class LocalEventsService {
     }
 
     /**
-     * retrieve entity object by remote id from local storage
+     * retrieve entity by correlation id from local storage
      * 
-     * @param string $uid           User Id
-	 * @param string $rcid          Remote Collection ID
-     * @param string $reid          Remote Entity ID
+     * @param int $cid              collection id
+	 * @param string $ccid          correlation collection id
+     * @param string $ceid          correlation entity id
 	 * 
-	 * @return EventObject        EventObject on success / null on fail
+	 * @return EventObject|null
 	 */
-	public function fetchEntityByRID(string $uid, string $rcid, string $reid): ?EventObject {
+	public function entityFetchByCorrelation(int $cid, string $ccid, string $ceid): EventObject|null {
 
         // retrieve object properties
-        $lo = $this->_Store->fetchEntityByRID($uid, $rcid, $reid);
+        $lo = $this->_Store->entityFetchByCorrelation($cid, $ccid, $ceid);
 		// evaluate if object properties where retrieved
-        if (is_array($lo) && count($lo) > 0) {
+        if (isset($lo)) {
             // read object data
-            $eo = Reader::read($lo['data']);
+            $eo = Reader::read($lo->getData());
             // convert to contact object
             $eo = $this->toEventObject($eo->VEVENT);
-            $eo->ID = $lo['id'];
-            $eo->UUID = $lo['uuid'];
-            $eo->CID = $lo['cid'];
-            $eo->Signature = trim($lo['signature'],'"');
-            $eo->RCID = $lo['rcid'];
-            $eo->REID = $lo['reid'];
+            $eo->Origin = 'L';
+            $eo->ID = $lo->getId();
+            $eo->CID = $lo->getCid();
+            $eo->UUID = $lo->getUuid();
+            $eo->Signature = $lo->getSignature();
+            $eo->CCID = $lo->getCcid();
+            $eo->CEID = $lo->getCeid();
+            $eo->CESN = $lo->getCesn();
             // return contact object
             return $eo;
         } else {
@@ -169,34 +203,36 @@ class LocalEventsService {
     /**
      * create entity in local storage
      * 
-	 * @param string $uid           User Id
-	 * @param string $cid           Collection ID
-     * @param EventObject $so     Source Object
+	 * @param string $uid           user id
+     * @param int $sid              service id
+	 * @param int $cid              collection id
+     * @param EventObject $so       source object
 	 * 
 	 * @return object               Status Object - item id, item uuid, item state token / Null - failed to create
 	 */
-	public function createEntity(string $uid, int $cid, EventObject $so): ?object {
+	public function entityCreate(string $uid, int $sid, int $cid, EventObject $so): ?object {
 
-        // initilize data place holder
-        $lo = [];
+        // initialize data place holder
+        $lo = new EventEntity();
         // convert contact object to vcard object
-        $lo['data'] = "BEGIN:VCALENDAR\nVERSION:2.0\n" . $this->fromEventObject($so)->serialize() . "\nEND:VCALENDAR";
-        $lo['uuid'] = (!empty($so->UUID)) ? $so->UUID : \OCA\JMAPC\Utile\UUID::v4();
-        $lo['uid'] = $uid;
-        $lo['cid'] = $cid;
-        $lo['rcid'] = $so->RCID;
-        $lo['reid'] = $so->REID;
-        $lo['size'] = strlen($lo['data']);
-        $lo['signature'] = md5($lo['data']);
-        $lo['label'] = $so->Label;
-        $lo['notes'] = $so->Notes;
-        $lo['startson'] = $so->StartsOn->setTimezone(new DateTimeZone('UTC'))->format('U');
-        $lo['endson'] = $so->EndsOn->setTimezone(new DateTimeZone('UTC'))->format('U');
+        $lo->setData("BEGIN:VCALENDAR\nVERSION:2.0\n" . $this->fromEventObject($so)->serialize() . "\nEND:VCALENDAR");
+        $lo->setUid($uid);
+        $lo->setSid($sid);
+        $lo->setCid($cid);
+        $lo->setUuid($so->UUID);
+        $lo->setSignature(md5($lo->getData()));
+        $lo->setCcid($so->CCID);
+        $lo->setCeid($so->CEID);
+        $lo->setCesn($so->CESN);
+        $lo->setLabel($so->Label);
+        $lo->setDescription($so->Description);
+        $lo->setStartson($so->StartsOn->setTimezone(new DateTimeZone('UTC'))->format('U'));
+        $lo->setEndson($so->EndsOn->setTimezone(new DateTimeZone('UTC'))->format('U'));
         // create entry in data store
-        $id = $this->_Store->createEntity($lo);
+        $lo = $this->_Store->entityCreate($lo);
         // return status object or null
-        if ($id) {
-            return (object) array('ID' => $id, 'Signature' => $lo['signature']);
+        if ($lo) {
+            return (object) array('ID' => $lo->getId(), 'Signature' => $lo->getSignature());
         } else {
             return null;
         }
@@ -204,41 +240,40 @@ class LocalEventsService {
     }
     
     /**
-     * update entity in local storage
+     * modify entity in local storage
      * 
-	 * @param string $uid           User ID
-	 * @param string $cid           Collection ID
-	 * @param string $eid           Entity ID
-     * @param EventObject $so     Source Object
+	 * @param string $uid           user id
+     * @param int $sid              service id
+	 * @param int $cid              collection id
+	 * @param int $eid              entity id
+     * @param EventObject $so       source object
 	 * 
 	 * @return object               Status Object - item id, item uuid, item state token / Null - failed to create
 	 */
-	public function updateEntity(string $uid, int $cid, int $eid, EventObject $so): ?object {
+	public function entityModify(string $uid, int $sid, int $cid, int $eid, EventObject $so): ?object {
 
-        // evaluate if collection or entity id is missing - must contain id to update
-        if (empty($uid) || empty($cid) || empty($eid)) {
-            return null;
-        }
-        // initilize data place holder
-        $lo = [];
+        // initialize data place holder
+        $lo = new EventEntity();
+        $lo->setId($eid);
         // convert contact object to vcard object
-        $lo['data'] = "BEGIN:VCALENDAR\nVERSION:2.0\n" . $this->fromEventObject($so)->serialize() . "\nEND:VCALENDAR";
-        $lo['uuid'] = (!empty($so->UUID)) ? $so->UUID : \OCA\JMAPC\Utile\UUID::v4();
-        $lo['uid'] = $uid;
-        $lo['cid'] = $cid;
-        $lo['rcid'] = $so->RCID;
-        $lo['reid'] = $so->REID;
-        $lo['size'] = strlen($lo['data']);
-        $lo['signature'] = md5($lo['data']);
-        $lo['label'] = $so->Label;
-        $lo['notes'] = $so->Notes;
-        $lo['startson'] = $so->StartsOn->setTimezone(new DateTimeZone('UTC'))->format('U');
-        $lo['endson'] = $so->EndsOn->setTimezone(new DateTimeZone('UTC'))->format('U');
+        $lo->setData("BEGIN:VCALENDAR\nVERSION:2.0\n" . $this->fromEventObject($so)->serialize() . "\nEND:VCALENDAR");
+        $lo->setUid($uid);
+        $lo->setSid($sid);
+        $lo->setCid($cid);
+        $lo->setUuid($so->UUID);
+        $lo->setSignature(md5($lo->getData()));
+        $lo->setCcid($so->CCID);
+        $lo->setCeid($so->CEID);
+        $lo->setCesn($so->CESN);
+        $lo->setLabel($so->Label);
+        $lo->setDescription($so->Description);
+        $lo->setStartson($so->StartsOn->setTimezone(new DateTimeZone('UTC'))->format('U'));
+        $lo->setEndson($so->EndsOn->setTimezone(new DateTimeZone('UTC'))->format('U'));
         // modify entry in data store
-        $rs = $this->_Store->modifyEntity($eid, $lo);
+        $lo = $this->_Store->entityModify($lo);
         // return status object or null
-        if ($rs) {
-            return (object) array('ID' => $eid, 'Signature' => $lo['signature']);
+        if ($lo) {
+            return (object) array('ID' => $lo->getId(), 'Signature' => $lo->getSignature());
         } else {
             return null;
         }
@@ -248,22 +283,38 @@ class LocalEventsService {
     /**
      * delete entity from local storage
      * 
-	 * @param string $uid           User ID
-	 * @param string $cid           Collection ID
-	 * @param string $eid           Entity ID
+	 * @param int $eid              entity id
 	 * 
 	 * @return bool                 true - successfully delete / false - failed to delete
 	 */
-	public function deleteEntity(string $uid, int $cid, int $eid): bool {
+	public function entityDelete(int $eid): bool {
 
-        // evaluate if collection or entity id is missing - must contain id to delete
-        if (empty($uid) || empty($cid) || empty($eid)) {
-            return null;
-        }
         // delete entry from data store
-        $rs = $this->_Store->deleteEntity($eid);
+        $rs = $this->_Store->entityDelete($eid);
         // return result
         if ($rs) {
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+
+    /**
+     * delete entity from local storage by remote id
+     * 
+     * @param int $cid              collection id
+	 * @param string $ccid          correlation collection id
+     * @param string $ceid          correlation entity id
+	 * 
+	 * @return bool
+	 */
+	public function entityDeleteByCorrelation(int $cid, string $ccid, string $ceid): bool {
+        // retrieve entity
+        $lo = $this->_Store->entityFetchByCorrelation($cid, $ccid, $ceid);
+
+        if (isset($lo)) {
+            $lo = $this->_Store->entityDelete($lo);
             return true;
         } else {
             return false;

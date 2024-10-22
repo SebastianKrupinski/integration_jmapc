@@ -25,15 +25,13 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Controller;
 
-use Exception;
-use Throwable;
-
 use OCP\IRequest;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http\TemplateResponse;
 
-use OCA\JMAPC\AppInfo\Application;
 use OCA\JMAPC\Service\ConfigurationService;
 use OCA\JMAPC\Service\CoreService;
 use OCA\JMAPC\Service\HarmonizationService;
@@ -55,12 +53,12 @@ class UserConfigurationController extends Controller {
 
 	/**
 	 * handles services list request
-	 * 
-	 * @NoAdminRequired
 	 *
 	 * @return DataResponse
 	 */
-	public function listServices(): DataResponse {
+	#[NoAdminRequired]
+	#[FrontpageRoute(verb: 'GET', url: '/service-list')]
+	public function serviceList(): DataResponse {
 		
 		// evaluate if user id is present
 		if ($this->userId === null) {
@@ -72,36 +70,30 @@ class UserConfigurationController extends Controller {
 		if (isset($rs)) {
 			return new DataResponse($rs);
 		} else {
-			
 			return new DataResponse($rs['error'], 401);
 		}
 
 	}
 
 	/**
-	 * handels connect click event
-	 * 
-	 * @NoAdminRequired
+	 * handles connect click event
 	 *
-	 * @param string $server			server domain or ip
-	 * @param string $account_bauth_id		users login name
-	 * @param string $account_bauth_secret	users login password
+	 * @param array $service			collection of configuration options
 	 * 
 	 * @return DataResponse
 	 */
-	public function ConnectAlternate(string $account_bauth_id, string $account_bauth_secret, string $account_server, string $flag): DataResponse {
+	#[NoAdminRequired]
+	#[FrontpageRoute(verb: 'GET', url: '/connect')]
+	public function Connect(array $service): DataResponse {
 		
 		// evaluate if user id is present
 		if ($this->userId === null) {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
-		// assign flags
-		$flags = ['VALIDATE'];
-		if (filter_var($flag, FILTER_VALIDATE_BOOLEAN)) {
-			$flags[] = 'CONNECT_MAIL';
-		}
+		// assign options
+		$options = ['VALIDATE'];
 		// execute command
-		$rs = $this->CoreService->connectAccountAlternate($this->userId, $account_bauth_id, $account_bauth_secret, $account_server, $flags);
+		$rs = $this->CoreService->connectAccount($this->userId, $service, $options);
 		// return response
 		if (isset($rs)) {
 			return new DataResponse('success');
@@ -112,43 +104,12 @@ class UserConfigurationController extends Controller {
 	}
 
 	/**
-	 * handels connect click event
-	 * 
-	 * @NoAdminRequired
-	 * @NoCSRFRequired
-	 *
-	 * @param string $server			server domain or ip
-	 * @param string $account_bauth_id		users login name
-	 * @param string $account_bauth_secret	users login password
-	 * 
-	 * @return DataResponse
-	 */
-	public function ConnectMS365(string $code): TemplateResponse {
-		
-		// evaluate if user id is present
-		if ($this->userId === null) {
-			return new DataResponse([], Http::STATUS_BAD_REQUEST);
-		}
-		// assign flags
-		$flags = ['VALIDATE'];
-		// execute command
-		$rs = $this->CoreService->connectAccountMS365($this->userId, $code, $flags);
-		// return response
-		if ($rs) {
-			return new TemplateResponse(Application::APP_ID, 'popupSuccess', [], TemplateResponse::RENDER_AS_GUEST);
-		} else {
-			return new DataResponse($rs['error'], 401);
-		}
-
-	}
-
-	/**
-	 * handels disconnect click event
-	 * 
-	 * @NoAdminRequired
+	 * handles disconnect click event
 	 *
 	 * @return DataResponse
 	 */
+	#[NoAdminRequired]
+	#[FrontpageRoute(verb: 'GET', url: '/disconnect')]
 	public function Disconnect(): DataResponse {
 
 		// evaluate if user id is present
@@ -163,40 +124,44 @@ class UserConfigurationController extends Controller {
 	}
 
 	/**
-	 * handels synchronize click event
+	 * handles synchronize click event
 	 * 
-	 * @NoAdminRequired
+	 * @param int $sid			service id
 	 *
 	 * @return DataResponse
 	 */
-	public function Harmonize(): DataResponse {
+	#[NoAdminRequired]
+	#[FrontpageRoute(verb: 'GET', url: '/harmonize')]
+	public function Harmonize(int $sid): DataResponse {
 
 		// evaluate if user id is present
 		if ($this->userId === null) {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 		// execute command
-		$this->HarmonizationService->performHarmonization($this->userId, 'M');
+		$this->HarmonizationService->performHarmonization($this->userId, $sid, 'M');
 		// return response
 		return new DataResponse('success');
 
 	}
 
 	/**
-	 * handles collections fetch requests
+	 * handles remote collections fetch requests
 	 * 
-	 * @NoAdminRequired
+	 * @param int $sid			service id
 	 *
 	 * @return DataResponse
 	 */
-	public function fetchCollections(): DataResponse {
+	#[NoAdminRequired]
+	#[FrontpageRoute(verb: 'GET', url: '/remote-collections-fetch')]
+	public function remoteCollectionsFetch(int $sid): DataResponse {
 		
 		// evaluate if user id is present
 		if ($this->userId === null) {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 		// retrieve collections
-		$rs = $this->CoreService->fetchRemoteCollections($this->userId);
+		$rs = $this->CoreService->remoteCollectionsFetch($this->userId, $sid);
 		// return response
 		if (isset($rs)) {
 			return new DataResponse($rs);
@@ -208,96 +173,51 @@ class UserConfigurationController extends Controller {
 	}
 
 	/**
-	 * handels correlations fetch requests
-	 * 
-	 * @NoAdminRequired
+	 * handles local collections fetch requests
 	 *
+	 * @param int $sid			Service id
+	 * 
 	 * @return DataResponse
 	 */
-	public function fetchCorrelations(): DataResponse {
-
+	#[NoAdminRequired]
+	#[FrontpageRoute(verb: 'GET', url: '/local-collections-fetch')]
+	public function localCollectionsFetch(int $sid): DataResponse {
+		
 		// evaluate if user id is present
 		if ($this->userId === null) {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
-		// retrieve correlations
-		$rs = $this->CoreService->fetchCorrelations($this->userId);
+		// retrieve collections
+		$rs = $this->CoreService->localCollectionsFetch($this->userId, $sid);
 		// return response
 		if (isset($rs)) {
 			return new DataResponse($rs);
 		} else {
+			
 			return new DataResponse($rs['error'], 401);
 		}
 
 	}
 
 	/**
-	 * handels save correlations requests
-	 * 
-	 * @NoAdminRequired
+	 * handles save correlations requests
 	 *
 	 * @param array $values key/value pairs to save
 	 * 
 	 * @return DataResponse
 	 */
-	public function depositCorrelations(array $ContactCorrelations, array $EventCorrelations, array $TaskCorrelations): DataResponse {
+	#[NoAdminRequired]
+	#[FrontpageRoute(verb: 'PUT', url: '/local-collections-deposit')]
+	public function localCollectionsDeposit(int $sid, array $ContactCorrelations, array $EventCorrelations, array $TaskCorrelations): DataResponse {
 		
 		// evaluate if user id is present
 		if ($this->userId === null) {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 		// execute command
-		$rs = $this->CoreService->depositCorrelations($this->userId, $ContactCorrelations, $EventCorrelations, $TaskCorrelations);
+		$rs = $this->CoreService->depositCorrelations($this->userId, $sid, $ContactCorrelations, $EventCorrelations, $TaskCorrelations);
 		// return response
-		return $this->fetchCorrelations();
-
-	}
-
-	/**
-	 * handles save preferences requests
-	 * 
-	 * @NoAdminRequired
-	 *
-	 * @param array $values key/value pairs to save
-	 * 
-	 * @return DataResponse
-	 */
-	public function fetchPreferences(): DataResponse {
-		
-		// evaluate if user id is present
-		if ($this->userId === null) {
-			return new DataResponse([], Http::STATUS_BAD_REQUEST);
-		}
-		// retrieve user configuration
-		$rs = $this->ConfigurationService->retrieveUser($this->userId);
-		// return response
-		if (is_array($rs)) {
-			return new DataResponse($rs);
-		} else {
-			return new DataResponse($rs['error'], 401);
-		}
-
-	}
-
-	/**
-	 * handles save preferences requests
-	 * 
-	 * @NoAdminRequired
-	 *
-	 * @param array $values key/value pairs to save
-	 * 
-	 * @return DataResponse
-	 */
-	public function depositPreferences(array $values): DataResponse {
-		
-		// evaluate if user id is present
-		if ($this->userId === null) {
-			return new DataResponse([], Http::STATUS_BAD_REQUEST);
-		}
-		// deposit user configuration
-		$this->ConfigurationService->depositUser($this->userId, $values);
-		// return response
-		return new DataResponse(true);
+		return $this->localCollectionsFetch($sid);
 
 	}
 

@@ -25,6 +25,10 @@
 
 require_once __DIR__ . '/../../../../lib/versioncheck.php';
 
+use OCP\IConfig;
+use OCP\Server;
+use Psr\Log\LoggerInterface;
+
 try {
 
 	require_once __DIR__ . '/../../../../lib/base.php';
@@ -33,8 +37,8 @@ try {
 	$executionMode = 'S';
 	$uid = null;
 
-	$logger = \OC::$server->getLogger();
-	$config = \OC::$server->getConfig();
+	$logger = Server::get(LoggerInterface::class);
+	$config = Server::get(IConfig::class);
 
 	// evaluate if script was started from console
 	if (php_sapi_name() == 'cli') {
@@ -76,16 +80,22 @@ try {
 	//OC_App::loadApps();
 	
 	// initialize required services
-	//$ConfigurationService = \OC::$server->get(\OCA\JMAPC\Service\ConfigurationService::class);
-	//$CoreService = \OC::$server->get(\OCA\JMAPC\Service\CoreService::class);
-	//$HarmonizationService = \OC::$server->get(\OCA\JMAPC\Service\HarmonizationService::class);
-	// $RemoteCommonService = \OC::$server->get(\OCA\JMAPC\Service\Remote\RemoteCommonService::class);
-	// $RemoteEventsService = \OC::$server->get(\OCA\JMAPC\Service\Remote\RemoteEventsService::class);
+	//$ConfigurationService = Server::get(\OCA\JMAPC\Service\ConfigurationService::class);
+	//$CoreService = Server::get(\OCA\JMAPC\Service\CoreService::class);
+	//$HarmonizationService = Server::get(\OCA\JMAPC\Service\HarmonizationService::class);
+	// $RemoteCommonService = Server::get(\OCA\JMAPC\Service\Remote\RemoteCommonService::class);
+	// $RemoteEventsService = Server::get(\OCA\JMAPC\Service\Remote\RemoteEventsService::class);
 	
 	// execute initial harmonization
-	//$HarmonizationService->performHarmonization($uid, 'S');
+	//$HarmonizationService->performHarmonization($uid, 7, 'S');
 
-	$MailManager = \OC::$server->get(\OC\Mail\Provider\Manager::class);
+	$mailService = Server::get(\OCA\Mail\Service\MessageOperationService::class);
+
+	$mailService->changeFlags('user1',[62241, 62242, 62243, 62244],['seen' => true]);
+
+	exit;
+
+	$MailManager = Server::get(\OC\Mail\Provider\Manager::class);
 	// test types
 	$types = $MailManager->types();
 	// test providers
@@ -278,15 +288,9 @@ try {
 
 	exit;
 
-} catch (Exception $ex) {
-	$logger->logException($ex, ['app' => 'integration_jmapc']);
-	$logger->info('Test ended unexpectedly', ['app' => 'integration_jmapc']);
-	echo $ex . PHP_EOL;
-	exit(1);
-} catch (Error $ex) {
-	$logger->logException($ex, ['app' => 'integration_jmapc']);
-	$logger->info('Test ended unexpectedly', ['app' => 'integration_jmapc']);
-	echo $ex . PHP_EOL;
+} catch (\Throwable $e) {
+	//$logger->logException($ex, ['app' => 'integration_jmapc']);
+	//$logger->info('Test ended unexpectedly', ['app' => 'integration_jmapc']);
+	echo $e . PHP_EOL;
 	exit(1);
 }
-

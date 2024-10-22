@@ -87,6 +87,10 @@ class Validator {
 	 */
     static function host(string $host): bool {
 
+        if ($host === 'localhost') {
+            return true;
+        }
+
         if (self::fqdn($host)) {
             return true;
         }

@@ -25,32 +25,28 @@
 
 namespace OCA\JMAPC\Service;
 
-use stdClass;
 use DateTime;
 use Exception;
 use Throwable;
-use OCP\IL10N;
 use Psr\Log\LoggerInterface;
+use JmapClient\Client as JmapClient;
+
 use OCP\Notification\IManager as INotificationManager;
 use OCP\BackgroundJob\IJobList;
 
 use OCA\JMAPC\AppInfo\Application;
-use OCA\JMAPC\Utile\Eas\EasClient;
-use OCA\JMAPC\Utile\Eas\EasTypes;
+use OCA\JMAPC\Exceptions\JmapUnknownMethod;
 use OCA\JMAPC\Service\ConfigurationService;
-use OCA\JMAPC\Service\CorrelationsService;
-/*
-use OCA\JMAPC\Service\ContactsService;
-use OCA\JMAPC\Service\EventsService;
-use OCA\JMAPC\Service\TasksService;
-*/
+use OCA\JMAPC\Service\ServicesService;
 use OCA\JMAPC\Service\HarmonizationThreadService;
+use OCA\JMAPC\Service\Local\LocalService;
 use OCA\JMAPC\Service\Local\LocalContactsService;
 use OCA\JMAPC\Service\Local\LocalEventsService;
 use OCA\JMAPC\Service\Local\LocalTasksService;
-/*
+use OCA\JMAPC\Service\Remote\RemoteService;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
 use OCA\JMAPC\Service\Remote\RemoteEventsService;
+/*
 use OCA\JMAPC\Service\Remote\RemoteTasksService;
 */
 use OCA\JMAPC\Service\Remote\RemoteCommonService;
@@ -61,120 +57,32 @@ use OCA\JMAPC\Tasks\HarmonizationLauncher;
 
 class CoreService {
 
-	/**
-	 * @var LoggerInterface
-	 */
-	private $logger;
-	/**
-	 * @var IJobList
-	 */
-	private IJobList $TaskService;
-	/**
-	 * @var INotificationManager
-	 */
-	private $notificationManager;
-	/**
-	 * @var string|null
-	 */
-	private $userId;
-	/**
-	 * @var ConfigurationService
-	 */
-	private $ConfigurationService;
-	/**
-	 * @var CorrelationsService
-	 */
-	private $CorrelationsService;
-	/**
-	 * @var LocalContactsService
-	 */
-	private $LocalContactsService;
-	/**
-	 * @var LocalEventsService
-	 */
-	private $LocalEventsService;
-	/**
-	 * @var LocalTasksService
-	 */
-	private $LocalTasksService;
-	/**
-	 * @var RemoteContactsService
-	 */
-	private $RemoteContactsService;
-	/**
-	 * @var RemoteEventsService
-	 */
-	private $RemoteEventsService;
-	/**
-	 * @var RemoteTasksService
-	 */
-	private $RemoteTasksService;
-	/**
-	 * @var CardDavBackend
-	 */
-	private $LocalContactsStore;
-	/**
-	 * @var CalDavBackend
-	 */
-	private $LocalEventsStore;
-	/**
-	 * @var CalDavBackend
-	 */
-	private $LocalTasksStore;
-	/**
-	 * @var EasClient
-	 */
-	private $RemoteStore;
-
-	public function __construct (LoggerInterface $logger,
-								IJobList $TaskService,
-								INotificationManager $notificationManager,
-								ConfigurationService $ConfigurationService,
-								CorrelationsService $CorrelationsService,
-								HarmonizationThreadService $HarmonizationThreadService,
-								LocalContactsService $LocalContactsService,
-								LocalEventsService $LocalEventsService,
-								LocalTasksService $LocalTasksService,
-								/*
-								RemoteContactsService $RemoteContactsService,
-								RemoteEventsService $RemoteEventsService,
-								RemoteTasksService $RemoteTasksService,
-								*/
-								RemoteCommonService $RemoteCommonService,
-								/*
-								ContactsService $ContactsService,
-								EventsService $EventsService,
-								TasksService $TasksService,
-								*/) {
-		$this->logger = $logger;
-		$this->TaskService = $TaskService;
-		$this->notificationManager = $notificationManager;
-		$this->ConfigurationService = $ConfigurationService;
-		$this->CorrelationsService = $CorrelationsService;
-		$this->HarmonizationThreadService = $HarmonizationThreadService;
-		$this->LocalContactsService = $LocalContactsService;
-		$this->LocalEventsService = $LocalEventsService;
-		$this->LocalTasksService = $LocalTasksService;
+	public function __construct (
+		private LoggerInterface $logger,
+		private IJobList $TaskService,
+		private INotificationManager $notificationManager,
+		private ConfigurationService $ConfigurationService,
+		private ServicesService $ServicesService,
+		private HarmonizationThreadService $HarmonizationThreadService,
+		private LocalService $localService,
+		private LocalContactsService $localContactsService,
+		private LocalEventsService $localEventsService,
+		private LocalTasksService $localTasksService,
+		private RemoteService $remoteService,
+		private RemoteContactsService $remoteContactsService,
+		private RemoteEventsService $remoteEventsService,
 		/*
-		$this->RemoteContactsService = $RemoteContactsService;
-		$this->RemoteEventsService = $RemoteEventsService;
-		$this->RemoteTasksService = $RemoteTasksService;
+		private RemoteTasksService $remoteTasksService,
 		*/
-		$this->RemoteCommonService = $RemoteCommonService;
-		/*
-		$this->ContactsService = $ContactsService;
-		$this->EventsService = $EventsService;
-		$this->TasksService = $TasksService;
-		*/
-
-	}
+		private RemoteCommonService $remoteCommonService,
+	) {}
 
 	/**
-	 * Connects to account to verify details, on success saves details to user settings
+	 * locates connection point using users login details 
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid					nextcloud user id
+	 * @param string $uid					user id
 	 * @param string $account_bauth_id		account username
 	 * @param string $account_bauth_secret	account secret
 	 * 
@@ -250,11 +158,11 @@ class CoreService {
 	}
 
 	/**
-	 * Connects to account, verifies details, on success saves details to user settings
+	 * connects to account, verifies details, then create service
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid					nextcloud user id
+	 * @param string $uid					user id
 	 * @param string $account_bauth_id		account username
 	 * @param string $account_bauth_secret	account secret
 	 * @param string $account_server		FQDN or IP
@@ -262,247 +170,116 @@ class CoreService {
 	 * 
 	 * @return bool
 	 */
-	public function connectAccountAlternate(string $uid, string $account_bauth_id, string $account_bauth_secret, string $account_server = '', array $flags = []): bool {
+	public function connectAccount(string $uid, array $service, array $flags = []): bool {
 
-		// define place holders
-		$configuration = null;
-		$account_id = '';
-		$account_name = '';
-		$account_device_id = '';
-		$account_device_key = '';
-		$account_device_version = '';
+		// extract values
+		$service_id = $service['id'] ?? null;
+		$service_label = $service['label'] ?? 'Unknown';
+		$service_auth = $service['auth'] ?? 'BA';
+		$service_bauth_id = $service['bauth_id'] ?? null;
+		$service_bauth_secret = $service['bauth_secret'] ?? null;
+		$service_oauth_id = $service['oauth_id'] ?? null;
+		$service_oauth_access_token = $service['oauth_access_token'] ?? null;
+		$service_location_protocol = $service['location_protocol'] ?? 'https://';
+		$service_location_host = $service['location_host'] ?? null;
+		$service_location_port = $service['location_port'] ?? '443';
+		$service_location_path = $service['location_path'] ?? '/';
+		$service_primary_address = $service_auth === 'BA' ? $service_bauth_id : $service_oauth_id;
+		
+		// validate server
+		if (!\OCA\JMAPC\Utile\Validator::host($service_location_host)) {
+			return false;
+		}
 
-		// evaluate if provider is empty
-		if (empty($account_server) || in_array('CONNECT_MAIL', $flags)) {
-			// locate provider
-			$configuration = $this->locateAccount($account_bauth_id, $account_bauth_secret);
-			//
-			if (isset($configuration->EXCH->Server)) {
-				$account_server = $configuration->EXCH->Server;
+		if ($service_auth === 'BA') {
+			// validate id
+			if (!\OCA\JMAPC\Utile\Validator::username($service_bauth_id)) {
+				return false;
+			}
+			// validate secret
+			if (empty($service_bauth_secret)) {
+				return false;
 			}
 		}
-
-		// validate server
-		if (!\OCA\JMAPC\Utile\Validator::host($account_server)) {
+		elseif ($service_auth === 'OA') {
+			// validate id
+			if (!\OCA\JMAPC\Utile\Validator::username($service_oauth_id)) {
+				return false;
+			}
+			// validate secret
+			if (empty($service_oauth_access_token)) {
+				return false;
+			}
+		}
+		else {
 			return false;
 		}
-
-		// validate id
-		if (!\OCA\JMAPC\Utile\Validator::username($account_bauth_id)) {
-			return false;
-		}
-
-		// validate secret
-		if (empty($account_bauth_secret)) {
-			return false;
-		}
-
-		// Generate Device Information
-		$account_device_id = str_replace('-', '', \OCA\JMAPC\Utile\UUID::v4());
-		$account_device_key = '0';
-		$account_device_version = EasClient::SERVICE_VERSION_161;
 
 		// construct remote data store client
-		$RemoteStore =  new \OCA\JMAPC\Utile\Eas\EasClient(
-			$account_server, 
-			new \OCA\JMAPC\Utile\Eas\EasAuthenticationBasic($account_bauth_id, $account_bauth_secret),
-			$account_device_id,
-			$account_device_key,
-			$account_device_version
-		);
+		$remoteStore = $this->RemoteService->initializeStoreFromCollection([
+			'auth' => $service_auth,
+			'bauth_id' => $service_bauth_id,
+			'bauth_secret' => $service_bauth_secret,
+			'oauth_id' => $service_oauth_id,
+			'oauth_access_token' => $service_oauth_access_token,
+			'location_protocol' => $service_location_protocol,
+			'location_host' => $service_location_host,
+			'location_port' => $service_location_port,
+			'location_path' => $service_location_path,
+			'address_primary' => $service_primary_address,
+		]);
+	
+		// connect client
+		$remoteStore->connect();
 
-		// perform folder fetch
-		$rs = $this->RemoteCommonService->syncCollections($RemoteStore, '0');
-		// evaluate, response status
-		if ($rs->Status->getContents() == '142' || $rs->Status->getContents() == '144') {
-			// execute provisioning
-			$account_device_key = $this->connectProvision($RemoteStore);
+		// determine if connection was established
+		if ($remoteStore->sessionStatus() === false) {
+			return false;
 		}
 
-		// deposit authentication to datastore
-		$this->ConfigurationService->depositProvider($uid, ConfigurationService::ProviderAlternate);
-		$this->ConfigurationService->depositUserValue($uid, 'account_id', $account_bauth_id);
-		$this->ConfigurationService->depositUserValue($uid, 'account_name', $account_name);
-		$this->ConfigurationService->depositUserValue($uid, 'account_server', $account_server);
-		$this->ConfigurationService->depositUserValue($uid, 'account_bauth_id', $account_bauth_id);
-		$this->ConfigurationService->depositUserValue($uid, 'account_bauth_secret', $account_bauth_secret);
-		$this->ConfigurationService->depositUserValue($uid, 'account_device_id', $account_device_id);
-		$this->ConfigurationService->depositUserValue($uid, 'account_device_key', $account_device_key);
-		$this->ConfigurationService->depositUserValue($uid, 'account_device_version', $account_device_version);
-		$this->ConfigurationService->depositUserValue($uid, 'account_connected', 1);
+		// TODO: retrieve capabilities
+
+		// deposit service to datastore
+		$service = [
+			'enabled' => 1,
+			'connected' => 1,
+			'label'=> $service_label,
+			'auth' => $service_auth,
+			'bauth_id' => $service_bauth_id,
+			'bauth_secret' => $service_bauth_secret,
+			'oauth_id' => $service_oauth_id,
+			'oauth_access_token' => $service_oauth_access_token,
+			'location_protocol' => $service_location_protocol,
+			'location_host' => $service_location_host,
+			'location_port' => $service_location_port,
+			'location_path' => $service_location_path,
+			'address_primary' => $service_primary_address,
+		];
+
+		if (isset($service_id)) {
+			$service['id'] = $service_id;
+		}
+
+		$this->ServicesService->deposit($uid, $service);
+
 		// register harmonization task
-		$this->TaskService->add(\OCA\JMAPC\Tasks\HarmonizationLauncher::class, ['uid' => $uid]);
+		//$this->TaskService->add(\OCA\JMAPC\Tasks\HarmonizationLauncher::class, ['uid' => $uid]);
 
-		// evaluate validate flag
-		if (in_array("CONNECT_MAIL", $flags)) {
-			$this->connectMail($uid, $configuration);
-		}
-		
 		return true;
 
 	}
 
 	/**
-	 * Connects to account, verifies details, on success saves details to user settings
+	 * Removes all users settings, etc for specific user
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid				nextcloud user id
-	 * @param string $code				authentication code
-	 * @param array $flags
-	 * 
-	 * @return bool
-	 */
-	public function connectAccountMS365(string $uid, string $code, array $flags): bool {
-
-		$code = rtrim($code,'#');
-
-		try {
-			$data = \OCA\JMAPC\Integration\Microsoft365::createAccess($code);
-		} catch (Exception $e) {
-			$this->logger->error('Could not link Microsoft account: ' . $e->getMessage(), [
-				'exception' => $e,
-			]);
-			return false;
-		}
-
-		if (is_array($data)) {
-
-			// Generate Device Information
-			$account_id = $data['email'];
-			$account_server = $data['service_server'];
-			$account_oauth_access = $data['access'];
-			$account_oauth_expiry = (int) $data['expiry'];
-			$account_oauth_refresh = $data['refresh'];
-			$account_device_id = str_replace('-', '', \OCA\JMAPC\Utile\UUID::v4());
-			$account_device_key = '0';
-			$account_device_version = EasClient::SERVICE_VERSION_161;
-
-			// construct remote data store client
-			$RemoteStore =  new \OCA\JMAPC\Utile\Eas\EasClient(
-				$account_server, 
-				new \OCA\JMAPC\Utile\Eas\EasAuthenticationBearer($account_id, $account_oauth_access, $account_oauth_expiry),
-				$account_device_id,
-				$account_device_key,
-				$account_device_version
-			);
-
-			// perform folder fetch
-			$rs = $this->RemoteCommonService->syncCollections($RemoteStore, '0');
-			// evaluate, response status
-			//if ($rs->Status->getContents() == '142' || $rs->Status->getContents() == '144') {
-				// execute provisioning
-				$account_device_key = $this->connectProvision($RemoteStore);
-			//}
-			
-			// deposit authentication to datastore
-			$this->ConfigurationService->depositProvider($uid, ConfigurationService::ProviderMS365);
-			$this->ConfigurationService->depositUserValue($uid, 'account_id', (string) $account_id);
-			$this->ConfigurationService->depositUserValue($uid, 'account_name', (string) $account_name);
-			$this->ConfigurationService->depositUserValue($uid, 'account_server', $account_server);
-			$this->ConfigurationService->depositUserValue($uid, 'account_oauth_access', $account_oauth_access);
-			$this->ConfigurationService->depositUserValue($uid, 'account_oauth_expiry', $account_oauth_expiry);
-			$this->ConfigurationService->depositUserValue($uid, 'account_oauth_refresh', $account_oauth_refresh);
-			$this->ConfigurationService->depositUserValue($uid, 'account_device_id', $account_device_id);
-			$this->ConfigurationService->depositUserValue($uid, 'account_device_key', $account_device_key);
-			$this->ConfigurationService->depositUserValue($uid, 'account_device_version', $account_device_version);
-			$this->ConfigurationService->depositUserValue($uid, 'account_connected', '1');
-			// register harmonization task
-			$this->TaskService->add(\OCA\JMAPC\Tasks\HarmonizationLauncher::class, ['uid' => $uid]);
-
-			return true;
-		} else {
-			return false;
-		}
-
-	}
-
-	public function connectProvision($RemoteStore): string {
-
-		// define default device key
-		$account_device_key = '0';
-		// Step 1
-		// initilize provisioning
-		$rs = $this->RemoteCommonService->provisionInit($RemoteStore, 'NextcloudEAS', 'Nextcloud EAS Connector', $RemoteStore->getTransportAgent());
-		// evaluate response status
-		if (isset($rs->Status) && $rs->Status->getContents() != '1') {
-			throw new Exception("Failed to provision account. Unexpected error occured", $rs->Status->getContents());
-		}
-		// step 2
-		// retrieve device policy token
-		$account_device_key = $rs->Policies->Policy->PolicyKey->getContents();
-		// assign device policy token
-		$RemoteStore->setDeviceKey($account_device_key);
-		// accept provisioning
-		$rs = $this->RemoteCommonService->provisionAccept($RemoteStore, $account_device_key);
-		// evaluate response status
-		if (isset($rs->Policies->Policy->Status) && $rs->Policies->Policy->Status->getContents() != '1') {
-			throw new Exception("Failed to provision account. Unexpected error occured", $rs->Policies->Policy->Status->getContents());
-		}
-		// step 3
-		// retrieve device policy token
-		$account_device_key = $rs->Policies->Policy->PolicyKey->getContents();
-		// assign device policy token
-		$RemoteStore->setDeviceKey($account_device_key);
-		// perform folder fetch
-		$rs = $this->RemoteCommonService->syncCollections($RemoteStore, '0');
-		// evaluate response status
-		if ($rs->Status->getContents() != '1') {
-			throw new Exception("Failed to provision account.");
-		}
-
-		return $account_device_key;
-	}
-
-	/**
-	 * Reauthorize to account, verifies details, on success saves details to user settings
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid				nextcloud user id
-	 * @param string $code				authentication refresh code
-	 * 
-	 * @return bool
-	 */
-	public function refreshAccountMS365(string $uid, string $code): bool {
-
-		try {
-			$data = \OCA\JMAPC\Integration\Microsoft365::refreshAccess($code);
-		} catch (Exception $e) {
-			$this->logger->error('Could not refresh Microsoft account access token: ' . $e->getMessage(), [
-				'exception' => $e,
-			]);
-			return false;
-		}
-
-		if (is_array($data)) {
-			// deposit authentication to datastore
-			$this->ConfigurationService->depositProvider($uid, ConfigurationService::ProviderMS365);
-			$this->ConfigurationService->depositUserValue($uid, 'account_id', (string) $data['email']);
-			$this->ConfigurationService->depositUserValue($uid, 'account_name', (string) $data['name']);
-			$this->ConfigurationService->depositUserValue($uid, 'account_server', (string) $data['service_server']);
-			$this->ConfigurationService->depositUserValue($uid, 'account_oauth_access', (string) $data['access']);
-			$this->ConfigurationService->depositUserValue($uid, 'account_oauth_expiry', (string) $data['expiry']);
-			$this->ConfigurationService->depositUserValue($uid, 'account_oauth_refresh', (string) $data['refresh']);
-			$this->ConfigurationService->depositUserValue($uid, 'account_connected', '1');
-
-			return true;
-		} else {
-			return false;
-		}
-
-	}
-
-	/**
-	 * Removes all users settings, correlations, etc for specific user
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
+	 * @param string $uid		user id
+	 * @param int $sid			service id
 	 * 
 	 * @return void
 	 */
-	public function disconnectAccount(string $uid): void {
+	public function disconnectAccount(string $uid, string $sid): void {
 		
 		// deregister task
 		$this->TaskService->remove(\OCA\JMAPC\Tasks\HarmonizationLauncher::class, ['uid' => $uid]);
@@ -511,202 +288,87 @@ class CoreService {
 		// initialize contacts data store
 		$DataStore = \OC::$server->get(\OCA\JMAPC\Store\ContactStore::class);
 		// delete local entities
-		$DataStore->deleteEntitiesByUser($uid);
+		$DataStore->entityDeleteByUser($uid);
 		// delete local collection
-		$DataStore->deleteCollectionsByUser($uid);
+		$DataStore->collectionDeletesByUser($uid);
 		// initialize events data store
 		$DataStore = \OC::$server->get(\OCA\JMAPC\Store\EventStore::class);
 		// delete local entities
-		$DataStore->deleteEntitiesByUser($uid);
+		$DataStore->entityDeleteByUser($uid);
 		// delete local collection
-		$DataStore->deleteCollectionsByUser($uid);
+		$DataStore->collectionDeletesByUser($uid);
 		// initialize tasks data store
 		$DataStore = \OC::$server->get(\OCA\JMAPC\Store\TaskStore::class);
 		// delete local entities
-		$DataStore->deleteEntitiesByUser($uid);
+		$DataStore->entityDeleteByUser($uid);
 		// delete local collection
-		$DataStore->deleteCollectionsByUser($uid);
-		// delete correlations
-		$this->CorrelationsService->deleteByUserId($uid);
+		$DataStore->collectionDeletesByUser($uid);
 		// delete configuration
 		$this->ConfigurationService->destroyUser($uid);
 
 	}
 
 	/**
-	 * Connects Mail App
+	 * retrieves remote collections for all modules
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid	nextcloud user id
-	 * 
-	 * @return void
-	 */
-	public function connectMail(string $uid, object $configuration): void {
-
-		// evaluate if mail app exists
-		if (!$this->ConfigurationService->isMailAppAvailable()) {
-			return;
-		}
-		// evaluate if configuration contains the accounts email address
-		if (empty($configuration->UserEMailAddress) && empty($configuration->UserSMTPAddress)) {
-			return;
-		}
-		// evaluate if configuration contains IMAP parameters
-		if (!isset($configuration->IMAP) && !isset($configuration->IMAPS)) {
-			return;
-		}
-		// evaluate if configuration contains SMTP parameters
-		if (!isset($configuration->SMTP) && !isset($configuration->SMTPS)) {
-			return;
-		}
-		//construct mail account manager 
-		$mam = \OC::$server->get(\OCA\Mail\Service\AccountService::class);
-		// retrieve configured mail account
-		$accounts = $mam->findByUserId($uid);
-		// search for existing account that matches
-		foreach ($accounts as $entry) {
-			if ($configuration->UserEMailAddress == $entry->getEmail() || 
-			    $configuration->UserSMTPAddress == $entry->getEmail()) {
-				return;
-			}
-		}
-
-		$account = \OC::$server->get(\OCA\Mail\Db\MailAccount::class);
-		$account->setUserId($uid);
-		$account->setName($configuration->UserDisplayName);
-		$account->setEmail($configuration->UserEMailAddress);
-		$account->setAuthMethod('password');
-
-		// evaluate if type is IMAPS is present
-		if (isset($configuration->IMAPS)) {
-			$imap = $configuration->IMAPS;
-		} else{
-			$imap = $configuration->IMAP;
-		}
-
-		$account->setInboundHost($imap->Server);
-		$account->setInboundPort($imap->Port);
-		$account->setInboundSslMode($imap->AuthMode);
-		$account->setInboundUser($imap->AuthId);
-		$account->setInboundPassword($this->ConfigurationService->encrypt($configuration->UserSecret));
-		
-		// evaluate if type is SMTPS is present
-		if (isset($configuration->SMTPS)) {
-			$smtp = $configuration->SMTPS;
-		} else{
-			$smtp = $configuration->SMTP;
-		}
-
-		$account->setOutboundHost($smtp->Server);
-		$account->setOutboundPort($smtp->Port);
-		$account->setOutboundSslMode($smtp->AuthMode);
-		$account->setOutboundUser($smtp->AuthId);
-		$account->setOutboundPassword($this->ConfigurationService->encrypt($configuration->UserSecret));
-
-		$account = $mam->save($account);
-
-	}
-	
-	/**
-	 * Retrieves local collections for all modules
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * 
-	 * @return array of local collection(s) and attributes
-	 */
-	public function fetchLocalCollections(string $uid): array {
-
-		// assign local data store
-		$this->LocalContactsService->DataStore = $this->LocalContactsStore;
-		$this->LocalEventsService->DataStore = $this->LocalEventsStore;
-		$this->LocalTasksService->DataStore = $this->LocalTasksStore;
-
-		// construct response object
-		$response = ['ContactCollections' => [], 'EventCollections' => [], 'TaskCollections' => []];
-		// retrieve local collections
-		if ($this->ConfigurationService->isContactsAppAvailable()) {
-			$response['ContactCollections'] = $this->LocalContactsService->listCollections($uid);;
-		}
-		if ($this->ConfigurationService->isCalendarAppAvailable()) {
-			$response['EventCollections'] = $this->LocalEventsService->listCollections($uid);
-		}
-		if ($this->ConfigurationService->isTasksAppAvailable()) {
-			$response['TaskCollections'] = $this->LocalTasksService->listCollections($uid);
-		}
-		// return response
-		return $response;
-
-	}
-
-	/**
-	 * Retrieves remote collections for all modules
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
+	 * @param string $uid		user id
+	 * @param int $sid			service id
 	 * 
 	 * @return array of remote collection(s) and attributes
 	 */
-	public function fetchRemoteCollections(string $uid): ?array {
-		
-		// create remote store client
-		$RemoteStore = $this->createClient($uid);
-		// retrieve remote collections
-		$ro = $this->RemoteCommonService->syncCollections($RemoteStore);
-		// evaluate if command returned status 142
-		if ($ro->Status->getContents() == '142') {
-			// execute provisioning
-			$account_device_key = $this->connectProvision($RemoteStore);
-			// deposit new device key
-			$this->ConfigurationService->depositUserValue($uid, 'account_device_key', $account_device_key);
-			// retrieve remote collections again
-			$ro = $this->RemoteCommonService->syncCollections($RemoteStore);
-		}
+	public function remoteCollectionsFetch(string $uid, int $sid): array {
+
 		// construct response object
 		$data = ['ContactCollections' => [], 'EventCollections' => [], 'TaskCollections' => []];
-		// evaluate response status and structure
-		if ($ro->Status->getContents() == '1' && isset($ro->Changes->Add)) {
-			// iterate throught collections 
-			foreach ($ro->Changes->Add as $Collection) {
-				switch ($Collection->Type->getContents()) {
-					case EasTypes::COLLECTION_TYPE_SYSTEM_CONTACTS:
-					case EasTypes::COLLECTION_TYPE_USER_CONTACTS:
-						$data['ContactCollections'][] = ['id'=>$Collection->Id->getContents(), 'name'=>'Personal - '.$Collection->Name->getContents(),'count'=>''];
-						break;
-					case EasTypes::COLLECTION_TYPE_SYSTEM_CALENDAR:
-					case EasTypes::COLLECTION_TYPE_USER_CALENDAR:
-						$data['EventCollections'][] = ['id'=>$Collection->Id->getContents(), 'name'=>'Personal - '.$Collection->Name->getContents(),'count'=>''];
-						break;
-					case EasTypes::COLLECTION_TYPE_SYSTEM_TASKS:
-					case EasTypes::COLLECTION_TYPE_USER_TASKS:
-						$data['TaskCollections'][] = ['id'=>$Collection->Id->getContents(), 'name'=>'Personal - '.$Collection->Name->getContents(),'count'=>''];
-						break;
-				}
-			}
+		// retrieve service information
+		$service = $this->ServicesService->fetch($sid);
+		// determine if user if the service owner
+		if ($service['uid'] !== $uid) {
+			return $data;
 		}
-
-		// retrieve entiry counts
-		foreach ($data as $gid => $group) {
-			if (count($group) > 0) {
-				// extract id's
-				$a = array_map(function($a) {return ['cid' => $a['id'], 'cst' => 0];}, $group);
-				// retrieve initial syncronization token(s)
-				$ro = $this->RemoteCommonService->reconcileCollectionVarious($RemoteStore, $a, []);
-				// extract id's and tokens
-				$a = array_map(function($a) {
-					return ['cid' => $a->CollectionId->getContents(), 'cst' => $a->SyncKey->getContents()];
-				}, $ro);
-				// retrieve entity counts
-				$ro = $this->RemoteCommonService->estimateEntitiesVarious($RemoteStore, $a);
-				// extract entity counts
-				foreach ($ro as $entry) {
-					$k = array_search($entry->Collection->CollectionId->getContents(), array_column($group, 'id'));
-					$data[$gid][$k]['count'] = $entry->Collection->Estimate->getContents();
-				}
+		// create remote store client
+		$remoteStore = $this->remoteService->initializeStoreFromCollection($service);
+		// retrieve collections for contacts module
+		$this->remoteContactsService->initialize($remoteStore);
+		try {
+			$collections = $this->remoteContactsService->collectionList();
+			$data['ContactCollections'] = array_map(function($collection) {
+				return ['id' => $collection->Id, 'name' => 'Personal - ' . $collection->Name];
+			}, $collections);
+		} catch (JmapUnknownMethod $e) {
+			// AddressBook name space is not supported fail silently
+		}
+		// if AddressBook name space is not supported see if Contacts name space works
+		if (count($data['ContactCollections']) === 0) {
+			try {
+				$list = $this->remoteContactsService->entityList('', null, null, 'B');
+				$data['ContactCollections'][] = ['id' => '', 'name' => 'Personal - Contacts', 'count' => $list['total']];
+			} catch (\Throwable $e) {
+				// ContactCard name space is not supported fail silently
 			}
+			
+		}
+		// retrieve collections for events module
+		$this->remoteEventsService->initialize($remoteStore);
+		try {
+			$collections = $this->remoteEventsService->collectionList();
+			$data['EventCollections'] = array_map(function($collection) {
+				return ['id' => $collection->Id, 'name' => 'Personal - ' . $collection->Name];
+			}, $collections);
+		} catch (JmapUnknownMethod $e) {
+			// AddressBook name space is not supported fail silently
+		}
+		// if AddressBook name space is not supported see if Contacts name space works
+		if (count($data['EventCollections']) === 0) {
+			try {
+				$list = $this->remoteEventsService->entityList('', null, null, 'B');
+				$data['EventCollections'][] = ['id' => '', 'name' => 'Personal - Calendar', 'count' => $list['total']];
+			} catch (\Throwable $e) {
+				// ContactCard name space is not supported fail silently
+			}
+			
 		}
 		
 		// return response
@@ -715,32 +377,40 @@ class CoreService {
 	}
 
 	/**
-	 * Retrieves collection correlations for all modules
+	 * retrieves local collections for all modules
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid	nextcloud user id
+	 * @param string $uid		user id
+	 * @param int $sid			service id
 	 * 
 	 * @return array of collection correlation(s) and attributes
 	 */
-	public function fetchCorrelations(string $uid): array {
-
-		$CoreUtile = \OC::$server->get(\OCA\JMAPC\Store\CoreUtile::class);
+	public function localCollectionsFetch(string $uid, int $sid): array {
 
 		// construct response object
-		$response = ['ContactCorrelations' => [], 'EventCorrelations' => [], 'TaskCorrelations' => []];
+		$data = ['ContactCollections' => [], 'EventCollections' => [], 'TaskCollections' => []];
+		// retrieve service information
+		$service = $this->ServicesService->fetch($sid);
+		// determine if user if the service owner
+		if ($service['uid'] !== $uid) {
+			return $data;
+		}
 		// retrieve local collections
 		if ($this->ConfigurationService->isContactsAppAvailable()) {
-			$response['ContactCorrelations'] = $CoreUtile->listCorrelationsEstablished($uid, 'CC');
+			$localStore = $this->localService->initializeContactStore();
+			$data['ContactCollections'] = $localStore->collectionListByService($sid);
 		}
 		if ($this->ConfigurationService->isCalendarAppAvailable()) {
-			$response['EventCorrelations'] = $CoreUtile->listCorrelationsEstablished($uid, 'EC');
+			$localStore = $this->localService->initializeEventStore();
+			$data['EventCollections'] = $localStore->collectionListByService($sid);
 		}
 		if ($this->ConfigurationService->isTasksAppAvailable()) {
-			$response['TaskCorrelations'] = $CoreUtile->listCorrelationsEstablished($uid, 'TC');
+			$localStore = $this->localService->initializeTaskStore();
+			$data['TaskCollections'] = $localStore->collectionListByService($sid);
 		}
 		// return response
-		return $response;
+		return $data;
 
 	}
 
@@ -749,20 +419,21 @@ class CoreService {
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid	nextcloud user id
+	 * @param string $uid		user id
+	 * @param int $sid			service id
 	 * @param array $cc		contacts collection(s) correlations
 	 * @param array $ec		events collection(s) correlations
 	 * @param array $tc		tasks collection(s) correlations
 	 * 
 	 * @return array of collection correlation(s) and attributes
 	 */
-	public function depositCorrelations(string $uid, array $cc, array $ec, array $tc): void {
+	public function depositCorrelations(string $uid, int $sid, array $cc, array $ec, array $tc): void {
 		
 		// terminate harmonization thread, in case the user changed any correlations
 		//$this->HarmonizationThreadService->terminate($uid);
 		// deposit contacts correlations
 		if ($this->ConfigurationService->isContactsAppAvailable()) {
-			// initilize data store
+			// initialize data store
 			$DataStore = \OC::$server->get(\OCA\JMAPC\Store\ContactStore::class);
 			// process entries
 			foreach ($cc as $entry) {
@@ -776,9 +447,9 @@ class CoreService {
 									// evaluate if user id matches
 									if ($uid == $cr->getuid()) {
 										// delete local entities
-										$DataStore->deleteEntitiesByCollection($uid, $cr->getloid());
+										$DataStore->entityDeleteByCollection($uid, $cr->getloid());
 										// delete local collection
-										$DataStore->deleteCollection($cr->getloid());
+										$DataStore->collectionDelete($cr->getloid());
 										// delete correlations
 										$this->CorrelationsService->deleteByCollectionId($cr->getuid(), $cr->getloid(), $cr->getroid());
 										$this->CorrelationsService->delete($cr);
@@ -789,16 +460,19 @@ class CoreService {
 								if (empty($entry['id'])) {
 									// create local collection
 									$cl = [];
-									$cl['uid'] = $uid; // User ID
-									$cl['uuid'] = \OCA\JMAPC\Utile\UUID::v4(); // Universal Resource ID
-									$cl['label'] = 'EAS: ' . $entry['label']; // Collection Label
-									$cl['color'] = $entry['color']; // Collection Color
-									$cl['token'] = 0; // Collection State Token
-									$cid = $DataStore->createCollection($cl);
+									$cl['uid'] = $uid; // user id
+									$cl['sid'] = $sid; // service id
+									$cl['uuid'] = \OCA\JMAPC\Utile\UUID::v4(); // universal id
+									$cl['label'] = 'JMAP: ' . $entry['label']; // collection Label
+									$cl['color'] = $entry['color']; // collection Color
+									$cl['rcid'] = $entry['roid']; // remote collection id
+									$cl['rcsn'] = ''; // remote collection signature
+									$cid = $DataStore->collectionCreate($cl);
 									// create correlation
 									$cr = new \OCA\JMAPC\Store\Correlation();
 									$cr->settype('CC'); // Correlation Type
 									$cr->setuid($uid); // User ID
+									$cr->setsid($sid); // Service ID
 									$cr->setloid($cid); // Local Collection ID
 									$cr->setroid($entry['roid']); // Remote Collection ID
 									$this->CorrelationsService->create($cr);
@@ -814,7 +488,7 @@ class CoreService {
 		}
 		// deposit events correlations
 		if ($this->ConfigurationService->isCalendarAppAvailable()) {
-			// initilize data store
+			// initialize data store
 			$DataStore = \OC::$server->get(\OCA\JMAPC\Store\EventStore::class);
 			// process entries
 			foreach ($ec as $entry) {
@@ -828,9 +502,9 @@ class CoreService {
 									// evaluate if user id matches
 									if ($uid == $cr->getuid()) {
 										// delete local entities
-										$DataStore->deleteEntitiesByCollection($uid, $cr->getloid());
+										$DataStore->entityDeleteByCollection($uid, $cr->getloid());
 										// delete local collection
-										$DataStore->deleteCollection($cr->getloid());
+										$DataStore->collectionDelete($cr->getloid());
 										// delete correlations
 										$this->CorrelationsService->deleteByCollectionId($cr->getuid(), $cr->getloid(), $cr->getroid());
 										$this->CorrelationsService->delete($cr);
@@ -841,16 +515,19 @@ class CoreService {
 								if (empty($entry['id'])) {
 									// create local collection
 									$cl = [];
-									$cl['uid'] = $uid; // User ID
-									$cl['uuid'] = \OCA\JMAPC\Utile\UUID::v4(); // Universal Resource ID
-									$cl['label'] = 'EAS: ' . $entry['label']; // Collection Label
-									$cl['color'] = $entry['color']; // Collection Color
-									$cl['token'] = 0; // Collection State Token
-									$cid = $DataStore->createCollection($cl);
+									$cl['uid'] = $uid; // user id
+									$cl['sid'] = $sid; // service id
+									$cl['uuid'] = \OCA\JMAPC\Utile\UUID::v4(); // universal id
+									$cl['label'] = 'JMAP: ' . $entry['label']; // collection Label
+									$cl['color'] = $entry['color']; // collection Color
+									$cl['rcid'] = $entry['roid']; // remote collection id
+									$cl['rcsn'] = ''; // remote collection signature
+									$cid = $DataStore->collectionCreate($cl);
 									// create correlation
 									$cr = new \OCA\JMAPC\Store\Correlation();
 									$cr->settype('EC'); // Correlation Type
 									$cr->setuid($uid); // User ID
+									$cr->setsid($sid); // Service ID
 									$cr->setloid($cid); // Local Collection ID
 									$cr->setroid($entry['roid']); // Remote Collection ID
 									$this->CorrelationsService->create($cr);
@@ -866,7 +543,7 @@ class CoreService {
 		}
 		// deposit tasks correlations
 		if ($this->ConfigurationService->isTasksAppAvailable()) {
-			// initilize data store
+			// initialize data store
 			$DataStore = \OC::$server->get(\OCA\JMAPC\Store\TaskStore::class);
 			// process entries
 			foreach ($tc as $entry) {
@@ -880,9 +557,9 @@ class CoreService {
 									// evaluate if user id matches
 									if ($uid == $cr->getuid()) {
 										// delete local entities
-										$DataStore->deleteEntitiesByCollection($uid, $cr->getloid());
+										$DataStore->entityDeleteByCollection($uid, $cr->getloid());
 										// delete local collection
-										$DataStore->deleteCollection($cr->getloid());
+										$DataStore->collectionDelete($cr->getloid());
 										// delete correlations
 										$this->CorrelationsService->deleteByCollectionId($cr->getuid(), $cr->getloid(), $cr->getroid());
 										$this->CorrelationsService->delete($cr);
@@ -893,16 +570,19 @@ class CoreService {
 								if (empty($entry['id'])) {
 									// create local collection
 									$cl = [];
-									$cl['uid'] = $uid; // User ID
-									$cl['uuid'] = \OCA\JMAPC\Utile\UUID::v4(); // Universal Resource ID
-									$cl['label'] = 'EAS: ' . $entry['label']; // Collection Label
-									$cl['color'] = $entry['color']; // Collection Color
-									$cl['token'] = 0; // Collection State Token
-									$cid = $DataStore->createCollection($cl);
+									$cl['uid'] = $uid; // user id
+									$cl['sid'] = $sid; // service id
+									$cl['uuid'] = \OCA\JMAPC\Utile\UUID::v4(); // universal id
+									$cl['label'] = 'JMAP: ' . $entry['label']; // collection Label
+									$cl['color'] = $entry['color']; // collection Color
+									$cl['rcid'] = $entry['roid']; // remote collection id
+									$cl['rcsn'] = ''; // remote collection signature
+									$cid = $DataStore->collectionCreate($cl);
 									// create correlation
 									$cr = new \OCA\JMAPC\Store\Correlation();
 									$cr->settype('TC'); // Correlation Type
 									$cr->setuid($uid); // User ID
+									$cr->setsid($sid); // Service ID
 									$cr->setloid($cid); // Local Collection ID
 									$cr->setroid($entry['roid']); // Remote Collection ID
 									$this->CorrelationsService->create($cr);
@@ -925,7 +605,7 @@ class CoreService {
 	 * 
 	 * @param string $uid		nextcloud user id
 	 * @param array $subject	notification type
-	 * @param array $params		notification paramaters to pass
+	 * @param array $params		notification parameters to pass
 	 * 
 	 * @return array of collection correlation(s) and attributes
 	 */

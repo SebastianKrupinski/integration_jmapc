@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -25,124 +25,153 @@
 
 namespace OCA\JMAPC\Service;
 
-use Datetime;
-use DateTimeZone;
-use Exception;
-use Throwable;
 use Psr\Log\LoggerInterface;
 use OCP\Files\IRootFolder;
 
-use OCA\JMAPC\Store\EventStore;
-use OCA\JMAPC\Service\CorrelationsService;
-use OCA\JMAPC\Service\Local\LocalEventsService;
-use OCA\JMAPC\Service\Remote\RemoteEventsService;
-use OCA\JMAPC\Utile\Eas\EasClient;
+use JmapClient\Client as JmapClient;
+
+use OCA\JMAPC\Exceptions\JmapUnknownMethod;
 use OCA\JMAPC\Objects\EventObject;
 use OCA\JMAPC\Objects\HarmonizationStatisticsObject;
+use OCA\JMAPC\Service\Local\LocalEventsService;
+use OCA\JMAPC\Service\Remote\RemoteEventsService;
+use OCA\JMAPC\Store\CollectionEntity;
+use OCA\JMAPC\Store\EventStore;
 
 class EventsService {
 	
-	private LoggerInterface $logger;
-	private Object $Configuration;
-	private CorrelationsService $CorrelationsService;
-	private LocalEventsService $LocalEventsService;
-	private RemoteEventsService $RemoteEventsService;
-	private IRootFolder $LocalFileStore;
-	private EventStore $LocalStore;
-	private EasClient $RemoteStore;
+	private bool $debug;
+	private string $userId;
+	private array $Configuration;
+	private JmapClient $RemoteStore;
 
-	public function __construct (LoggerInterface $logger,
-								CorrelationsService $CorrelationsService,
-								LocalEventsService $LocalEventsService,
-								RemoteEventsService $RemoteEventsService,
-								IRootFolder $LocalFileStore,
-								EventStore $LocalStore) {
-		$this->logger = $logger;
-		$this->CorrelationsService = $CorrelationsService;
-		$this->LocalEventsService = $LocalEventsService;
-		$this->RemoteEventsService = $RemoteEventsService;
-		$this->LocalStore = $LocalStore;
-		$this->LocalFileStore = $LocalFileStore;
-	}
+	public function __construct (
+		private LoggerInterface $logger,
+		private LocalEventsService $LocalEventsService,
+		private RemoteEventsService $RemoteEventsService,
+		private EventStore $LocalStore,
+		private IRootFolder $LocalFileStore
+	) {}
 
-	public function initialize($configuration, EasClient $RemoteStore) {
+	/**
+	 * Perform harmonization for all events collections for a service
+	 * 
+	 * @since Release 1.0.0
+	 *
+	 * @return void
+	 */
+	public function harmonize(string $uid, $service, JmapClient $RemoteStore) {
 
-		$this->Configuration = $configuration;
+		$this->userId = $uid;
+		$this->Configuration = $service;
 		$this->RemoteStore = $RemoteStore;
+		//
+		$this->debug = (bool)$service['debug'];
 		// assign data stores
-		$this->LocalEventsService->initialize($this->LocalStore, $this->LocalFileStore->getUserFolder($this->Configuration->UserId));
+		$this->LocalEventsService->initialize($this->LocalStore, $this->LocalFileStore->getUserFolder($this->userId));
 		$this->RemoteEventsService->initialize($this->RemoteStore);
 
 		// assign timezones
+		/*
 		$this->LocalEventsService->SystemTimeZone = $this->Configuration->SystemTimeZone;
 		$this->RemoteEventsService->SystemTimeZone = $this->Configuration->SystemTimeZone;
 		$this->LocalEventsService->UserTimeZone = $this->Configuration->UserTimeZone;
 		$this->RemoteEventsService->UserTimeZone = $this->Configuration->UserTimeZone;
 		// assign default folder
 		$this->LocalEventsService->UserAttachmentPath = $this->Configuration->EventsAttachmentPath;
+		*/
+
+		// retrieve list of collections
+		$collections = $this->LocalStore->collectionListByService($this->Configuration['id']);
+		// iterate through collections
+		foreach ($collections as $collection) {
+			// evaluate if collection is locked and lock has not expired
+			if ($collection->getHlock() == 1 &&
+			   (time() - $collection->getHlockhb()) < 3600) {
+				continue;
+			}
+			// lock collection before harmonization
+			if (!$this->debug) {
+				$collection->setHlock(1);
+			}
+			$collection->setHlockhd((int) getmypid());
+			$collection = $this->LocalStore->collectionModify($collection);
+			// execute events harmonization loop
+			do {
+				// update lock heartbeat
+				$collection->setHlockhb(time());
+				$collection = $this->LocalStore->collectionModify($collection);
+				// harmonize events collections
+				$statistics = $this->harmonizeCollection($collection);
+				// evaluate if anything was done and publish notice if needed
+				if ($statistics->total() > 0) {
+					//$this->CoreService->publishNotice($uid,'events_harmonized', (array)$statistics);
+				}
+			} while ($statistics->total() > 0);
+			// update harmonization time stamp
+			$collection->setHlockhb(time());
+			// unlock correlation after harmonization
+			$collection->setHlock(0);
+			$collection = $this->LocalStore->collectionModify($collection);
+		}
 
 	}
 
 	/**
-	 * Perform harmonization for all contacts collection correlations
+	 * Perform harmonization for all events in a collection
 	 * 
 	 * @since Release 1.0.0
 	 *
 	 * @return HarmonizationStatisticsObject
 	 */
-	public function performHarmonization($correlation, $configuration): HarmonizationStatisticsObject {
+	public function harmonizeCollection(CollectionEntity $collection): HarmonizationStatisticsObject {
 		
 		// define statistics object
 		$statistics = new HarmonizationStatisticsObject();
+		// determine that the correlation belongs to the initialized user
+		if ($collection->getUid() !== $this->userId) {
+			return $statistics;
+		}
 		// extract required id's
-		$caid = $correlation->getid();
-		$lcid = $correlation->getloid();
-		$lcst = (string) $correlation->getlosignature();
-		$rcid = $correlation->getroid();
-		$rcst = (string) $correlation->getrosignature();
-		// delete and skip collection correlation if remote id or local id is missing
-		if (empty($lcid) || empty($rcid)){
-			$this->CorrelationsService->delete($correlation);
-			$this->logger->debug('EAS - Deleted events collection correlation for ' . $this->Configuration->UserId . ' due to missing Remote ID or Local ID');
+		$sid = $collection->getSid();
+		$lcid = $collection->getId();
+		$lcsn = $collection->getHisn();
+		$rcid = $collection->getCcid();
+		$rcsn = (string) $collection->getHesn();
+		// delete and skip collection if remote id is missing
+		if (empty($rcid)){
+			$this->LocalEventsService->collectionDeleteById($lcid);
+			$this->logger->debug('JMAPC - Deleted events collection for ' . $this->userId . ' due to missing Remote Id');
 			return $statistics;
 		}
-		// delete and skip collection correlation if local collection is missing
-		$lcollection = $this->LocalEventsService->fetchCollection($lcid);
-		if (!isset($lcollection) || ($lcollection->Id != $lcid)) {
-			$this->CorrelationsService->delete($correlation);
-			$this->logger->debug('EAS - Deleted events collection correlation for ' . $this->Configuration->UserId . ' due to missing Local Collection');
+		// delete and skip collection if remote collection is missing
+		$remoteCollection = $this->RemoteEventsService->collectionFetch('', $rcid);
+		if (!isset($remoteCollection)) {
+			$this->LocalEventsService->collectionDeleteById($lcid);
+			$this->logger->debug('JMAPC - Deleted events collection for ' . $this->userId . ' due to missing Remote Collection');
 			return $statistics;
 		}
-		// delete and skip collection correlation if remote collection is missing
-		//$rcollection = $this->RemoteEventsService->fetchCollection(0, 0, $rcid);
-		//if (!isset($rcollection) || ($rcollection->Id != $rcid)) {
-		//	$this->CorrelationsService->delete($correlation);
-		//	$this->logger->debug('EAS - Deleted events collection correlation for ' . $this->Configuration->UserId . ' due to missing Remote Collection');
-		//	return $statistics;
-		//}
 
-		// retrieve a collection of remote entity variations
-		//$rCollectionDelta = [];
-		$rCollectionDelta = $this->RemoteEventsService->reconcileCollection($rcid, $rcst);
-		// evaluate if remote entity variations exist
-		// according to the EAS spec the change object can be blank if there is no changes 
-		if (isset($rCollectionDelta->SyncKey)) {
-			//
-			$rcst = $rCollectionDelta->SyncKey->getContents();
-			// evaluate if add property is an array and convert to array if needed
-			if (isset($rCollectionDelta->Commands->Add) && !is_array($rCollectionDelta->Commands->Add)) {
-				$rCollectionDelta->Commands->Add = [$rCollectionDelta->Commands->Add];
-			}
-			// process remote additions
-			foreach ($rCollectionDelta->Commands->Add as $variant) {
+		// retrieve a delta of local entity variations
+		$localEntityDelta = $this->LocalEventsService->entityDelta($lcid, $lcsn);
+		// retrieve a delta of remote entity variations
+		// if server side delta is not available generate one
+		try {
+			$remoteEntityDelta = $this->RemoteEventsService->entityDelta($rcid, $rcsn, 'B');
+		} catch (JmapUnknownMethod $e) {
+			$remoteEntityDelta = $this->discoverRemoteAlteration($rcid, $lcid);
+		}
+
+		// process remote additions
+		if (count($remoteEntityDelta['Added']) > 0) {
+			foreach ($remoteEntityDelta['Added'] as $reid) {
 				// process addition
 				$as = $this->harmonizeRemoteAltered(
-					$this->Configuration->UserId,
+					$this->userId,
+					$sid,
 					$rcid,
-					$variant->EntityId->getContents(),
-					$variant->Data,
-					$lcid,
-					$caid
+					$reid,
+					$lcid
 				);
 				// increment statistics
 				switch ($as) {
@@ -157,20 +186,18 @@ class EventsService {
 						break;
 				}
 			}
-			// evaluate if modify property is an array and convert to array if needed
-			if (isset($rCollectionDelta->Commands->Modify) && !is_array($rCollectionDelta->Commands->Modify)) {
-				$rCollectionDelta->Commands->Modify = [$rCollectionDelta->Commands->Modify];
-			}
-			// process remote modifications
-			foreach ($rCollectionDelta->Commands->Modify as $Altered) {
+		}
+		
+		// process remote modifications
+		if (count($remoteEntityDelta['Modified']) > 0) {
+			foreach ($remoteEntityDelta['Modified'] as $reid) {
 				// process modification
 				$as = $this->harmonizeRemoteAltered(
-					$this->Configuration->UserId, 
-					$rcid, 
-					$Altered->EntityId->getContents(),
-					$Altered->Data, 
-					$lcid, 
-					$caid
+					$this->userId,
+					$sid,
+					$rcid,
+					$reid,
+					$lcid
 				);
 				// increment statistics
 				switch ($as) {
@@ -185,43 +212,42 @@ class EventsService {
 						break;
 				}
 			}
-			// evaluate if delete property is an array and convert to array if needed
-			if (isset($rCollectionDelta->Commands->Delete) && !is_array($rCollectionDelta->Commands->Delete)) {
-				$rCollectionDelta->Commands->Delete = [$rCollectionDelta->Commands->Delete];
-			}
-			// process remote deletions
-			foreach ($rCollectionDelta->Commands->Delete as $Deleted) {
+		}
+		
+		// process remote deletions
+		if (count($remoteEntityDelta['Deleted']) > 0) {
+			foreach ($remoteEntityDelta['Deleted'] as $reid) {
 				// process delete
 				$as = $this->harmonizeRemoteDelete(
-					$this->Configuration->UserId, 
 					$rcid, 
-					$Deleted->EntityId->getContents()
+					$reid,
+					$lcid
 				);
 				if ($as == 'LD') {
 					// increment statistics
 					$statistics->LocalDeleted += 1;
 				}
 			}
-			// update and deposit correlation remote state
-			$correlation->setrosignature($rcst);
-			$this->CorrelationsService->update($correlation);
 		}
-		
-		// retrieve a collection of local entity variations
-		//$lCollectionDelta = [];
-		$lCollectionDelta = $this->LocalEventsService->reconcileCollection($this->Configuration->UserId, $lcid, $lcst);
+		// update and deposit remote harmonization signature 
+		$collection->setHesn((string)$remoteEntityDelta['Signature']);
+		$collection = $this->LocalStore->collectionModify($collection);
+		// clean up
+		unset($remoteCollection, $remoteEntityDelta);
+
 		// evaluate if local entity variations exist
-		if (isset($lCollectionDelta['stamp'])) {
+		if (isset($localEntityDelta['stamp'])) {
 			// process local additions
-			foreach ($lCollectionDelta['additions'] as $variant) {
+			foreach ($localEntityDelta['additions'] as $variant) {
+				$leid = $variant['id'];
 				// process addition
 				$as = $this->harmonizeLocalAltered(
-					$this->Configuration->UserId, 
+					$this->userId,
+					$sid,
 					$lcid, 
-					$variant['id'], 
+					$leid, 
 					$rcid,
-					$rcst,
-					$caid
+					$rcsn
 				);
 				// increment statistics
 				switch ($as) {
@@ -237,15 +263,16 @@ class EventsService {
 				}
 			}
 			// process local modifications
-			foreach ($lCollectionDelta['modifications'] as $variant) {
+			foreach ($localEntityDelta['modifications'] as $variant) {
+				$leid = $variant['id'];
 				// process modification
 				$as = $this->harmonizeLocalAltered(
-					$this->Configuration->UserId,
+					$this->userId,
+					$sid,
 					$lcid,
-					$variant['id'],
+					$leid,
 					$rcid,
-					$rcst,
-					$caid
+					$rcsn,
 				);
 				// increment statistics
 				switch ($as) {
@@ -261,13 +288,12 @@ class EventsService {
 				}
 			}
 			// process local deletions
-			foreach ($lCollectionDelta['deletions'] as $variant) {
+			foreach ($localEntityDelta['deletions'] as $variant) {
+				$leid = $variant['id'];
 				// process deletion
 				$as = $this->harmonizeLocalDelete(
-					$this->Configuration->UserId, 
 					$lcid,
-					$variant['id'],
-					$rcst
+					$leid
 				);
 				if ($as == 'RD') {
 					// assign status
@@ -275,123 +301,109 @@ class EventsService {
 				}
 			}
 			// update and deposit correlation local state
-			$correlation->setlosignature($lCollectionDelta['stamp']);
-			$correlation->setrosignature($rcst);
-			$this->CorrelationsService->update($correlation);
+			$collection->setHisn($localEntityDelta['stamp']);
+			$collection = $this->LocalStore->collectionModify($collection);
+			// clean up
+			unset($localEntityDelta);
 		}
 		
 		// return statistics
 		return $statistics;
 
 	}
+
+	function discoverRemoteAlteration(string $rcid, int $lcid): array {
+		// retrieve remote entity list and local entity list
+		$rList = $this->RemoteEventsService->entityList($rcid, null, null, 'B');
+		$lList = $this->LocalEventsService->entityList($lcid, 'B');
+
+		$lList = array_reduce($lList, function ($list, $entry) {
+			if (!empty($entry->getCeid())) {
+				$list[$entry->getCeid()] = $entry;
+			}
+			return $list;
+		}, []);
+
+		$dList = ['Added' => [], 'Modified' => [], 'Deleted' => [], 'Signature' => ''];
+
+		// iterate through remote entities to find entities that do and don't exist in correlations 
+		foreach ($rList['list'] as $entry) {
+			//
+			if (!$entry->in() || !in_array($rcid, $entry->in())) {
+				continue;
+			}
+			// determine if entry exists in local list
+			// if found add entity to modified delta and remove from local list
+			// if NOT found add entity to added delta
+			if (isset($lList[$entry->id()])) {
+				$dList['Modified'][] = $entry->id();
+				unset($lList[$entry->id()]);
+			} else {
+				$dList['Added'][] = $entry->id();
+			}
+		}
+		$dList['Signature'] = $rList['state'];
+		// iterate through remaining correlations
+		// if a correlation that was not removed it must have been deleted on the remote system
+		foreach ($lList as $entry) {
+			$dList['Deleted'][] = $entry->getCeid();
+		}
+
+		return $dList;
+	}
 	
 	/**
-	 * Perform harmonization for locally altered object
+	 * harmonize locally altered entity
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid		User ID
-	 * @param int $lcid			Local Collection ID
-	 * @param int $loid			Local Entity ID
-	 * @param string $rcid		Remote Collection ID
-	 * @param string $rcst		Remote Collection Signature Token
-	 * @param int $caid			Correlation Affiliation ID
+	 * @param string $uid		system user id
+	 * @param int $sid			service id
+	 * @param int $lcid			local collection id
+	 * @param string $leid		local entity id
+	 * @param string $rcid		remote collection id
 	 *
 	 * @return string 			what action was performed
 	 */
-	function harmonizeLocalAltered ($uid, $lcid, $leid, $rcid, &$rcst, $caid): string {
+	function harmonizeLocalAltered(string $uid, int $sid, int $lcid, string $leid, string $rcid): string {
 
 		// // define default operation status
 		$status = 'NA'; // no actions
-		// define local entity place holder
+		// define entity place holder
 		$lo = null;
-		// define remote entity place holder
 		$ro = null;
-		// retrieve local contact object
-		$lo = $this->LocalEventsService->fetchEntity($leid);
-		// evaluate, if local contact entity was returned
-		if (!($lo instanceof \OCA\JMAPC\Objects\EventObject)) {
-			// return default operation status
+		// retrieve local entity
+		$lo = $this->LocalEventsService->entityFetch($leid);
+		// evaluate, if local entity was returned
+		if (!($lo instanceof EventObject)) {
 			return $status;
 		}
-		// retrieve correlation for remote and local entity
-		$ci = $this->CorrelationsService->findByLocalId($uid, CorrelationsService::EventEntity, $leid, $lcid);
-		// if correlation exists
-		// compare local signature to correlation signature and stop processing if they match
-		// this is nessary to prevent synconization feedback loop
-		if ($ci instanceof \OCA\JMAPC\Store\Correlation && 
-			$ci->getlosignature() == $lo->Signature) {
-			// return default operation status
-			return $status;
+		// retrieve remote entity with correlation collection and entity id
+		if (!empty($lo->CEID)) {
+			$ro = $this->RemoteEventsService->entityFetch($rcid, $lo->CEID);
+			// generate a signature for the data
+			// this a crude but necessary as JMAP does not transmit a harmonization signature for entities
+			$ro->Signature = $this->RemoteEventsService->generateSignature($ro);
 		}
-		// if correlation exists, try to retrieve remote entity
-		if ($ci instanceof \OCA\JMAPC\Store\Correlation && 
-			!empty($ci->getroid())) {
-			// retrieve entity
-			$ro = $this->RemoteEventsService->fetchEntity($ci->getrcid(), $rcst, $ci->getroid());
+		// if remote entity exists
+		// compare remote generated signature to correlation signature and stop processing if they match
+		// this is necessary to prevent synchronization feedback loop
+		if ($ro instanceof EventObject && $lo->CESN == $ro->Signature) {
+			return $status;
 		}
 		// modify remote entity if one EXISTS
 		// create remote entity if one DOES NOT EXIST
-		if ($ro instanceof \OCA\JMAPC\Objects\EventObject) {
-			// if correlation EXISTS
-			// compare remote entity state to correlation signature
-			// if signatures DO MATCH modify remote entity
-			if ($ci instanceof \OCA\JMAPC\Store\Correlation && $ro->Signature == $ci->getrosignature()) {
-				// update remote entity
-				$ro = $this->RemoteEventsService->updateEntity($ci->getrcid(), $rcst, $ci->getroid(), $lo);
-				// assign operation status
-				$status = 'RU'; // Remote Update
-			}
-			// if correlation DOES NOT EXIST or signatures DO NOT MATCH
-			// use selected mode to resolve conflict
-			else {
-				// update local entity if remote wins mode selected
-				if ($this->Configuration->EventsPrevalence == 'R') {
-					// append missing remote parameters from local object
-					$ro->UUID = $lo->UUID;
-					// update local entity
-					$lo = $this->LocalEventsService->updateEntity($uid, $lcid, $lo->ID, $ro);
-					// assign operation status
-					$status = 'LU'; // Local Update
-				}
-				// update remote entity if local wins mode selected
-				if ($this->Configuration->EventsPrevalence == 'L') {
-					// update remote entity
-					$ro = $this->RemoteEventsService->updateEntity($rcid, $rcst, $ro->ID, $lo);
-					// assign operation status
-					$status = 'RU'; // Remote Update
-				}
-			}
+		if ($ro instanceof EventObject) {
+			// update remote entity
+			$ro = $this->RemoteEventsService->entityModify($rcid, $ro->ID, $lo);
+			// assign operation status
+			$status = 'RU'; // Remote Update
 		}
 		else {
 			// create remote entity
-			$ro = $this->RemoteEventsService->createEntity($rcid, $rcst, $lo);
+			$ro = $this->RemoteEventsService->entityCreate($rcid, $rcsn, $lo);
 			// assign operation status
 			$status = 'RC'; // Remote Create
-		}
-		// update entity correlation if one EXISTS
-		// create entity correlation if one DOES NOT EXIST
-		if ($ci instanceof \OCA\JMAPC\Store\Correlation) {
-			$ci->setloid($lo->ID); // Local ID
-			$ci->setlosignature($lo->Signature); // Local Signature
-			$ci->setlcid($lcid); // Local Collection ID
-			$ci->setroid($ro->ID); // Remote ID
-			$ci->setrosignature($ro->Signature); // Remote Signature
-			$ci->setrcid($rcid); // Remote Collection ID
-			$this->CorrelationsService->update($ci);
-		}
-		elseif (isset($ro) && isset($lo)) {
-			$ci = new \OCA\JMAPC\Store\Correlation();
-			$ci->settype(CorrelationsService::EventEntity); // Correlation Type
-			$ci->setuid($uid); // User ID
-			$ci->setaid($caid); //Affiliation ID
-			$ci->setloid($lo->ID); // Local ID
-			$ci->setlosignature($lo->Signature); // Local Signature
-			$ci->setlcid($lcid); // Local Collection ID
-			$ci->setroid($ro->ID); // Remote ID
-			$ci->setrosignature($ro->Signature); // Remote Signature
-			$ci->setrcid($rcid); // Remote Collection ID
-			$this->CorrelationsService->create($ci);
 		}
 		// return operation status
 		return $status;
@@ -399,152 +411,83 @@ class EventsService {
 	}
 
 	/**
-	 * Perform harmonization for locally deleted entity
+	 * harmonize locally deleted entity
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid	user id
-	 * @param string $lcid	local collection id
-	 * @param string $loid	local entity id
-	 * @param string $rcst	remote collection signature token
+	 * @param int $lcid			local collection id
+	 * @param int $leid			local entity id
 	 *
-	 * @return string what action was performed
+	 * @return string			what action was performed
 	 */
-	function harmonizeLocalDelete ($uid, $lcid, $leid, &$rcst): string {
+	function harmonizeLocalDelete(int $lcid, int $leid): string {
 
-		// retrieve correlation
-		$ci = $this->CorrelationsService->findByLocalId($uid, CorrelationsService::EventEntity, $leid, $lcid);
-		// validate result
-		if ($ci instanceof \OCA\JMAPC\Store\Correlation) {
-			// destroy remote entity
-			$rs = $this->RemoteEventsService->deleteEntity($ci->getrcid(), $rcst, $ci->getroid());
-			// destroy correlation
-			$this->CorrelationsService->delete($ci);
-			// return status of action
+		// destroy remote entity
+		//$rs = $this->RemoteEventsService->entityDelete($ci->getrcid(), $rcsn, $ci->getroid());
+		
+		if ($rs) {
 			return 'RD';
-		}
-		else {
-			// return status of action
+		} else {
 			return 'NA';
 		}
 			
 	}
 
 	/**
-	 * Perform harmonization for remotely altered entity
+	 * harmonize remotely altered entity
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid		User id
+	 * @param string $uid		system user id
+	 * @param int $sid			service id
 	 * @param string $rcid		remote collection id
-	 * @param string $reid		remote object id
-	 * @param string $lcid		local collection id
-	 * @param string $caid		correlation affiliation id
-	 *
+	 * @param string $reid		remote entity id
+	 * @param int $lcid			local collection id
+	 * 
 	 * @return string 			what action was performed
 	 */
-	function harmonizeRemoteAltered ($uid, $rcid, $reid, $rdata, $lcid, $caid): string {
+	function harmonizeRemoteAltered(string $uid, int $sid, string $rcid, string $reid, int $lcid): string {
 		
 		// define default operation status
-		$status = 'NA'; // no acction
-		// define remote entity place holder
+		$status = 'NA'; // no action
+		// define entity place holders
 		$ro = null;
-		// define local entity place holder
 		$lo = null;
-		// convert remote data to contact object
-		$ro = $this->RemoteEventsService->toEventObject($rdata);
-		// evaluate, if remote contact object was returned
-		if (!($ro instanceof \OCA\JMAPC\Objects\EventObject)) {
-			// return default operation status
+		// retrieve remote entity
+		$ro = $this->RemoteEventsService->entityFetch($rcid, $reid);
+		// evaluate, if remote entity was returned
+		if (!($ro instanceof EventObject)) {
 			return $status;
 		}
 		// append missing remote parameters from passed parameters
-		$ro->ID = $reid;
-		$ro->CID = $rcid;
-		$ro->RCID = $rcid;
-		$ro->REID = $reid;
+		$ro->CCID = $rcid;
+		$ro->CEID = $reid;
 		// generate a signature for the data
-        // this a crude but nessary as EAS does not transmit a harmonization signature for entities
-        $ro->Signature = $this->RemoteEventsService->generateSignature($ro);
-		// retrieve correlation for remote and local entity
-		$ci = $this->CorrelationsService->findByRemoteId($uid, CorrelationsService::EventEntity, $reid, $rcid);
-		// if correlation exists
+        // this a crude but necessary as JMAP does not transmit a harmonization signature for entities
+        $ro->CESN = $ro->Signature = $this->RemoteEventsService->generateSignature($ro);
+		// retrieve local entity with remote collection and entity id
+		$lo = $this->LocalEventsService->entityFetchByCorrelation($lcid, $rcid, $reid);
+		// if local entity exists
 		// compare remote generated signature to correlation signature and stop processing if they match
-		// this is nessary to prevent synconization feedback loop
-		if ($ci instanceof \OCA\JMAPC\Store\Correlation && 
-			$ci->getrosignature() == $ro->Signature) {
-			// return default operation status
+		// this is necessary to prevent synchronization feedback loop
+		if ($lo instanceof EventObject && $lo->CESN == $ro->Signature) {
 			return $status;
-		}
-		// if correlation exists, try to retrieve local entity
-		if ($ci instanceof \OCA\JMAPC\Store\Correlation && 
-			$ci->getloid()) {			
-			$lo = $this->LocalEventsService->fetchEntity($ci->getloid());
 		}
 		// modify local entity if one EXISTS
 		// create local entity if one DOES NOT EXIST
-		if ($lo instanceof \OCA\JMAPC\Objects\EventObject) {
-			// if correlation EXISTS
-			// compare local entity signature to correlation signature
-			// if signatures DO MATCH modify local enitity
-			if ($ci instanceof \OCA\JMAPC\Store\Correlation && $lo->Signature == $ci->getlosignature()) {
-				// append missing remote parameters from local object
-				$ro->UUID = $lo->UUID;
-				// update local enitity
-				$lo = $this->LocalEventsService->updateEntity($uid, $ci->getlcid(), $ci->getloid(), $ro);
-				// assign operation status
-				$status = 'LU'; // Local Update
-			}
-			// if correlation DOES NOT EXIST or signatures DO NOT MATCH
-			// use selected mode to resolve conflict
-			else {
-				// update local entity if remote wins mode selected
-				if ($this->Configuration->EventsPrevalence == 'R') {
-					// append missing remote parameters from local object
-					$ro->UUID = $lo->UUID;
-					// update local entity
-					$lo = $this->LocalEventsService->updateEntity($uid, $lcid, $lo->ID, $ro);
-					// assign operation status
-					$status = 'LU'; // Local Update
-				}
-				// update remote entiry if local wins mode selected
-				if ($this->Configuration->EventsPrevalence == 'L') {
-					// update remote entity
-					$ro = $this->RemoteEventsService->updateEntity($rcid, $ro->ID, '', $lo);
-					// assign operation status
-					$status = 'RU'; // Remote Update
-				}
-			}
+		if ($lo instanceof EventObject) {
+			// append missing remote parameters from local object
+			$ro->UUID = $lo->UUID;
+			// update local entity
+			$lo = $this->LocalEventsService->entityModify($uid, $sid, $lcid, $lo->ID, $ro);
+			// assign operation status
+			$status = 'LU'; // Local Update
 		}
 		else {
 			// create local entity
-			$lo = $this->LocalEventsService->createEntity($uid, $lcid, $ro);
+			$lo = $this->LocalEventsService->entityCreate($uid, $sid, $lcid, $ro);
 			// assign operation status
 			$status = 'LC'; // Local Create
-		}
-		// update entity correlation if one EXISTS
-		// create entity correlation if one DOES NOT EXIST
-		if ($ci instanceof \OCA\JMAPC\Store\Correlation) {
-			$ci->setloid($lo->ID); // Local ID
-			$ci->setlosignature($lo->Signature); // Local Signature
-			$ci->setlcid($lcid); // Local Collection ID
-			$ci->setroid($ro->ID); // Remote ID
-			$ci->setrosignature($ro->Signature); // Remote Signature
-			$ci->setrcid($rcid); // Remote Collection ID
-			$this->CorrelationsService->update($ci);
-		}
-		elseif (isset($ro) && isset($lo)) {
-			$ci = new \OCA\JMAPC\Store\Correlation();
-			$ci->settype(CorrelationsService::EventEntity); // Correlation Type
-			$ci->setuid($uid); // User ID
-			$ci->setaid($caid); //Affiliation ID
-			$ci->setloid($lo->ID); // Local ID
-			$ci->setlosignature($lo->Signature); // Local Signature
-			$ci->setlcid($lcid); // Local Collection ID
-			$ci->setroid($ro->ID); // Remote ID
-			$ci->setrosignature($ro->Signature); // Remote Signature
-			$ci->setrcid($rcid); // Remote Collection ID
-			$this->CorrelationsService->create($ci);
 		}
 		// return operation status
 		return $status;
@@ -552,31 +495,24 @@ class EventsService {
 	}
 
 	/**
-	 * Perform harmonization for remotely deleted object
+	 * harmonize remotely deleted entity
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid	nextcloud user id
-	 * @param string $rcid	local collection id
-	 * @param string $reid	local object id
+	 * @param string $rcid		remote collection id
+	 * @param string $reid		remote entity id
+	 * @param int $lcid			local collection id
 	 *
-	 * @return string what action was performed
+	 * @return string			what action was performed
 	 */
-	function harmonizeRemoteDelete ($uid, $rcid, $reid): string {
+	function harmonizeRemoteDelete(string $rcid, string $reid, int $lcid): string {
 
-		// find correlation
-		$ci = $this->CorrelationsService->findByRemoteId($uid, CorrelationsService::EventEntity, $reid, $rcid);
-		// evaluate correlation object
-		if ($ci instanceof \OCA\JMAPC\Store\Correlation) {
-			// destroy local entity
-			$rs = $this->LocalEventsService->deleteEntity($uid, $ci->getlcid(), $ci->getloid());
-			// destroy correlation
-			$this->CorrelationsService->delete($ci);
-			// return operation status
+		// destroy local entity
+		$rs = $this->LocalEventsService->entityDeleteByCorrelation($lcid, $rcid, $reid);
+		
+		if ($rs) {
 			return 'LD';
-		}
-		else {
-			// return operation status
+		} else {
 			return 'NA';
 		}
 

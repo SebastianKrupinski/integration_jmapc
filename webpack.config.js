@@ -16,7 +16,6 @@ const appId = 'integration_jmapc'
 webpackConfig.entry = {
 	adminSettings: { import: path.join(__dirname, 'src', 'adminSettings.js'), filename: appId + '-adminSettings.js' },
 	userSettings: { import: path.join(__dirname, 'src', 'userSettings.js'), filename: appId + '-userSettings.js' },
-	popupSuccess: { import: path.join(__dirname, 'src', 'popupSuccess.js'), filename: appId + '-popupSuccess.js' },
 }
 
 webpackConfig.plugins.push(

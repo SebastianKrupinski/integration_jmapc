@@ -71,7 +71,7 @@ class RemoteTasksService {
 	 * 
 	 * @return TaskCollectionObject  	TaskCollectionObject on success / Null on failure
 	 */
-	public function fetchCollection(string $cht, string $chl, string $cid): ?TaskCollectionObject {
+	public function collectionFetch(string $cht, string $chl, string $cid): ?TaskCollectionObject {
 
         // execute command
 		$cr = $this->RemoteCommonService->fetchFolder($this->DataStore, $cid, false, 'I', $this->constructDefaultCollectionProperties());
@@ -104,10 +104,10 @@ class RemoteTasksService {
 	 * 
 	 * @return TaskCollectionObject  	TaskCollectionObject on success / Null on failure
 	 */
-	public function createCollection(string $cht, string $chl, string $name): ?TaskCollectionObject {
+	public function collectionCreate(string $cht, string $chl, string $name): ?TaskCollectionObject {
         
 		// execute command
-		$rs = $RemoteCommonService->createCollection($this->DataStore, $cht, $chl, $name, EasTypes::COLLECTION_TYPE_USER_TASKS);
+		$rs = $RemoteCommonService->collectionCreate($this->DataStore, $cht, $chl, $name, EasTypes::COLLECTION_TYPE_USER_TASKS);
         // process response
 		if (isset($rs->Status) && $rs->Status->getContents() == '1') {
 		    return new TaskCollectionObject(
@@ -160,10 +160,10 @@ class RemoteTasksService {
 	 * 
 	 * @return bool 					True on success / Null on failure
 	 */
-    public function deleteCollection(string $cht, string $cid): bool {
+    public function collectionDelete(string $cht, string $cid): bool {
         
 		// execute command
-        $rs = $this->RemoteCommonService->deleteCollection($this->DataStore, $cht, $cid);
+        $rs = $this->RemoteCommonService->collectionDelete($this->DataStore, $cht, $cid);
 		// process response
         if (isset($rs->CollectionDelete->Status) && $rs->CollectionDelete->Status->getContents() == '1') {
             return true;
@@ -220,10 +220,10 @@ class RemoteTasksService {
 	 * 
 	 * @return TaskObject       	TaskObject on success / Null on failure
 	 */
-	public function fetchEntity(string $cid, string &$cst, string $eid): ?TaskObject {
+	public function entityFetch(string $cid, string &$cst, string $eid): ?TaskObject {
 
         // execute command
-		$ro = $this->RemoteCommonService->fetchEntity($this->DataStore, $cid, $eid, ['BODY' => EasTypes::BODY_TYPE_TEXT]);
+		$ro = $this->RemoteCommonService->entityFetch($this->DataStore, $cid, $eid, ['BODY' => EasTypes::BODY_TYPE_TEXT]);
         // validate response
 		if (isset($ro->Status) && $ro->Status->getContents() == '1') {
             // convert to contact object
@@ -272,12 +272,12 @@ class RemoteTasksService {
 	 * 
 	 * @return TaskObject        	TaskObject on success / Null on failure
 	 */
-	public function createEntity(string $cid, string &$cst, TaskObject $so): ?TaskObject {
+	public function entityCreate(string $cid, string &$cst, TaskObject $so): ?TaskObject {
 
         // convert source TaskObject to EasObject
         $to = $this->fromTaskObject($so);
 	    // execute command
-	    $ro = $this->RemoteCommonService->createEntity($this->DataStore, $cid, $cst, EasTypes::ENTITY_TYPE_CALENDAR, $to);
+	    $ro = $this->RemoteCommonService->entityCreate($this->DataStore, $cid, $cst, EasTypes::ENTITY_TYPE_CALENDAR, $to);
         // evaluate response
         if (isset($ro->Status) && $ro->Status->getContents() == '1') {
             // extract signature token
@@ -292,7 +292,7 @@ class RemoteTasksService {
 			// deposit attachment(s)
 			if (count($to->Attachments) > 0) {
 				// create attachments in remote data store
-				$to->Attachments = $this->createCollectionItemAttachment($to->ID, $to->Attachments);
+				$to->Attachments = $this->collectionCreateItemAttachment($to->ID, $to->Attachments);
 				$to->Signature = $to->Attachments[0]->AffiliateState;
 			}
             // generate a signature for the entity
@@ -317,12 +317,12 @@ class RemoteTasksService {
 	 * 
 	 * @return TaskObject        	TaskObject on success / Null on failure
 	 */
-	public function updateEntity(string $cid, string &$cst, string $eid, TaskObject $so): ?TaskObject {
+	public function entityModify(string $cid, string &$cst, string $eid, TaskObject $so): ?TaskObject {
 
         // convert source TaskObject to EasObject
         $to = $this->fromTaskObject($so);
 	    // execute command
-	    $ro = $this->RemoteCommonService->updateEntity($this->DataStore, $cid, $cst, $eid, $ro);
+	    $ro = $this->RemoteCommonService->entityModify($this->DataStore, $cid, $cst, $eid, $ro);
         // evaluate response
         if (isset($ro->Status) && $ro->Status->getContents() == '1') {
             // extract signature token
@@ -335,7 +335,7 @@ class RemoteTasksService {
 			// deposit attachment(s)
 			if (count($so->Attachments) > 0) {
 				// create attachments in remote data store
-				$to->Attachments = $this->createCollectionItemAttachment($to->ID, $to->Attachments);
+				$to->Attachments = $this->collectionCreateItemAttachment($to->ID, $to->Attachments);
 				$to->Signature = $to->Attachments[0]->AffiliateState;
 			}
             // generate a signature for the entity
@@ -359,10 +359,10 @@ class RemoteTasksService {
 	 * 
 	 * @return bool                 True on success / False on failure
 	 */
-    public function deleteEntity(string $cid, string $cst, string $eid): bool {
+    public function entityDelete(string $cid, string $cst, string $eid): bool {
         
         // execute command
-        $rs = $this->RemoteCommonService->deleteEntity($this->DataStore, $cid, $cst, $eid);
+        $rs = $this->RemoteCommonService->entityDelete($this->DataStore, $cid, $cst, $eid);
         // evaluate response
         if ($rs) {
             return true;

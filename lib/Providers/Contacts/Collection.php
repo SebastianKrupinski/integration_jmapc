@@ -186,7 +186,7 @@ class Collection extends ExternalAddressBook implements \Sabre\DAV\IMultiGet {
         $lo['signature'] = md5($data);
 		$lo['data'] = $data;
 		// deposit entry to data store
-		$this->_store->createEntity($lo);
+		$this->_store->entityCreate($lo);
 		// return state
 		return $lo['signature'];
 
@@ -222,7 +222,7 @@ class Collection extends ExternalAddressBook implements \Sabre\DAV\IMultiGet {
         $lo['signature'] = md5($data);
 		$lo['data'] = $data;
 		// deposit entry to data store
-		$this->_store->modifyEntity($id, $lo);
+		$this->_store->entityModify($id, $lo);
 		// return state
 		return $lo['signature'];
 
@@ -238,7 +238,7 @@ class Collection extends ExternalAddressBook implements \Sabre\DAV\IMultiGet {
 	function deleteFile($id) {
 
 		// delete entry from data store and return result
-		return $this->_store->deleteEntity($id);
+		return $this->_store->entityDelete($id);
 
 	}
 
@@ -250,7 +250,7 @@ class Collection extends ExternalAddressBook implements \Sabre\DAV\IMultiGet {
 	function getChildren() {
 		
 		// retrieve entries
-		$entries = $this->_store->listEntitiesByCollection($this->_uid, $this->_id);
+		$entries = $this->_store->entityListByCollection($this->_uid, $this->_id);
 		// list entries
 		$list = [];
 		foreach ($entries as $entry) {
@@ -273,7 +273,7 @@ class Collection extends ExternalAddressBook implements \Sabre\DAV\IMultiGet {
 		// remove extension
 		$id = str_replace('.vcf', '', $id);
 		// retrieve object properties
-		$entry = $this->_store->fetchEntityByUUID($this->_uid, $id);
+		$entry = $this->_store->entityFetchByUUID($this->_uid, $id);
 		// evaluate if object properties where retrieved 
 		if (isset($entry['uuid'])) {
 			return new Entity($this, $entry['id'], $entry['uuid'], (string) $entry['label'], $entry);
@@ -298,7 +298,7 @@ class Collection extends ExternalAddressBook implements \Sabre\DAV\IMultiGet {
 		// retrieve entities
 		foreach ($ids as $id) {
 			// retrieve object properties
-			$entry = $this->_store->fetchEntityByUUID($this->_uid, $id);
+			$entry = $this->_store->entityFetchByUUID($this->_uid, $id);
 			// evaluate if object properties where retrieved 
 			if (isset($entry['uuid'])) {
 				$list[] = new Entity($this, $entry['id'], $entry['uuid'], (string) $entry['label'], $entry);
@@ -322,7 +322,7 @@ class Collection extends ExternalAddressBook implements \Sabre\DAV\IMultiGet {
 		// remove extension
 		$id = str_replace('.vcf', '', $id);
 		// confim object exists
-		return $this->_store->confirmEntityByUUID($this->_uid, $id);
+		return $this->_store->entityConfirmByUUID($this->_uid, $id);
 
 	}
 
@@ -332,19 +332,9 @@ class Collection extends ExternalAddressBook implements \Sabre\DAV\IMultiGet {
 	function delete() {
 
 		// delete local entities
-		$this->_store->deleteEntitiesByCollection($this->_uid, $this->_id);
+		$this->_store->entityDeleteByCollection($this->_uid, $this->_id);
 		// delete local collection
-		$this->_store->deleteCollection($this->_id);
-		// initilize correlation service
-		$CorrelationsService = \OC::$server->get(\OCA\JMAPC\Service\CorrelationsService::class);
-		// retrieve correlation entry
-		$cr = $CorrelationsService->findByLocalId($this->_uid, $CorrelationsService::ContactCollection, $this->_id);
-		// evaluate if correlation was found
-		if (isset($cr)) {
-			// delete correlations
-			$CorrelationsService->deleteByCollectionId($cr->getuid(), $cr->getloid(), $cr->getroid());
-			$CorrelationsService->delete($cr);
-		}
+		$this->_store->collectionDelete($this->_id);
 
 	}
 
@@ -372,7 +362,7 @@ class Collection extends ExternalAddressBook implements \Sabre\DAV\IMultiGet {
 		// evaluate if any mutations apply
 		if (isset($mutations['{DAV:}displayname']) || isset($mutations['{http://apple.com/ns/ical/}calendar-color'])) {
 			// retrieve collection
-			if ($this->_store->confirmCollection($this->_id)) {
+			if ($this->_store->collectionConfirm($this->_id)) {
 				// construct place holder
 				$entry = [];
 				// evaluate if name was changed
@@ -387,7 +377,7 @@ class Collection extends ExternalAddressBook implements \Sabre\DAV\IMultiGet {
 				}
 				// update collection
 				if (count($entry) > 0) {
-					$this->_store->modifyCollection($this->_id, $entry);
+					$this->_store->collectionModify($this->_id, $entry);
 				}
 			}
 		}

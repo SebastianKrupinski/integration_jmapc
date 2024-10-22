@@ -26,15 +26,12 @@ declare(strict_types=1);
 return [
 	'routes' => [
 		['name' => 'AdminConfiguration#depositConfiguration', 'url' => '/admin-configuration', 'verb' => 'PUT'],
-		['name' => 'UserConfiguration#listServices', 'url' => '/service-list', 'verb' => 'GET'],
-		['name' => 'UserConfiguration#ConnectAlternate', 'url' => '/connect-alternate', 'verb' => 'GET'],
-		['name' => 'UserConfiguration#ConnectMS365', 'url' => '/connect-ms365', 'verb' => 'GET'],
-		['name' => 'UserConfiguration#Disconnect', 'url' => '/disconnect', 'verb' => 'GET'],
-		['name' => 'UserConfiguration#Harmonize', 'url' => '/harmonize', 'verb' => 'GET'],
-		['name' => 'UserConfiguration#fetchCollections', 'url' => '/fetch-collections', 'verb' => 'GET'],
-		['name' => 'UserConfiguration#fetchCorrelations', 'url' => '/fetch-correlations', 'verb' => 'GET'],
-		['name' => 'UserConfiguration#depositCorrelations', 'url' => '/deposit-correlations', 'verb' => 'PUT'],
-		['name' => 'UserConfiguration#fetchPreferences', 'url' => '/fetch-preferences', 'verb' => 'GET'],
-		['name' => 'UserConfiguration#depositPreferences', 'url' => '/deposit-preferences', 'verb' => 'PUT'],
+		//['name' => 'UserConfiguration#Connect', 'url' => '/connect', 'verb' => 'GET'],
+		//['name' => 'UserConfiguration#Disconnect', 'url' => '/disconnect', 'verb' => 'GET'],
+		//['name' => 'UserConfiguration#Harmonize', 'url' => '/harmonize', 'verb' => 'GET'],
+		//['name' => 'UserConfiguration#serviceList', 'url' => '/service-list', 'verb' => 'GET'],
+		//['name' => 'UserConfiguration#remoteCollectionsFetch', 'url' => '/remote-collections-fetch', 'verb' => 'GET'],
+		//['name' => 'UserConfiguration#localCollectionsFetch', 'url' => '/local-collections-fetch', 'verb' => 'GET'],
+		//['name' => 'UserConfiguration#localCollectionsDeposit', 'url' => '/local-collections-deposit', 'verb' => 'PUT'],
 	]
 ];

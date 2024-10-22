@@ -25,7 +25,8 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Store;
 
-use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCA\JMAPC\Store\CollectionEntity;
+use OCA\JMAPC\Store\TaskEntity;
 use OCP\IDBConnection;
 
 class TaskStore extends BaseStore {
@@ -35,8 +36,10 @@ class TaskStore extends BaseStore {
 		$this->_Store = $store;
 		$this->_CollectionTable = 'jmapc_collections';
 		$this->_CollectionIdentifier = 'TC';
+		$this->_CollectionClass = 'OCA\JMAPC\Store\CollectionEntity';
 		$this->_EntityTable = 'jmapc_entities_task';
 		$this->_EntityIdentifier = 'TE';
+		$this->_EntityClass = 'OCA\JMAPC\Store\TaskEntity';
 		$this->_ChronicleTable = 'jmapc_chronicle';
 
 	}

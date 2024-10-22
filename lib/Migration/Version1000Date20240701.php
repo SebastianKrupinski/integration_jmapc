@@ -55,74 +55,126 @@ class Version1000Date20240701 extends SimpleMigrationStep {
 				'length' => 255,
 				'notnull' => true
 			]);
-			// correlation type
-			$table->addColumn('type', Types::STRING, [
-				'length' => 4,
-				'notnull' => true
-			]);
-			// affiliation id
-			$table->addColumn('aid', Types::INTEGER, [
-				'notnull' => false
-			]);
-			// local object id
-			$table->addColumn('loid', Types::STRING, [
-				'length' => 255,
-				'notnull' => true
-			]);
-			// local collection id
-			$table->addColumn('lcid', Types::STRING, [
+			// service label
+			$table->addColumn('label', Types::STRING, [
 				'length' => 255,
 				'notnull' => false
 			]);
-			// local object state
-			$table->addColumn('losignature', Types::STRING, [
+
+
+			// service location protocol
+			$table->addColumn('location_protocol', Types::STRING, [
+				'length' => 8,
+				'notnull' => true
+			]);
+			// service location host
+			$table->addColumn('location_host', Types::STRING, [
+				'length' => 255,
+				'notnull' => true
+			]);
+			// service location port
+			$table->addColumn('location_port', Types::INTEGER, [
+				'notnull' => true,
+				'default' => 443
+			]);
+			// service location path
+			$table->addColumn('location_path', Types::STRING, [
 				'length' => 255,
 				'notnull' => false
 			]);
-			// remote object id
-			$table->addColumn('roid', Types::STRING, [
-				'length' => 1024,
+			// service location security
+			$table->addColumn('location_security', Types::INTEGER, [
+				'notnull' => true,
+				'default' => 1
+			]);
+
+
+			// service authentication
+			$table->addColumn('auth', Types::STRING, [
+				'length' => 8,
 				'notnull' => true
 			]);
-			// remote collection id
-			$table->addColumn('rcid', Types::STRING, [
-				'length' => 1024,
+			// service authentication basic id
+			$table->addColumn('bauth_id', Types::STRING, [
+				'length' => 255,
 				'notnull' => false
 			]);
-			// remote object state
-			$table->addColumn('rosignature', Types::STRING, [
-				'length' => 1024,
+			// service authentication basic secret
+			$table->addColumn('bauth_secret', Types::STRING, [
+				'length' => 255,
 				'notnull' => false
 			]);
-			// Lock state
-			$table->addColumn('hlock', Types::INTEGER, [
-				'notnull' => true,
-				'default' => '0',
+
+			// service authentication bearer id
+			$table->addColumn('oauth_id', Types::STRING, [
+				'length' => 255,
+				'notnull' => false
 			]);
-			// Lock holder
-			$table->addColumn('hlockhd', Types::INTEGER, [
-				'notnull' => true,
-				'default' => '0',
+			// service authentication bearer access token
+			$table->addColumn('oauth_access_token', Types::STRING, [
+				'length' => 255,
+				'notnull' => false
 			]);
-			// Lock heart beat
-			$table->addColumn('hlockhb', Types::INTEGER, [
-				'notnull' => true,
-				'default' => '0',
+			// service authentication bearer access location
+			$table->addColumn('oauth_access_location', new \Doctrine\DBAL\Types\TextType, [
+				'notnull' => false
 			]);
-			// Lock heart beat
-			$table->addColumn('hperformed', Types::INTEGER, [
-				'notnull' => true,
-				'default' => '0',
+			// service authentication bearer access expiry
+			$table->addColumn('oauth_access_expiry', Types::INTEGER, [
+				'notnull' => false
 			]);
-			// Lock heart beat
-			$table->addColumn('haltered', Types::INTEGER, [
-				'notnull' => true,
-				'default' => '0',
+
+			// service authentication bearer refresh token
+			$table->addColumn('oauth_refresh_token', Types::STRING, [
+				'length' => 255,
+				'notnull' => false
 			]);
+			// service authentication bearer refresh location
+			$table->addColumn('oauth_refresh_location', new \Doctrine\DBAL\Types\TextType, [
+				'notnull' => false
+			]);
+
+			// service connected
+			$table->addColumn('connected', Types::INTEGER, [
+				'notnull' => false
+			]);
+			// service enabled
+			$table->addColumn('enabled', Types::INTEGER, [
+				'notnull' => false
+			]);
+			// contacts harmonization
+			$table->addColumn('contacts_harmonize', Types::INTEGER, [
+				'notnull' => false
+			]);
+			// contacts prevalence
+			$table->addColumn('contacts_prevalence', Types::STRING, [
+				'length' => 2,
+				'notnull' => false
+			]);	
+			// events harmonization
+			$table->addColumn('events_harmonize', Types::INTEGER, [
+				'notnull' => false
+			]);
+			// events prevalence
+			$table->addColumn('events_prevalence', Types::STRING, [
+				'length' => 2,
+				'notnull' => false
+			]);	
+			// tasks harmonization
+			$table->addColumn('tasks_harmonize', Types::INTEGER, [
+				'notnull' => false
+			]);
+			// tasks prevalence
+			$table->addColumn('tasks_prevalence', Types::STRING, [
+				'length' => 2,
+				'notnull' => false
+			]);			
 
 			$table->setPrimaryKey(['id']);
 		}
 
 		return $schema;
 	}
+
+
 }

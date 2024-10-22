@@ -30,7 +30,7 @@ use OCA\JMAPC\Providers\ServiceLocation;
 use OCA\JMAPC\Providers\ServiceIdentityBAuth;
 use OCA\JMAPC\Providers\ServiceIdentityOAuth;
 use OCA\JMAPC\Providers\Mail\Message;
-use OCA\JMAPC\Service\Remote\RemoteClientService;
+use OCA\JMAPC\Service\Remote\RemoteService;
 use OCP\Mail\Provider\IAddress;
 use OCP\Mail\Provider\IMessage;
 use OCP\Mail\Provider\IMessageSend;
@@ -136,7 +136,7 @@ class Service implements IService, IMessageSend {
 	}
 
 	/**
-	 * sets the localized human frendly name of this service
+	 * sets the localized human friendly name of this service
 	 *
 	 * @since 2024.05.25
 	 *
@@ -316,10 +316,10 @@ class Service implements IService, IMessageSend {
 
 		if ($this->mailService === null) {
 			// construct data store client
-			$client = RemoteClientService::createClientFromService($this->serviceLocation, $this->serviceIdentity);
+			$client = RemoteService::initializeStoreFromService($this->serviceLocation, $this->serviceIdentity);
 			// load action service
 			$this->mailService = $this->container->get(\OCA\JMAPC\Service\MailMessageService::class);
-			$this->mailService->initilize($this->userId, $client);
+			$this->mailService->initialize($this->userId, $client);
 		}
 		
 		return $this->mailService;

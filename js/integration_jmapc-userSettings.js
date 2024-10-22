@@ -4258,11 +4258,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _nextcloud_vue_dist_Components_NcSelect_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! @nextcloud/vue/dist/Components/NcSelect.js */ "./node_modules/@nextcloud/vue/dist/Components/NcSelect.js");
 /* harmony import */ var _nextcloud_vue_dist_Components_NcSelect_js__WEBPACK_IMPORTED_MODULE_9___default = /*#__PURE__*/__webpack_require__.n(_nextcloud_vue_dist_Components_NcSelect_js__WEBPACK_IMPORTED_MODULE_9__);
 /* harmony import */ var _icons_JmapIcon_vue__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./icons/JmapIcon.vue */ "./src/components/icons/JmapIcon.vue");
-/* harmony import */ var vue_material_design_icons_Check_vue__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! vue-material-design-icons/Check.vue */ "./node_modules/vue-material-design-icons/Check.vue");
-/* harmony import */ var vue_material_design_icons_Close_vue__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! vue-material-design-icons/Close.vue */ "./node_modules/vue-material-design-icons/Close.vue");
-/* harmony import */ var vue_material_design_icons_Calendar_vue__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! vue-material-design-icons/Calendar.vue */ "./node_modules/vue-material-design-icons/Calendar.vue");
-/* harmony import */ var vue_material_design_icons_ContactsOutline_vue__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! vue-material-design-icons/ContactsOutline.vue */ "./node_modules/vue-material-design-icons/ContactsOutline.vue");
-/* harmony import */ var vue_material_design_icons_Link_vue__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! vue-material-design-icons/Link.vue */ "./node_modules/vue-material-design-icons/Link.vue");
+/* harmony import */ var vue_material_design_icons_AccountPlus_vue__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! vue-material-design-icons/AccountPlus.vue */ "./node_modules/vue-material-design-icons/AccountPlus.vue");
+/* harmony import */ var vue_material_design_icons_Check_vue__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! vue-material-design-icons/Check.vue */ "./node_modules/vue-material-design-icons/Check.vue");
+/* harmony import */ var vue_material_design_icons_Close_vue__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! vue-material-design-icons/Close.vue */ "./node_modules/vue-material-design-icons/Close.vue");
+/* harmony import */ var vue_material_design_icons_Calendar_vue__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! vue-material-design-icons/Calendar.vue */ "./node_modules/vue-material-design-icons/Calendar.vue");
+/* harmony import */ var vue_material_design_icons_ContactsOutline_vue__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! vue-material-design-icons/ContactsOutline.vue */ "./node_modules/vue-material-design-icons/ContactsOutline.vue");
+/* harmony import */ var vue_material_design_icons_Link_vue__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! vue-material-design-icons/Link.vue */ "./node_modules/vue-material-design-icons/Link.vue");
+
 
 
 
@@ -4289,28 +4291,29 @@ __webpack_require__.r(__webpack_exports__);
     NcColorPicker: (_nextcloud_vue_dist_Components_NcColorPicker_js__WEBPACK_IMPORTED_MODULE_8___default()),
     NcSelect: (_nextcloud_vue_dist_Components_NcSelect_js__WEBPACK_IMPORTED_MODULE_9___default()),
     JmapIcon: _icons_JmapIcon_vue__WEBPACK_IMPORTED_MODULE_10__["default"],
-    CheckIcon: vue_material_design_icons_Check_vue__WEBPACK_IMPORTED_MODULE_11__["default"],
-    CloseIcon: vue_material_design_icons_Close_vue__WEBPACK_IMPORTED_MODULE_12__["default"],
-    CalendarIcon: vue_material_design_icons_Calendar_vue__WEBPACK_IMPORTED_MODULE_13__["default"],
-    ContactIcon: vue_material_design_icons_ContactsOutline_vue__WEBPACK_IMPORTED_MODULE_14__["default"],
-    LinkIcon: vue_material_design_icons_Link_vue__WEBPACK_IMPORTED_MODULE_15__["default"]
+    AccountAddIcon: vue_material_design_icons_AccountPlus_vue__WEBPACK_IMPORTED_MODULE_11__["default"],
+    CheckIcon: vue_material_design_icons_Check_vue__WEBPACK_IMPORTED_MODULE_12__["default"],
+    CloseIcon: vue_material_design_icons_Close_vue__WEBPACK_IMPORTED_MODULE_13__["default"],
+    CalendarIcon: vue_material_design_icons_Calendar_vue__WEBPACK_IMPORTED_MODULE_14__["default"],
+    ContactIcon: vue_material_design_icons_ContactsOutline_vue__WEBPACK_IMPORTED_MODULE_15__["default"],
+    LinkIcon: vue_material_design_icons_Link_vue__WEBPACK_IMPORTED_MODULE_16__["default"]
   },
   props: [],
   data() {
     return {
       readonly: true,
-      state: (0,_nextcloud_initial_state__WEBPACK_IMPORTED_MODULE_2__.loadState)('integration_jmapc', 'user-configuration'),
+      systemConfiguration: (0,_nextcloud_initial_state__WEBPACK_IMPORTED_MODULE_2__.loadState)('integration_jmapc', 'system-configuration'),
       // services
-      availableServicesCollection: [],
+      configuredServices: [],
       // contacts
-      availableContactCollections: [],
-      establishedContactCorrelations: [],
+      remoteContactCollections: [],
+      localContactCollections: [],
       // calendars
-      availableEventCollections: [],
-      establishedEventCorrelations: [],
+      remoteEventCollections: [],
+      localEventCollections: [],
       // tasks
-      availableTaskCollections: [],
-      establishedTaskCorrelations: [],
+      remoteTaskCollections: [],
+      localTaskCollections: [],
       configureManually: false,
       configureMail: false,
       selectedcolor: '',
@@ -4333,23 +4336,19 @@ __webpack_require__.r(__webpack_exports__);
   },
   methods: {
     loadData() {
-      this.listServices();
+      this.serviceList();
     },
-    onConnectAlternateClick() {
-      const uri = (0,_nextcloud_router__WEBPACK_IMPORTED_MODULE_1__.generateUrl)('/apps/integration_jmapc/connect-alternate');
+    onConnectClick() {
+      const uri = (0,_nextcloud_router__WEBPACK_IMPORTED_MODULE_1__.generateUrl)('/apps/integration_jmapc/connect');
       const data = {
         params: {
-          account_bauth_id: this.state.account_bauth_id,
-          account_bauth_secret: this.state.account_bauth_secret,
-          account_server: this.state.account_server,
-          flag: this.configureMail
+          service: this.selectedService
         }
       };
       _nextcloud_axios__WEBPACK_IMPORTED_MODULE_0__["default"].get(uri, data).then(response => {
         if (response.data === 'success') {
           (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Successfully connected to JMAP account');
-          this.state.account_connected = '1';
-          this.fetchPreferences();
+          this.selectedService.connected = 1;
           this.loadData();
         }
       }).catch(error => {
@@ -4357,55 +4356,41 @@ __webpack_require__.r(__webpack_exports__);
         (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showError)(t('integration_jmapc', 'Failed to authenticate with JMAP server') + ': ' + ((_error$response = error.response) === null || _error$response === void 0 || (_error$response = _error$response.request) === null || _error$response === void 0 ? void 0 : _error$response.responseText));
       });
     },
-    onConnectMS365Click() {
-      const ssoWindow = window.open(this.state.system_ms365_authrization_uri, t('integration_jmapc', 'Sign in Nextcloud JMAP Connector'), ' width=600, height=700');
-      ssoWindow.focus();
-      window.addEventListener('message', event => {
-        console.debug('Child window message received', event);
-        this.state.account_connected = '1';
-        this.fetchPreferences();
-        this.loadData();
-      });
-    },
     onDisconnectClick() {
       const uri = (0,_nextcloud_router__WEBPACK_IMPORTED_MODULE_1__.generateUrl)('/apps/integration_jmapc/disconnect');
       _nextcloud_axios__WEBPACK_IMPORTED_MODULE_0__["default"].get(uri).then(response => {
         (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Successfully disconnected from JMAP account');
         // state
-        this.state.account_connected = '0';
-        this.fetchPreferences();
+        this.selectedService.connected = 0;
         // contacts
-        this.availableContactCollections = [];
+        this.remoteContactCollections = [];
         this.availableLocalContactCollections = [];
-        this.establishedContactCorrelations = [];
+        this.localContactCollections = [];
         // events
-        this.availableEventCollections = [];
+        this.remoteEventCollections = [];
         this.availableLocalEventCollections = [];
-        this.establishedEventCorrelations = [];
+        this.localEventCollections = [];
         // tasks
-        this.availableTaskCollections = [];
+        this.remoteTaskCollections = [];
         this.availableLocalTaskCollections = [];
-        this.establishedTaskCorrelations = [];
+        this.localTaskCollections = [];
       }).catch(error => {
         var _error$response2;
         (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showError)(t('integration_jmapc', 'Failed to disconnect from JMAP account') + ': ' + ((_error$response2 = error.response) === null || _error$response2 === void 0 || (_error$response2 = _error$response2.request) === null || _error$response2 === void 0 ? void 0 : _error$response2.responseText));
       }).then(() => {});
     },
     onSaveClick() {
+      /*
       this.depositPreferences({
-        contacts_prevalence: this.state.contacts_prevalence,
-        contacts_harmonize: this.state.contacts_harmonize,
-        contacts_actions_local: this.state.contacts_actions_local,
-        contacts_actions_remote: this.state.contacts_actions_remote,
-        events_prevalence: this.state.events_prevalence,
-        events_harmonize: this.state.events_harmonize,
-        events_actions_local: this.state.events_actions_local,
-        events_actions_remote: this.state.events_actions_remote,
-        tasks_prevalence: this.state.tasks_prevalence,
-        tasks_harmonize: this.state.tasks_harmonize,
-        tasks_actions_local: this.state.tasks_actions_local,
-        tasks_actions_remote: this.state.tasks_actions_remote
-      });
+      	id: this.selectedService.id,
+      	contacts_prevalence: this.selectedService.contacts_prevalence,
+      	contacts_harmonize: this.selectedService.contacts_harmonize,
+      	events_prevalence: this.selectedService.events_prevalence,
+      	events_harmonize: this.selectedService.events_harmonize,
+      	tasks_prevalence: this.selectedService.tasks_prevalence,
+      	tasks_harmonize: this.selectedService.tasks_harmonize,
+      })
+      */
       this.depositCorrelations();
     },
     onHarmonizeClick() {
@@ -4417,232 +4402,217 @@ __webpack_require__.r(__webpack_exports__);
         (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showError)(t('integration_jmapc', 'Synchronization Failed') + ': ' + ((_error$response3 = error.response) === null || _error$response3 === void 0 || (_error$response3 = _error$response3.request) === null || _error$response3 === void 0 ? void 0 : _error$response3.responseText));
       });
     },
-    listServices() {
+    serviceList() {
       const uri = (0,_nextcloud_router__WEBPACK_IMPORTED_MODULE_1__.generateUrl)('/apps/integration_jmapc/service-list');
       _nextcloud_axios__WEBPACK_IMPORTED_MODULE_0__["default"].get(uri).then(response => {
         if (response.data) {
-          this.availableServicesCollection = response.data;
-          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.availableServicesCollection.length + ' Configured Services');
+          this.configuredServices = response.data;
+          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.configuredServices.length + ' Configured Services');
         }
       }).catch(error => {
         var _error$response4;
-        (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showError)(t('integration_jmapc', 'Failed to load remote collections list') + ': ' + ((_error$response4 = error.response) === null || _error$response4 === void 0 || (_error$response4 = _error$response4.request) === null || _error$response4 === void 0 ? void 0 : _error$response4.responseText));
+        (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showError)(t('integration_jmapc', 'Failed to load service list') + ': ' + ((_error$response4 = error.response) === null || _error$response4 === void 0 || (_error$response4 = _error$response4.request) === null || _error$response4 === void 0 ? void 0 : _error$response4.responseText));
       }).then(() => {});
     },
-    selectService(option) {
+    serviceSelect(option) {
       if (!option) {
         return;
       }
       this.selectedService = option;
+      this.remoteCollectionsFetch();
+      this.localCollectionsFetch();
     },
-    fetchCollections() {
-      const uri = (0,_nextcloud_router__WEBPACK_IMPORTED_MODULE_1__.generateUrl)('/apps/integration_jmapc/fetch-collections');
-      _nextcloud_axios__WEBPACK_IMPORTED_MODULE_0__["default"].get(uri).then(response => {
+    freshService() {
+      this.selectedService = {
+        label: 'New Connection'
+      };
+    },
+    remoteCollectionsFetch() {
+      const uri = (0,_nextcloud_router__WEBPACK_IMPORTED_MODULE_1__.generateUrl)('/apps/integration_jmapc/remote-collections-fetch');
+      const params = {
+        sid: this.selectedService.id
+      };
+      _nextcloud_axios__WEBPACK_IMPORTED_MODULE_0__["default"].get(uri, {
+        params
+      }).then(response => {
         if (response.data.ContactCollections) {
-          this.availableContactCollections = response.data.ContactCollections;
-          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.availableContactCollections.length + ' Remote Contacts Collections');
+          this.remoteContactCollections = response.data.ContactCollections;
+          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.remoteContactCollections.length + ' Remote Contacts Collections');
         }
         if (response.data.EventCollections) {
-          this.availableEventCollections = response.data.EventCollections;
-          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.availableEventCollections.length + ' Remote Events Collections');
+          this.remoteEventCollections = response.data.EventCollections;
+          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.remoteEventCollections.length + ' Remote Events Collections');
         }
         if (response.data.TaskCollections) {
-          this.availableTaskCollections = response.data.TaskCollections;
-          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.availableTaskCollections.length + ' Remote Tasks Collections');
+          this.remoteTaskCollections = response.data.TaskCollections;
+          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.remoteTaskCollections.length + ' Remote Tasks Collections');
         }
       }).catch(error => {
         var _error$response5;
-        (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showError)(t('integration_jmapc', 'Failed to load remote collections list') + ': ' + ((_error$response5 = error.response) === null || _error$response5 === void 0 || (_error$response5 = _error$response5.request) === null || _error$response5 === void 0 ? void 0 : _error$response5.responseText));
+        (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showError)(t('integration_jmapc', 'Failed to load remote collections') + ': ' + ((_error$response5 = error.response) === null || _error$response5 === void 0 || (_error$response5 = _error$response5.request) === null || _error$response5 === void 0 ? void 0 : _error$response5.responseText));
       }).then(() => {});
     },
-    fetchCorrelations() {
-      const uri = (0,_nextcloud_router__WEBPACK_IMPORTED_MODULE_1__.generateUrl)('/apps/integration_jmapc/fetch-correlations');
-      _nextcloud_axios__WEBPACK_IMPORTED_MODULE_0__["default"].get(uri).then(response => {
-        if (response.data.ContactCorrelations) {
-          this.establishedContactCorrelations = response.data.ContactCorrelations;
-          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.establishedContactCorrelations.length + ' Contact Collection Correlations');
+    localCollectionsFetch() {
+      const uri = (0,_nextcloud_router__WEBPACK_IMPORTED_MODULE_1__.generateUrl)('/apps/integration_jmapc/local-collections-fetch');
+      const params = {
+        sid: this.selectedService.id
+      };
+      _nextcloud_axios__WEBPACK_IMPORTED_MODULE_0__["default"].get(uri, {
+        params
+      }).then(response => {
+        if (response.data.ContactCollections) {
+          this.localContactCollections = response.data.ContactCollections;
+          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.localContactCollections.length + ' Local Contact Collections');
         }
-        if (response.data.EventCorrelations) {
-          this.establishedEventCorrelations = response.data.EventCorrelations;
-          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.establishedEventCorrelations.length + ' Event Collection Correlations');
+        if (response.data.EventCollections) {
+          this.localEventCollections = response.data.EventCollections;
+          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.localEventCollections.length + ' Local Event Collections');
         }
-        if (response.data.TaskCorrelations) {
-          this.establishedTaskCorrelations = response.data.TaskCorrelations;
-          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.establishedTaskCorrelations.length + ' Task Collection Correlations');
+        if (response.data.TaskCollections) {
+          this.localTaskCollections = response.data.TaskCollections;
+          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.localTaskCollections.length + ' Local Task Collections');
         }
       }).catch(error => {
         var _error$response6;
-        (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showError)(t('integration_jmapc', 'Failed to load collection correlations list') + ': ' + ((_error$response6 = error.response) === null || _error$response6 === void 0 || (_error$response6 = _error$response6.request) === null || _error$response6 === void 0 ? void 0 : _error$response6.responseText));
+        (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showError)(t('integration_jmapc', 'Failed to load remote collections') + ': ' + ((_error$response6 = error.response) === null || _error$response6 === void 0 || (_error$response6 = _error$response6.request) === null || _error$response6 === void 0 ? void 0 : _error$response6.responseText));
       }).then(() => {});
     },
-    depositCorrelations() {
-      const uri = (0,_nextcloud_router__WEBPACK_IMPORTED_MODULE_1__.generateUrl)('/apps/integration_jmapc/deposit-correlations');
+    localCollectionsDeposit() {
+      const uri = (0,_nextcloud_router__WEBPACK_IMPORTED_MODULE_1__.generateUrl)('/apps/integration_jmapc/local-collections-deposit');
       const data = {
-        ContactCorrelations: this.establishedContactCorrelations,
-        EventCorrelations: this.establishedEventCorrelations,
-        TaskCorrelations: this.establishedTaskCorrelations
+        id: this.selectedService.id,
+        ContactCorrelations: this.localContactCollections,
+        EventCorrelations: this.localEventCollections,
+        TaskCorrelations: this.localTaskCollections
       };
       _nextcloud_axios__WEBPACK_IMPORTED_MODULE_0__["default"].put(uri, data).then(response => {
         (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Saved correlations');
         if (response.data.ContactCorrelations) {
-          this.establishedContactCorrelations = response.data.ContactCorrelations;
-          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.establishedContactCorrelations.length + ' Contact Collection Correlations');
+          this.localContactCollections = response.data.ContactCorrelations;
+          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.localContactCollections.length + ' Contact Collection Correlations');
         }
         if (response.data.EventCorrelations) {
-          this.establishedEventCorrelations = response.data.EventCorrelations;
-          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.establishedEventCorrelations.length + ' Event Collection Correlations');
+          this.localEventCollections = response.data.EventCorrelations;
+          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.localEventCollections.length + ' Event Collection Correlations');
         }
         if (response.data.TaskCorrelations) {
-          this.establishedTaskCorrelations = response.data.TaskCorrelations;
-          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.establishedTaskCorrelations.length + ' Task Collection Correlations');
+          this.localTaskCollections = response.data.TaskCorrelations;
+          (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)('Found ' + this.localTaskCollections.length + ' Task Collection Correlations');
         }
       }).catch(error => {
         var _error$response7;
         (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showError)(t('integration_jmapc', 'Failed to save correlations') + ': ' + ((_error$response7 = error.response) === null || _error$response7 === void 0 || (_error$response7 = _error$response7.request) === null || _error$response7 === void 0 ? void 0 : _error$response7.responseText));
       }).then(() => {});
     },
-    fetchPreferences() {
-      const uri = (0,_nextcloud_router__WEBPACK_IMPORTED_MODULE_1__.generateUrl)('/apps/integration_jmapc/fetch-preferences');
-      _nextcloud_axios__WEBPACK_IMPORTED_MODULE_0__["default"].get(uri).then(response => {
-        if (response.data) {
-          this.state = response.data;
-        }
-      }).catch(error => {
-        (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showError)(t('integration_jmapc', 'Failed to retrieve preferences') + ': ' + error.response.request.responseText);
-      }).then(() => {});
-    },
-    depositPreferences(values) {
-      const data = {
-        values
-      };
-      const uri = (0,_nextcloud_router__WEBPACK_IMPORTED_MODULE_1__.generateUrl)('/apps/integration_jmapc/deposit-preferences');
-      _nextcloud_axios__WEBPACK_IMPORTED_MODULE_0__["default"].put(uri, data).then(response => {
-        (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showSuccess)(t('integration_jmapc', 'Saved preferences'));
-      }).catch(error => {
-        (0,_nextcloud_dialogs__WEBPACK_IMPORTED_MODULE_3__.showError)(t('integration_jmapc', 'Failed to save preferences') + ': ' + error.response.request.responseText);
-      }).then(() => {});
-    },
     changeContactCorrelation(roid, e) {
-      const cid = this.establishedContactCorrelations.findIndex(i => String(i.roid) === String(roid));
+      const cid = this.localContactCollections.findIndex(i => String(i.roid) === String(roid));
       if (cid === -1) {
-        this.establishedContactCorrelations.push({
+        this.localContactCollections.push({
           id: null,
           roid,
           type: 'CC',
           enabled: e
         });
       } else {
-        this.establishedContactCorrelations[cid].enabled = e;
+        this.localContactCollections[cid].enabled = e;
       }
     },
     changeEventCorrelation(roid, e) {
-      const cid = this.establishedEventCorrelations.findIndex(i => String(i.roid) === String(roid));
+      const cid = this.localEventCollections.findIndex(i => String(i.roid) === String(roid));
       if (cid === -1) {
-        this.establishedEventCorrelations.push({
+        this.localEventCollections.push({
           id: null,
           roid,
           type: 'EC',
           enabled: e
         });
       } else {
-        this.establishedEventCorrelations[cid].enabled = e;
+        this.localEventCollections[cid].enabled = e;
       }
     },
     changeTaskCorrelation(roid, e) {
-      const cid = this.establishedTaskCorrelations.findIndex(i => String(i.roid) === String(roid));
+      const cid = this.localTaskCollections.findIndex(i => String(i.roid) === String(roid));
       if (cid === -1) {
-        this.establishedTaskCorrelations.push({
+        this.localTaskCollections.push({
           id: null,
           roid,
           type: 'TC',
           enabled: e
         });
       } else {
-        this.establishedTaskCorrelations[cid].enabled = e;
+        this.localTaskCollections[cid].enabled = e;
       }
     },
-    establishedContactCorrelation(roid, label) {
-      const citem = this.establishedContactCorrelations.find(i => String(i.roid) === String(roid));
-      if (typeof citem !== 'undefined') {
-        if (Boolean(citem.enabled) === true) {
-          return true;
-        } else {
-          return false;
-        }
+    establishedContactCorrelation(ccid) {
+      const collection = this.localContactCollections.find(i => String(i.ccid) === String(ccid));
+      if (typeof collection !== 'undefined') {
+        return true;
       } else {
-        this.establishedContactCorrelations.push({
-          id: null,
-          roid,
-          type: 'CC',
-          label,
-          color: this.randomColor(),
-          enabled: false
-        });
         return false;
       }
     },
-    establishedEventCorrelation(roid, label) {
-      const citem = this.establishedEventCorrelations.find(i => String(i.roid) === String(roid));
-      if (typeof citem !== 'undefined') {
-        if (Boolean(citem.enabled) === true) {
-          return true;
-        } else {
-          return false;
-        }
+    establishedEventCorrelation(ccid) {
+      const collection = this.localEventCollections.find(i => String(i.ccid) === String(ccid));
+      if (typeof collection !== 'undefined') {
+        return true;
       } else {
-        this.establishedEventCorrelations.push({
-          id: null,
-          roid,
-          type: 'EC',
-          label,
-          color: this.randomColor(),
-          enabled: false
-        });
         return false;
       }
     },
-    establishedTaskCorrelation(roid, label) {
-      const citem = this.establishedTaskCorrelations.find(i => String(i.roid) === String(roid));
-      if (typeof citem !== 'undefined') {
-        if (Boolean(citem.enabled) === true) {
-          return true;
-        } else {
-          return false;
-        }
+    establishedTaskCorrelation(ccid) {
+      const collection = this.localTaskCollections.find(i => String(i.ccid) === String(ccid));
+      if (typeof collection !== 'undefined') {
+        return true;
       } else {
-        this.establishedTaskCorrelations.push({
-          id: null,
-          roid,
-          type: 'TC',
-          label,
-          color: this.randomColor(),
-          enabled: false
-        });
         return false;
       }
     },
-    establishedContactCorrelationColor(roid) {
-      const citem = this.establishedContactCorrelations.find(i => String(i.roid) === String(roid));
-      if (typeof citem !== 'undefined') {
-        return citem.color || this.randomColor();
+    establishedContactCorrelationColor(ccid) {
+      const collection = this.localContactCollections.find(i => String(i.ccid) === String(ccid));
+      if (typeof collection !== 'undefined') {
+        return collection.color || this.randomColor();
       } else {
         return this.randomColor();
       }
     },
-    establishedEventCorrelationColor(roid) {
-      const citem = this.establishedEventCorrelations.find(i => String(i.roid) === String(roid));
-      if (typeof citem !== 'undefined') {
-        return citem.color || this.randomColor();
+    establishedEventCorrelationColor(ccid) {
+      const collection = this.localEventCollections.find(i => String(i.ccid) === String(ccid));
+      if (typeof collection !== 'undefined') {
+        return collection.color || this.randomColor();
       } else {
         return this.randomColor();
       }
     },
-    establishedTaskCorrelationColor(roid) {
-      const citem = this.establishedTaskCorrelations.find(i => String(i.roid) === String(roid));
-      if (typeof citem !== 'undefined') {
-        return citem.color || this.randomColor();
+    establishedTaskCorrelationColor(ccid) {
+      const collection = this.localTaskCollections.find(i => String(i.ccid) === String(ccid));
+      if (typeof collection !== 'undefined') {
+        return collection.color || this.randomColor();
       } else {
         return this.randomColor();
+      }
+    },
+    establishedContactCorrelationHarmonized(ccid) {
+      const collection = this.localContactCollections.find(i => String(i.ccid) === String(ccid));
+      if (typeof collection !== 'undefined') {
+        return collection.hlockhb || 0;
+      } else {
+        return 0;
+      }
+    },
+    establishedEventCorrelationHarmonized(ccid) {
+      const collection = this.localEventCollections.find(i => String(i.ccid) === String(ccid));
+      if (typeof collection !== 'undefined') {
+        return collection.hlockhb || 0;
+      } else {
+        return 0;
+      }
+    },
+    establishedTaskCorrelationHarmonized(ccid) {
+      const collection = this.localTaskCollections.find(i => String(i.ccid) === String(ccid));
+      if (typeof collection !== 'undefined') {
+        return collection.hlockhb || 0;
+      } else {
+        return 0;
       }
     },
     formatDate(dt) {
@@ -4712,196 +4682,299 @@ var render = function render() {
       "id": "jmapc_settings"
     }
   }, [_c('div', {
-    staticClass: "jmapc-section-heading"
+    staticClass: "jmapc-page-title"
   }, [_c('JmapIcon', {
+    staticClass: "logo",
     attrs: {
       "size": 32
     }
-  }), _c('h2', [_vm._v(" " + _vm._s(_vm.t('integration_jmapc', 'JMAP Connector')))])], 1), _vm._v(" "), _c('div', {
+  }), _vm._v(" "), _c('h2', {
+    staticClass: "label"
+  }, [_vm._v("\n\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'JMAP Connector')) + "\n\t\t")])], 1), _vm._v(" "), _c('div', {
     staticClass: "jmapc-section-services"
   }, [_c('label', [_vm._v("\n\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Services')) + "\n\t\t")]), _vm._v(" "), _c('NcSelect', {
     attrs: {
       "clearable": false,
       "searchable": false,
-      "options": _vm.availableServicesCollection,
+      "options": _vm.configuredServices,
       "value": _vm.selectedService
     },
     on: {
-      "option:selected": _vm.selectService
+      "option:selected": _vm.serviceSelect
     }
+  }), _vm._v(" "), _c('NcButton', {
+    on: {
+      "click": _vm.freshService
+    },
+    scopedSlots: _vm._u([{
+      key: "icon",
+      fn: function () {
+        return [_c('AccountAddIcon', {
+          attrs: {
+            "size": 20
+          }
+        })];
+      },
+      proxy: true
+    }])
   })], 1), _vm._v(" "), _vm.selectedService !== null ? _c('div', {
-    staticClass: "jmapc-content"
-  }, [_c('h3', [_vm._v(_vm._s(_vm.t('integration_jmapc', 'Authentication')))]), _vm._v(" "), _vm.selectService.connected !== '1' ? _c('div', [_c('div', [_c('div', {
-    staticClass: "settings-hint"
-  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Enter your JMAP Server and account information then press connect.')) + "\n\t\t\t\t")]), _vm._v(" "), _c('div', {
-    staticClass: "fields"
+    staticClass: "jmapc-section-content"
+  }, [_c('h3', [_vm._v(_vm._s(_vm.t('integration_jmapc', 'Connection')))]), _vm._v(" "), !Boolean(_vm.selectedService.connected) ? _c('div', {
+    staticClass: "jmapc-section-parameters"
   }, [_c('div', {
-    staticClass: "line"
+    staticClass: "description"
+  }, [_vm._v("\n\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Enter your JMAP Server and account information then press connect.')) + "\n\t\t\t")]), _vm._v(" "), _c('div', {
+    staticClass: "parameter"
   }, [_c('label', {
     attrs: {
       "for": "jmapc-account-description"
     }
-  }, [_c('JmapIcon'), _vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Account Description')) + "\n\t\t\t\t\t\t")], 1), _vm._v(" "), _c('NcTextField', {
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Account Description')) + "\n\t\t\t\t")]), _vm._v(" "), _c('NcTextField', {
+    style: {
+      width: '48ch'
+    },
     attrs: {
-      "id": "jmapc-account-id",
+      "id": "jmapc-account-description",
       "type": "text",
-      "placeholder": _vm.t('integration_jmapc', 'Description for this Account'),
       "autocomplete": "off",
       "autocorrect": "off",
-      "autocapitalize": "none"
+      "autocapitalize": "none",
+      "value": _vm.selectedService.label,
+      "label-outside": true,
+      "placeholder": _vm.t('integration_jmapc', 'Description for this Account')
     },
-    model: {
-      value: _vm.selectedService.label,
-      callback: function ($$v) {
-        _vm.$set(_vm.selectedService, "label", $$v);
-      },
-      expression: "selectedService.label"
+    on: {
+      "update:value": function ($event) {
+        return _vm.$set(_vm.selectedService, "label", $event);
+      }
     }
-  })], 1), _vm._v(" "), _c('div', {
-    staticClass: "line"
+  })], 1), _vm._v(" "), _vm.selectedService.auth === 'BA' || _vm.selectedService.auth === 'JB' ? _c('div', {
+    staticClass: "parameter"
   }, [_c('label', {
     attrs: {
-      "for": "jmapc-account-id"
+      "for": "jmapc-account-bauth-id"
     }
-  }, [_c('JmapIcon'), _vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Account ID')) + "\n\t\t\t\t\t\t")], 1), _vm._v(" "), _c('NcTextField', {
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Account ID')) + "\n\t\t\t\t")]), _vm._v(" "), _c('NcTextField', {
+    style: {
+      width: '48ch'
+    },
     attrs: {
-      "id": "jmapc-account-id",
+      "id": "jmapc-account-bauth-id",
       "type": "text",
-      "placeholder": _vm.t('integration_jmapc', 'Authentication ID for your Account'),
       "autocomplete": "off",
       "autocorrect": "off",
-      "autocapitalize": "none"
+      "autocapitalize": "none",
+      "value": _vm.selectedService.bauth_id,
+      "placeholder": _vm.t('integration_jmapc', 'Authentication ID for your Account')
     },
-    model: {
-      value: _vm.selectedService.bauth_id,
-      callback: function ($$v) {
-        _vm.$set(_vm.selectedService, "bauth_id", $$v);
-      },
-      expression: "selectedService.bauth_id"
+    on: {
+      "update:value": function ($event) {
+        return _vm.$set(_vm.selectedService, "bauth_id", $event);
+      }
     }
-  })], 1), _vm._v(" "), _c('div', {
-    staticClass: "line"
+  })], 1) : _vm._e(), _vm._v(" "), _vm.selectedService.auth === 'BA' || _vm.selectedService.auth === 'JB' ? _c('div', {
+    staticClass: "parameter"
   }, [_c('label', {
     attrs: {
-      "for": "jmapc-account-secret"
+      "for": "jmapc-account-bauth-secret"
     }
-  }, [_c('JmapIcon'), _vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Account Secret')) + "\n\t\t\t\t\t\t")], 1), _vm._v(" "), _c('NcPasswordField', {
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Account Secret')) + "\n\t\t\t\t")]), _vm._v(" "), _c('NcPasswordField', {
+    style: {
+      width: '48ch'
+    },
     attrs: {
-      "id": "jmapc-account-secret",
+      "id": "jmapc-account-bauth-secret",
       "type": "password",
-      "placeholder": _vm.t('integration_jmapc', 'Authentication secret for your Account'),
       "autocomplete": "off",
       "autocorrect": "off",
-      "autocapitalize": "none"
+      "autocapitalize": "none",
+      "value": _vm.selectedService.bauth_secret,
+      "placeholder": _vm.t('integration_jmapc', 'Authentication secret for your Account')
     },
-    model: {
-      value: _vm.selectedService.bauth_secret,
-      callback: function ($$v) {
-        _vm.$set(_vm.selectedService, "bauth_secret", $$v);
-      },
-      expression: "selectedService.bauth_secret"
+    on: {
+      "update:value": function ($event) {
+        return _vm.$set(_vm.selectedService, "bauth_secret", $event);
+      }
     }
-  })], 1), _vm._v(" "), _c('div', {
-    staticClass: "line"
+  })], 1) : _vm._e(), _vm._v(" "), _vm.selectedService.auth === 'OA' ? _c('div', {
+    staticClass: "parameter"
+  }, [_c('label', {
+    attrs: {
+      "for": "jmapc-account-oauth-id"
+    }
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Account ID')) + "\n\t\t\t\t")]), _vm._v(" "), _c('NcTextField', {
+    style: {
+      width: '48ch'
+    },
+    attrs: {
+      "id": "jmapc-account-oauth-id",
+      "type": "text",
+      "autocomplete": "off",
+      "autocorrect": "off",
+      "autocapitalize": "none",
+      "value": _vm.selectedService.oauth_id,
+      "placeholder": _vm.t('integration_jmapc', 'Authentication ID for your Account')
+    },
+    on: {
+      "update:value": function ($event) {
+        return _vm.$set(_vm.selectedService, "oauth_id", $event);
+      }
+    }
+  })], 1) : _vm._e(), _vm._v(" "), _vm.selectedService.auth === 'OA' ? _c('div', {
+    staticClass: "parameter"
+  }, [_c('label', {
+    attrs: {
+      "for": "jmapc-account-oauth-token"
+    }
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Account Token')) + "\n\t\t\t\t")]), _vm._v(" "), _c('NcPasswordField', {
+    style: {
+      width: '48ch'
+    },
+    attrs: {
+      "id": "jmapc-account-oauth-token",
+      "type": "password",
+      "autocomplete": "off",
+      "autocorrect": "off",
+      "autocapitalize": "none",
+      "value": _vm.selectedService.oauth_access_token,
+      "placeholder": _vm.t('integration_jmapc', 'Authentication secret for your Account')
+    },
+    on: {
+      "update:value": function ($event) {
+        return _vm.$set(_vm.selectedService, "oauth_access_token", $event);
+      }
+    }
+  })], 1) : _vm._e(), _vm._v(" "), _c('div', {
+    staticClass: "parameter"
   }, [_c('label', {
     attrs: {
       "for": "jmapc-service-authentication"
     }
-  }, [_c('JmapIcon'), _vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Authentication Type')) + "\n\t\t\t\t\t\t")], 1), _vm._v(" "), _c('NcCheckboxRadioSwitch', {
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Authentication Type')) + "\n\t\t\t\t")]), _vm._v(" "), _c('NcCheckboxRadioSwitch', {
     attrs: {
-      "name": "sharing_permission_radio",
-      "button-variant": true,
+      "name": "service_auth",
+      "type": "radio",
       "value": "BA",
-      "type": "radio",
-      "button-variant-grouped": "horizontal"
-    },
-    model: {
-      value: _vm.selectedService.auth,
-      callback: function ($$v) {
-        _vm.$set(_vm.selectedService, "auth", $$v);
-      },
-      expression: "selectedService.auth"
-    }
-  }, [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Basic')) + "\n\t\t\t\t\t\t")]), _vm._v(" "), _c('NcCheckboxRadioSwitch', {
-    attrs: {
-      "name": "sharing_permission_radio",
+      "button-variant-grouped": "horizontal",
       "button-variant": true,
-      "value": "OA",
-      "type": "radio",
-      "button-variant-grouped": "horizontal"
+      "checked": _vm.selectedService.auth
     },
-    model: {
-      value: _vm.selectedService.auth,
-      callback: function ($$v) {
-        _vm.$set(_vm.selectedService, "auth", $$v);
-      },
-      expression: "selectedService.auth"
+    on: {
+      "update:checked": [function ($event) {
+        return _vm.$set(_vm.selectedService, "auth", $event);
+      }, value => _vm.selectedService.auth = value]
     }
-  }, [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'OAuth')) + "\n\t\t\t\t\t\t")])], 1), _vm._v(" "), _vm.configureManually ? _c('div', {
-    staticClass: "line"
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Basic')) + "\n\t\t\t\t")]), _vm._v(" "), _c('NcCheckboxRadioSwitch', {
+    attrs: {
+      "name": "service_auth",
+      "type": "radio",
+      "value": "OA",
+      "button-variant-grouped": "horizontal",
+      "button-variant": true,
+      "checked": _vm.selectedService.auth
+    },
+    on: {
+      "update:checked": [function ($event) {
+        return _vm.$set(_vm.selectedService, "auth", $event);
+      }, value => _vm.selectedService.auth = value]
+    }
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'OAuth')) + "\n\t\t\t\t")]), _vm._v(" "), _c('NcCheckboxRadioSwitch', {
+    attrs: {
+      "name": "service_auth",
+      "type": "radio",
+      "value": "JB",
+      "button-variant-grouped": "horizontal",
+      "button-variant": true,
+      "checked": _vm.selectedService.auth
+    },
+    on: {
+      "update:checked": [function ($event) {
+        return _vm.$set(_vm.selectedService, "auth", $event);
+      }, value => _vm.selectedService.auth = value]
+    }
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Json Basic')) + "\n\t\t\t\t")])], 1), _vm._v(" "), _vm.configureManually ? _c('div', {
+    staticClass: "parameter"
+  }, [_c('NcCheckboxRadioSwitch', {
+    attrs: {
+      "checked": _vm.selectedService.location_security,
+      "type": "switch"
+    },
+    on: {
+      "update:checked": function ($event) {
+        return _vm.$set(_vm.selectedService, "location_security", $event);
+      }
+    }
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_ews', 'Secure Transport Verification (SSL Certificate Verification). Should always be ON, unless connecting to a Exchange system over an internal LAN.')) + "\n\t\t\t\t")])], 1) : _vm._e(), _vm._v(" "), _vm.configureManually ? _c('div', {
+    staticClass: "parameter"
   }, [_c('label', {
     attrs: {
       "for": "jmapc-service-address"
     }
-  }, [_c('JmapIcon'), _vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Service Address')) + "\n\t\t\t\t\t\t")], 1), _vm._v(" "), _c('NcTextField', {
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Service Address')) + "\n\t\t\t\t")]), _vm._v(" "), _c('NcTextField', {
+    style: {
+      width: '48ch'
+    },
     attrs: {
       "id": "jmapc-service-address",
       "type": "text",
-      "placeholder": _vm.t('integration_jmapc', 'Service Address'),
       "autocomplete": "off",
       "autocorrect": "off",
-      "autocapitalize": "none"
+      "autocapitalize": "none",
+      "value": _vm.selectedService.location_host,
+      "placeholder": _vm.t('integration_jmapc', 'Service Address')
     },
-    model: {
-      value: _vm.selectedService.location_host,
-      callback: function ($$v) {
-        _vm.$set(_vm.selectedService, "location_host", $$v);
-      },
-      expression: "selectedService.location_host"
+    on: {
+      "update:value": function ($event) {
+        return _vm.$set(_vm.selectedService, "location_host", $event);
+      }
     }
   })], 1) : _vm._e(), _vm._v(" "), _vm.configureManually ? _c('div', {
-    staticClass: "line"
+    staticClass: "parameter"
   }, [_c('label', {
     attrs: {
       "for": "jmapc-service-port"
     }
-  }, [_c('JmapIcon'), _vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Service Port')) + "\n\t\t\t\t\t\t")], 1), _vm._v(" "), _c('NcTextField', {
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Service Port')) + "\n\t\t\t\t")]), _vm._v(" "), _c('NcTextField', {
+    style: {
+      width: '48ch'
+    },
     attrs: {
       "id": "jmapc-service-port",
       "type": "text",
-      "placeholder": _vm.t('integration_jmapc', 'Service Port'),
       "autocomplete": "off",
       "autocorrect": "off",
-      "autocapitalize": "none"
+      "autocapitalize": "none",
+      "value": _vm.selectedService.location_port,
+      "placeholder": _vm.t('integration_jmapc', 'Service Port')
     },
-    model: {
-      value: _vm.selectedService.location_port,
-      callback: function ($$v) {
-        _vm.$set(_vm.selectedService, "location_port", $$v);
-      },
-      expression: "selectedService.location_port"
+    on: {
+      "update:value": function ($event) {
+        return _vm.$set(_vm.selectedService, "location_port", $event);
+      }
     }
   })], 1) : _vm._e(), _vm._v(" "), _vm.configureManually ? _c('div', {
-    staticClass: "line"
+    staticClass: "parameter"
   }, [_c('label', {
     attrs: {
       "for": "jmapc-service-path"
     }
-  }, [_c('JmapIcon'), _vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Service Path')) + "\n\t\t\t\t\t\t")], 1), _vm._v(" "), _c('NcTextField', {
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Service Path')) + "\n\t\t\t\t")]), _vm._v(" "), _c('NcTextField', {
+    style: {
+      width: '48ch'
+    },
     attrs: {
       "id": "jmapc-service-path",
       "type": "text",
-      "placeholder": _vm.t('integration_jmapc', 'Service Path'),
       "autocomplete": "off",
       "autocorrect": "off",
-      "autocapitalize": "none"
+      "autocapitalize": "none",
+      "value": _vm.selectedService.location_path,
+      "placeholder": _vm.t('integration_jmapc', 'Service Path')
     },
-    model: {
-      value: _vm.selectedService.location_path,
-      callback: function ($$v) {
-        _vm.$set(_vm.selectedService, "location_path", $$v);
-      },
-      expression: "selectedService.location_path"
+    on: {
+      "update:value": function ($event) {
+        return _vm.$set(_vm.selectedService, "location_path", $event);
+      }
     }
   })], 1) : _vm._e(), _vm._v(" "), _c('div', [_c('NcCheckboxRadioSwitch', {
     attrs: {
@@ -4913,13 +4986,13 @@ var render = function render() {
         _vm.configureManually = $event;
       }
     }
-  }, [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Configure server manually')) + "\n\t\t\t\t\t\t")])], 1), _vm._v(" "), _c('div', {
-    staticClass: "line"
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Configure server manually')) + "\n\t\t\t\t")])], 1), _vm._v(" "), _c('div', {
+    staticClass: "actions"
   }, [_c('label', {
     staticClass: "jmapc-connect"
-  }, [_vm._v("\n\t\t\t\t\t\t\t \n\t\t\t\t\t\t")]), _vm._v(" "), _c('NcButton', {
+  }, [_vm._v("\n\t\t\t\t\t \n\t\t\t\t")]), _vm._v(" "), _c('NcButton', {
     on: {
-      "click": _vm.onConnectAlternateClick
+      "click": _vm.onConnectClick
     },
     scopedSlots: _vm._u([{
       key: "icon",
@@ -4928,7 +5001,7 @@ var render = function render() {
       },
       proxy: true
     }], null, false, 1355641774)
-  }, [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Connect')) + "\n\t\t\t\t\t\t")])], 1)])])]) : _c('div', [_c('div', {
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Connect')) + "\n\t\t\t\t")])], 1)]) : _c('div', [_c('div', {
     staticClass: "jmapc-connected"
   }, [_c('JmapIcon'), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Connected as {0} to {1}', {
     0: _vm.selectedService.address_primary,
@@ -4944,18 +5017,18 @@ var render = function render() {
       },
       proxy: true
     }], null, false, 2491825086)
-  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Disconnect')) + "\n\t\t\t\t")])], 1), _vm._v(" "), _c('div', [_vm._v("\n\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Synchronization was last started on ')) + " " + _vm._s(_vm.formatDate(_vm.state.account_harmonization_start)) + "\n\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'and finished on ')) + " " + _vm._s(_vm.formatDate(_vm.state.account_harmonization_end)) + "\n\t\t\t")]), _vm._v(" "), _c('br'), _vm._v(" "), _c('div', {
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Disconnect')) + "\n\t\t\t\t")])], 1), _vm._v(" "), _c('div', [_vm._v("\n\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Synchronization was last started on ')) + " " + _vm._s(_vm.formatDate(_vm.selectedService.harmonization_start)) + "\n\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'and finished on ')) + " " + _vm._s(_vm.formatDate(_vm.selectedService.harmonization_end)) + "\n\t\t\t")]), _vm._v(" "), _c('br'), _vm._v(" "), _c('div', {
     staticClass: "jmapc-correlations-contacts"
   }, [_c('h3', [_vm._v(_vm._s(_vm.t('integration_jmapc', 'Contacts')))]), _vm._v(" "), _c('div', {
     staticClass: "settings-hint"
-  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Select the remote contacts folder(s) you wish to synchronize by pressing the link button next to the contact folder name and selecting the local contacts address book to synchronize to.')) + "\n\t\t\t\t")]), _vm._v(" "), _vm.state.system_contacts == 1 ? _c('div', [_vm.availableContactCollections.length > 0 ? _c('ul', _vm._l(_vm.availableContactCollections, function (ritem) {
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Select the contacts collection(s) you wish to synchronize by using the toggle')) + "\n\t\t\t\t")]), _vm._v(" "), _vm.systemConfiguration.system_contacts ? _c('div', [_vm.remoteContactCollections.length > 0 ? _c('ul', _vm._l(_vm.remoteContactCollections, function (ritem) {
     return _c('li', {
       key: ritem.id,
       staticClass: "jmapc-collectionlist-item"
     }, [_c('NcCheckboxRadioSwitch', {
       attrs: {
         "type": "switch",
-        "checked": _vm.establishedContactCorrelation(ritem.id, ritem.name)
+        "checked": _vm.establishedContactCorrelation(ritem.id)
       },
       on: {
         "update:checked": function ($event) {
@@ -4969,61 +5042,19 @@ var render = function render() {
       attrs: {
         "inline": true
       }
-    }), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t" + _vm._s(ritem.name) + " (" + _vm._s(ritem.count) + " Contacts)\n\t\t\t\t\t\t\t")])], 1);
-  }), 0) : _vm.availableContactCollections.length == 0 ? _c('div', [_vm._v("\n\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'No contacts collections where found in the connected account.')) + "\n\t\t\t\t\t")]) : _c('div', [_vm._v("\n\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Loading contacts collections from the connected account.')) + "\n\t\t\t\t\t")]), _vm._v(" "), _c('br'), _vm._v(" "), _c('div', [_c('label', [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Synchronize ')) + "\n\t\t\t\t\t\t")]), _vm._v(" "), _c('NcSelect', {
-    attrs: {
-      "reduce": item => item.id,
-      "options": [{
-        label: 'Never',
-        id: '-1'
-      }, {
-        label: 'Manually',
-        id: '0'
-      }, {
-        label: 'Automatically',
-        id: '5'
-      }]
-    },
-    model: {
-      value: _vm.state.contacts_harmonize,
-      callback: function ($$v) {
-        _vm.$set(_vm.state, "contacts_harmonize", $$v);
-      },
-      expression: "state.contacts_harmonize"
-    }
-  }), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'and if there is a conflict')) + "\n\t\t\t\t\t\t")]), _vm._v(" "), _c('NcSelect', {
-    attrs: {
-      "reduce": item => item.id,
-      "options": [{
-        label: 'Remote',
-        id: 'R'
-      }, {
-        label: 'Local',
-        id: 'L'
-      }, {
-        label: 'Chronology',
-        id: 'C'
-      }]
-    },
-    model: {
-      value: _vm.state.contacts_prevalence,
-      callback: function ($$v) {
-        _vm.$set(_vm.state, "contacts_prevalence", $$v);
-      },
-      expression: "state.contacts_prevalence"
-    }
-  }), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'prevails')) + "\n\t\t\t\t\t\t")])], 1)]) : _c('div', [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'The contacts app is either disabled or not installed. Please contact your administrator to install or enable the app.')) + "\n\t\t\t\t")]), _vm._v(" "), _c('br')]), _vm._v(" "), _c('div', {
+    }), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t" + _vm._s(ritem.name) + "\n\t\t\t\t\t\t\t")]), _vm._v(" "), ritem.count > 0 ? _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t(" + _vm._s(ritem.count) + " " + _vm._s(_vm.t('integration_jmapc', 'Contacts')) + ")\n\t\t\t\t\t\t\t")]) : _vm._e(), _vm._v(" "), _vm.establishedContactCorrelationHarmonized(ritem.id) > 0 ? _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Last Harmonized')) + " " + _vm._s(_vm.formatDate(_vm.establishedContactCorrelationHarmonized(ritem.id))) + "\n\t\t\t\t\t\t\t")]) : _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Last Harmonized never')) + "\n\t\t\t\t\t\t\t")])], 1);
+  }), 0) : _vm.remoteContactCollections.length == 0 ? _c('div', [_vm._v("\n\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'No contacts collections where found in the connected account')) + "\n\t\t\t\t\t")]) : _c('div', [_vm._v("\n\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Loading contacts collections from the connected account')) + "\n\t\t\t\t\t")])]) : _c('div', [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'The contacts app is either disabled or not installed. Please contact your administrator to install or enable the app')) + "\n\t\t\t\t")]), _vm._v(" "), _c('br')]), _vm._v(" "), _c('div', {
     staticClass: "jmapc-correlations-events"
   }, [_c('h3', [_vm._v(_vm._s(_vm.t('integration_jmapc', 'Calendars')))]), _vm._v(" "), _c('div', {
     staticClass: "settings-hint"
-  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Select the remote calendar(s) you wish to synchronize by pressing the link button next to the calendars name and selecting the local calendar to synchronize to.')) + "\n\t\t\t\t")]), _vm._v(" "), _vm.state.system_events == 1 ? _c('div', [_vm.availableEventCollections.length > 0 ? _c('ul', _vm._l(_vm.availableEventCollections, function (ritem) {
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Select the events collection(s) you wish to synchronize by using the toggle')) + "\n\t\t\t\t")]), _vm._v(" "), _vm.systemConfiguration.system_events ? _c('div', [_vm.remoteEventCollections.length > 0 ? _c('ul', _vm._l(_vm.remoteEventCollections, function (ritem) {
     return _c('li', {
       key: ritem.id,
       staticClass: "jmapc-collectionlist-item"
     }, [_c('NcCheckboxRadioSwitch', {
       attrs: {
         "type": "switch",
-        "checked": _vm.establishedEventCorrelation(ritem.id, ritem.name)
+        "checked": _vm.establishedEventCorrelation(ritem.id)
       },
       on: {
         "update:checked": function ($event) {
@@ -5048,61 +5079,19 @@ var render = function render() {
       attrs: {
         "inline": true
       }
-    })], 1), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t" + _vm._s(ritem.name) + " (" + _vm._s(ritem.count) + " Events)\n\t\t\t\t\t\t\t")])], 1);
-  }), 0) : _vm.availableEventCollections.length == 0 ? _c('div', [_vm._v("\n\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'No events collections where found in the connected account.')) + "\n\t\t\t\t\t")]) : _c('div', [_vm._v("\n\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Loading events collections from the connected account.')) + "\n\t\t\t\t\t")]), _vm._v(" "), _c('br'), _vm._v(" "), _c('div', [_c('label', [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Synchronize ')) + "\n\t\t\t\t\t\t")]), _vm._v(" "), _c('NcSelect', {
-    attrs: {
-      "reduce": item => item.id,
-      "options": [{
-        label: 'Never',
-        id: '-1'
-      }, {
-        label: 'Manually',
-        id: '0'
-      }, {
-        label: 'Automatically',
-        id: '5'
-      }]
-    },
-    model: {
-      value: _vm.state.events_harmonize,
-      callback: function ($$v) {
-        _vm.$set(_vm.state, "events_harmonize", $$v);
-      },
-      expression: "state.events_harmonize"
-    }
-  }), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'and if there is a conflict')) + "\n\t\t\t\t\t\t")]), _vm._v(" "), _c('NcSelect', {
-    attrs: {
-      "reduce": item => item.id,
-      "options": [{
-        label: 'Remote',
-        id: 'R'
-      }, {
-        label: 'Local',
-        id: 'L'
-      }, {
-        label: 'Chronology',
-        id: 'C'
-      }]
-    },
-    model: {
-      value: _vm.state.events_prevalence,
-      callback: function ($$v) {
-        _vm.$set(_vm.state, "events_prevalence", $$v);
-      },
-      expression: "state.events_prevalence"
-    }
-  }), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'prevails')) + "\n\t\t\t\t\t\t")])], 1)]) : _c('div', [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'The contacts app is either disabled or not installed. Please contact your administrator to install or enable the app.')) + "\n\t\t\t\t")]), _vm._v(" "), _c('br')]), _vm._v(" "), _c('div', {
+    })], 1), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t" + _vm._s(ritem.name) + "\n\t\t\t\t\t\t\t")]), _vm._v(" "), ritem.count > 0 ? _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t(" + _vm._s(ritem.count) + " " + _vm._s(_vm.t('integration_jmapc', 'Events')) + ")\n\t\t\t\t\t\t\t")]) : _vm._e(), _vm._v(" "), _vm.establishedEventCorrelationHarmonized(ritem.id) > 0 ? _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Last Harmonized')) + " " + _vm._s(_vm.formatDate(_vm.establishedEventCorrelationHarmonized(ritem.id))) + "\n\t\t\t\t\t\t\t")]) : _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Last Harmonized never')) + "\n\t\t\t\t\t\t\t")])], 1);
+  }), 0) : _vm.remoteEventCollections.length == 0 ? _c('div', [_vm._v("\n\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'No events collections where found in the connected account')) + "\n\t\t\t\t\t")]) : _c('div', [_vm._v("\n\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Loading events collections from the connected account')) + "\n\t\t\t\t\t")])]) : _c('div', [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'The calendar app is either disabled or not installed. Please contact your administrator to install or enable the app')) + "\n\t\t\t\t")]), _vm._v(" "), _c('br')]), _vm._v(" "), _c('div', {
     staticClass: "jmapc-correlations-tasks"
   }, [_c('h3', [_vm._v(_vm._s(_vm.t('integration_jmapc', 'Tasks')))]), _vm._v(" "), _c('div', {
     staticClass: "settings-hint"
-  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Select the remote Task(s) folder you wish to synchronize by pressing the link button next to the folder name and selecting the local calendar to synchronize to.')) + "\n\t\t\t\t")]), _vm._v(" "), _vm.state.system_tasks == 1 ? _c('div', [_vm.availableTaskCollections.length > 0 ? _c('ul', _vm._l(_vm.availableTaskCollections, function (ritem) {
+  }, [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Select the task collection(s) you wish to synchronize by using the toggle')) + "\n\t\t\t\t")]), _vm._v(" "), _vm.systemConfiguration.system_tasks ? _c('div', [_vm.remoteTaskCollections.length > 0 ? _c('ul', _vm._l(_vm.remoteTaskCollections, function (ritem) {
     return _c('li', {
       key: ritem.id,
       staticClass: "jmapc-collectionlist-item"
     }, [_c('NcCheckboxRadioSwitch', {
       attrs: {
         "type": "switch",
-        "checked": _vm.establishedTaskCorrelation(ritem.id, ritem.name)
+        "checked": _vm.establishedTaskCorrelation(ritem.id)
       },
       on: {
         "update:checked": function ($event) {
@@ -5127,50 +5116,8 @@ var render = function render() {
       attrs: {
         "inline": true
       }
-    })], 1), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t" + _vm._s(ritem.name) + " (" + _vm._s(ritem.count) + " Tasks)\n\t\t\t\t\t\t\t")])], 1);
-  }), 0) : _vm.availableTaskCollections.length == 0 ? _c('div', [_vm._v("\n\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'No tasks collections where found in the connected account.')) + "\n\t\t\t\t\t")]) : _c('div', [_vm._v("\n\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Loading tasks collections from the connected account.')) + "\n\t\t\t\t\t")]), _vm._v(" "), _c('br'), _vm._v(" "), _c('div', [_c('label', [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Synchronize ')) + "\n\t\t\t\t\t\t")]), _vm._v(" "), _c('NcSelect', {
-    attrs: {
-      "reduce": item => item.id,
-      "options": [{
-        label: 'Never',
-        id: '-1'
-      }, {
-        label: 'Manually',
-        id: '0'
-      }, {
-        label: 'Automatically',
-        id: '5'
-      }]
-    },
-    model: {
-      value: _vm.state.tasks_harmonize,
-      callback: function ($$v) {
-        _vm.$set(_vm.state, "tasks_harmonize", $$v);
-      },
-      expression: "state.tasks_harmonize"
-    }
-  }), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'and if there is a conflict')) + "\n\t\t\t\t\t\t")]), _vm._v(" "), _c('NcSelect', {
-    attrs: {
-      "reduce": item => item.id,
-      "options": [{
-        label: 'Remote',
-        id: 'R'
-      }, {
-        label: 'Local',
-        id: 'L'
-      }, {
-        label: 'Chronology',
-        id: 'C'
-      }]
-    },
-    model: {
-      value: _vm.state.tasks_prevalence,
-      callback: function ($$v) {
-        _vm.$set(_vm.state, "tasks_prevalence", $$v);
-      },
-      expression: "state.tasks_prevalence"
-    }
-  }), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'prevails')) + "\n\t\t\t\t\t\t")])], 1)]) : _c('div', [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'The contacts app is either disabled or not installed. Please contact your administrator to install or enable the app.')) + "\n\t\t\t\t")]), _vm._v(" "), _c('br')]), _vm._v(" "), _c('div', {
+    })], 1), _vm._v(" "), _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t" + _vm._s(ritem.name) + "\n\t\t\t\t\t\t\t")]), _vm._v(" "), ritem.count > 0 ? _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t(" + _vm._s(ritem.count) + " " + _vm._s(_vm.t('integration_jmapc', 'Tasks')) + ")\n\t\t\t\t\t\t\t")]) : _vm._e(), _vm._v(" "), _vm.establishedTaskCorrelationHarmonized(ritem.id) > 0 ? _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Last Harmonized')) + " " + _vm._s(_vm.formatDate(_vm.establishedTaskCorrelationHarmonized(ritem.id))) + "\n\t\t\t\t\t\t\t")]) : _c('label', [_vm._v("\n\t\t\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Last Harmonized never')) + "\n\t\t\t\t\t\t\t")])], 1);
+  }), 0) : _vm.remoteTaskCollections.length == 0 ? _c('div', [_vm._v("\n\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'No tasks collections where found in the connected account.')) + "\n\t\t\t\t\t")]) : _c('div', [_vm._v("\n\t\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'Loading tasks collections from the connected account.')) + "\n\t\t\t\t\t")])]) : _c('div', [_vm._v("\n\t\t\t\t\t" + _vm._s(_vm.t('integration_jmapc', 'The tasks app is either disabled or not installed. Please contact your administrator to install or enable the app.')) + "\n\t\t\t\t")]), _vm._v(" "), _c('br')]), _vm._v(" "), _c('div', {
     staticClass: "jmapc-actions"
   }, [_c('NcButton', {
     on: {
@@ -5266,25 +5213,25 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var vue__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! vue */ "./node_modules/vue/dist/vue.runtime.esm.js");
 /* harmony import */ var _nextcloud_l10n__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @nextcloud/l10n */ "./node_modules/@nextcloud/l10n/dist/index.mjs");
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 
 
@@ -13855,38 +13802,74 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default()((_node_modules_css_loader_dist_runtime_noSourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default()));
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, `#jmapc_settings .jmapc-section-heading[data-v-49696e3e] {
+___CSS_LOADER_EXPORT___.push([module.id, `#jmapc_settings .jmapc-page-title[data-v-49696e3e] {
+  display: ruby;
+}
+#jmapc_settings .jmapc-page-title h2[data-v-49696e3e] {
+  padding-left: 1%;
+}
+#jmapc_settings .jmapc-page-title .logo[data-v-49696e3e] {
+  vertical-align: sub;
+  padding-left: 1%;
+}
+#jmapc_settings .jmapc-section-services[data-v-49696e3e] {
+  display: flex;
+  padding-left: 1%;
+}
+#jmapc_settings .jmapc-section-services label[data-v-49696e3e] {
   display: inline-block;
+  width: 25ch;
   vertical-align: middle;
 }
-#jmapc_settings .jmapc-connected[data-v-49696e3e] {
+#jmapc_settings .jmapc-section-connect h3[data-v-49696e3e] {
+  font-weight: bolder;
+  font-size: larger;
+}
+#jmapc_settings .jmapc-section-parameters[data-v-49696e3e] {
+  padding-bottom: 1%;
+}
+#jmapc_settings .jmapc-section-parameters .description[data-v-49696e3e] {
+  padding-bottom: 1%;
+}
+#jmapc_settings .jmapc-section-parameters .parameter[data-v-49696e3e] {
+  display: flex;
+  padding-bottom: 1%;
+}
+#jmapc_settings .jmapc-section-parameters .parameter label[data-v-49696e3e] {
+  display: inline-block;
+  width: 25ch;
+}
+#jmapc_settings .jmapc-section-parameters .actions[data-v-49696e3e] {
+  padding-top: 1%;
+}
+#jmapc_settings .jmapc-section-connected h3[data-v-49696e3e] {
+  font-weight: bolder;
+  font-size: larger;
+}
+#jmapc_settings .jmapc-section-connected-status[data-v-49696e3e] {
   display: flex;
   align-items: center;
 }
-#jmapc_settings .jmapc-connected label[data-v-49696e3e] {
-  padding-left: 1em;
-  padding-right: 1em;
+#jmapc_settings .jmapc-section-connected-status label[data-v-49696e3e] {
+  padding-right: 1%;
+}
+#jmapc_settings .jmapc-section-connected .description[data-v-49696e3e] {
+  padding-bottom: 1%;
+}
+#jmapc_settings .jmapc-section-connected ul[data-v-49696e3e] {
+  padding-bottom: 1%;
+}
+#jmapc_settings .jmapc-section-connected .actions[data-v-49696e3e] {
+  display: flex;
+  align-items: center;
 }
 #jmapc_settings .jmapc-collectionlist-item[data-v-49696e3e] {
   display: flex;
   align-items: center;
 }
 #jmapc_settings .jmapc-collectionlist-item label[data-v-49696e3e] {
-  padding-left: 1em;
-  padding-right: 1em;
-}
-#jmapc_settings .jmapc-actions[data-v-49696e3e] {
-  display: flex;
-  align-items: center;
-}
-#jmapc_settings .external-label[data-v-49696e3e] {
-  display: flex;
-  margin-top: 1rem;
-}
-#jmapc_settings .external-label label[data-v-49696e3e] {
-  padding-top: 7px;
-  padding-right: 14px;
-  white-space: nowrap;
+  padding-left: 1%;
+  padding-right: 1%;
 }`, ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
@@ -29152,6 +29135,78 @@ var isFocusable = function isFocusable(node, options) {
 
 /***/ }),
 
+/***/ "./node_modules/vue-material-design-icons/AccountPlus.vue":
+/*!****************************************************************!*\
+  !*** ./node_modules/vue-material-design-icons/AccountPlus.vue ***!
+  \****************************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _AccountPlus_vue_vue_type_template_id_9a2fdb2a___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./AccountPlus.vue?vue&type=template&id=9a2fdb2a& */ "./node_modules/vue-material-design-icons/AccountPlus.vue?vue&type=template&id=9a2fdb2a&");
+/* harmony import */ var _AccountPlus_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./AccountPlus.vue?vue&type=script&lang=js& */ "./node_modules/vue-material-design-icons/AccountPlus.vue?vue&type=script&lang=js&");
+/* harmony import */ var _vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! !../vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/vue-loader/lib/runtime/componentNormalizer.js");
+
+
+
+
+
+/* normalize component */
+;
+var component = (0,_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__["default"])(
+  _AccountPlus_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
+  _AccountPlus_vue_vue_type_template_id_9a2fdb2a___WEBPACK_IMPORTED_MODULE_0__.render,
+  _AccountPlus_vue_vue_type_template_id_9a2fdb2a___WEBPACK_IMPORTED_MODULE_0__.staticRenderFns,
+  false,
+  null,
+  null,
+  null
+  
+)
+
+/* hot reload */
+if (false) { var api; }
+component.options.__file = "node_modules/vue-material-design-icons/AccountPlus.vue"
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (component.exports);
+
+/***/ }),
+
+/***/ "./node_modules/vue-loader/lib/index.js??vue-loader-options!./node_modules/vue-material-design-icons/AccountPlus.vue?vue&type=script&lang=js&":
+/*!****************************************************************************************************************************************************!*\
+  !*** ./node_modules/vue-loader/lib/index.js??vue-loader-options!./node_modules/vue-material-design-icons/AccountPlus.vue?vue&type=script&lang=js& ***!
+  \****************************************************************************************************************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
+  name: "AccountPlusIcon",
+  emits: ['click'],
+  props: {
+    title: {
+      type: String,
+    },
+    fillColor: {
+      type: String,
+      default: "currentColor"
+    },
+    size: {
+      type: Number,
+      default: 24
+    }
+  }
+});
+
+
+/***/ }),
+
 /***/ "./node_modules/vue-material-design-icons/AlertCircleOutline.vue":
 /*!***********************************************************************!*\
   !*** ./node_modules/vue-material-design-icons/AlertCircleOutline.vue ***!
@@ -30751,6 +30806,22 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
+/***/ "./node_modules/vue-material-design-icons/AccountPlus.vue?vue&type=script&lang=js&":
+/*!*****************************************************************************************!*\
+  !*** ./node_modules/vue-material-design-icons/AccountPlus.vue?vue&type=script&lang=js& ***!
+  \*****************************************************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _vue_loader_lib_index_js_vue_loader_options_AccountPlus_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../vue-loader/lib/index.js??vue-loader-options!./AccountPlus.vue?vue&type=script&lang=js& */ "./node_modules/vue-loader/lib/index.js??vue-loader-options!./node_modules/vue-material-design-icons/AccountPlus.vue?vue&type=script&lang=js&");
+ /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_vue_loader_lib_index_js_vue_loader_options_AccountPlus_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
 /***/ "./node_modules/vue-material-design-icons/AlertCircleOutline.vue?vue&type=script&lang=js&":
 /*!************************************************************************************************!*\
   !*** ./node_modules/vue-material-design-icons/AlertCircleOutline.vue?vue&type=script&lang=js& ***!
@@ -31068,6 +31139,23 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var _vue_loader_lib_index_js_vue_loader_options_UndoVariant_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../vue-loader/lib/index.js??vue-loader-options!./UndoVariant.vue?vue&type=script&lang=js& */ "./node_modules/vue-loader/lib/index.js??vue-loader-options!./node_modules/vue-material-design-icons/UndoVariant.vue?vue&type=script&lang=js&");
  /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_vue_loader_lib_index_js_vue_loader_options_UndoVariant_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
+/***/ "./node_modules/vue-material-design-icons/AccountPlus.vue?vue&type=template&id=9a2fdb2a&":
+/*!***********************************************************************************************!*\
+  !*** ./node_modules/vue-material-design-icons/AccountPlus.vue?vue&type=template&id=9a2fdb2a& ***!
+  \***********************************************************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   render: () => (/* reexport safe */ _vue_loader_lib_loaders_templateLoader_js_ruleSet_1_rules_3_vue_loader_lib_index_js_vue_loader_options_AccountPlus_vue_vue_type_template_id_9a2fdb2a___WEBPACK_IMPORTED_MODULE_0__.render),
+/* harmony export */   staticRenderFns: () => (/* reexport safe */ _vue_loader_lib_loaders_templateLoader_js_ruleSet_1_rules_3_vue_loader_lib_index_js_vue_loader_options_AccountPlus_vue_vue_type_template_id_9a2fdb2a___WEBPACK_IMPORTED_MODULE_0__.staticRenderFns)
+/* harmony export */ });
+/* harmony import */ var _vue_loader_lib_loaders_templateLoader_js_ruleSet_1_rules_3_vue_loader_lib_index_js_vue_loader_options_AccountPlus_vue_vue_type_template_id_9a2fdb2a___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../vue-loader/lib/loaders/templateLoader.js??ruleSet[1].rules[3]!../vue-loader/lib/index.js??vue-loader-options!./AccountPlus.vue?vue&type=template&id=9a2fdb2a& */ "./node_modules/vue-loader/lib/loaders/templateLoader.js??ruleSet[1].rules[3]!./node_modules/vue-loader/lib/index.js??vue-loader-options!./node_modules/vue-material-design-icons/AccountPlus.vue?vue&type=template&id=9a2fdb2a&");
+
 
 /***/ }),
 
@@ -31407,6 +31495,26 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   staticRenderFns: () => (/* reexport safe */ _vue_loader_lib_loaders_templateLoader_js_ruleSet_1_rules_3_vue_loader_lib_index_js_vue_loader_options_UndoVariant_vue_vue_type_template_id_d35261f6___WEBPACK_IMPORTED_MODULE_0__.staticRenderFns)
 /* harmony export */ });
 /* harmony import */ var _vue_loader_lib_loaders_templateLoader_js_ruleSet_1_rules_3_vue_loader_lib_index_js_vue_loader_options_UndoVariant_vue_vue_type_template_id_d35261f6___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../vue-loader/lib/loaders/templateLoader.js??ruleSet[1].rules[3]!../vue-loader/lib/index.js??vue-loader-options!./UndoVariant.vue?vue&type=template&id=d35261f6& */ "./node_modules/vue-loader/lib/loaders/templateLoader.js??ruleSet[1].rules[3]!./node_modules/vue-loader/lib/index.js??vue-loader-options!./node_modules/vue-material-design-icons/UndoVariant.vue?vue&type=template&id=d35261f6&");
+
+
+/***/ }),
+
+/***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js??ruleSet[1].rules[3]!./node_modules/vue-loader/lib/index.js??vue-loader-options!./node_modules/vue-material-design-icons/AccountPlus.vue?vue&type=template&id=9a2fdb2a&":
+/*!***************************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??ruleSet[1].rules[3]!./node_modules/vue-loader/lib/index.js??vue-loader-options!./node_modules/vue-material-design-icons/AccountPlus.vue?vue&type=template&id=9a2fdb2a& ***!
+  \***************************************************************************************************************************************************************************************************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   render: () => (/* binding */ render),
+/* harmony export */   staticRenderFns: () => (/* binding */ staticRenderFns)
+/* harmony export */ });
+var render = function render(){var _vm=this,_c=_vm._self._c;return _c('span',_vm._b({staticClass:"material-design-icon account-plus-icon",attrs:{"aria-hidden":!_vm.title,"aria-label":_vm.title,"role":"img"},on:{"click":function($event){return _vm.$emit('click', $event)}}},'span',_vm.$attrs,false),[_c('svg',{staticClass:"material-design-icon__svg",attrs:{"fill":_vm.fillColor,"width":_vm.size,"height":_vm.size,"viewBox":"0 0 24 24"}},[_c('path',{attrs:{"d":"M15,14C12.33,14 7,15.33 7,18V20H23V18C23,15.33 17.67,14 15,14M6,10V7H4V10H1V12H4V15H6V12H9V10M15,12A4,4 0 0,0 19,8A4,4 0 0,0 15,4A4,4 0 0,0 11,8A4,4 0 0,0 15,12Z"}},[(_vm.title)?_c('title',[_vm._v(_vm._s(_vm.title))]):_vm._e()])])])
+}
+var staticRenderFns = []
+render._withStripped = true
 
 
 /***/ }),
@@ -66465,25 +66573,25 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _language_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./language.js */ "./src/language.js");
 /* harmony import */ var _components_UserSettings_vue__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./components/UserSettings.vue */ "./src/components/UserSettings.vue");
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 
 

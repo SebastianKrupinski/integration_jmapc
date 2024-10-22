@@ -56,7 +56,7 @@ class MailMessageService {
 		$this->remoteMailService = $remoteMailService;
 	}
 
-	public function initilize(string $uid, JmapClient $remoteStore): void {
+	public function initialize(string $uid, JmapClient $remoteStore): void {
 
 		$this->userId = $uid;
 		$this->remoteStore = $remoteStore;
@@ -64,22 +64,22 @@ class MailMessageService {
 		if (!$this->remoteStore->sessionStatus()) {
 			$this->remoteStore->connect();
 		}
-		// initilize remote service
+		// initialize remote service
 		$this->remoteMailService->initialize($remoteStore);
-		// initilize internal settings
-		$this->initilizeSession();
-		$this->initilizeCollectionRoles();
+		// initialize internal settings
+		$this->initializeSession();
+		$this->initializeCollectionRoles();
 		
 	}
 
-	protected function initilizeSession() {
+	protected function initializeSession() {
 		
 		// retrieve default account
-		$this->servicePrimaryAccount = $this->remoteStore->sessionAccountDefault();
+		$this->servicePrimaryAccount = $this->remoteStore->sessionAccountDefault('mail');
 		$this->serviceSelectedAccount = $this->servicePrimaryAccount;
 		// retrieve accounts
 		$this->serviceAvailableAccounts = $this->remoteStore->sessionAccounts();
-		// retrieve identies
+		// retrieve identities
 		$collection = $this->remoteMailService->identityFetch($this->servicePrimaryAccount);
 		foreach ($collection as $entry) {
 			$this->serviceAvailableIdentities[$entry->address()] = $entry;
@@ -87,7 +87,7 @@ class MailMessageService {
 
 	}
 
-	protected function initilizeCollectionRoles() {
+	protected function initializeCollectionRoles() {
 
 		// retrieve collections
 		$collectionList = $this->collectionList('', '');

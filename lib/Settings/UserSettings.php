@@ -34,30 +34,23 @@ use OCA\JMAPC\Service\ConfigurationService;
 
 class UserSettings implements ISettings {
 
-	/**
-	 * @var IInitialState
-	 */
-	private $initialStateService;
-	/**
-	 * @var string|null
-	 */
-	private $userId;
-
-	public function __construct(IInitialState $initialStateService, ConfigurationService $ConfigurationService, string $userId) {
-		$this->initialStateService = $initialStateService;
-		$this->ConfigurationService = $ConfigurationService;
-		$this->userId = $userId;
-	}
+	public function __construct(
+		private IInitialState $initialStateService, 
+		private ConfigurationService $configurationService,
+		private string $userId
+	) {}
 
 	/**
 	 * @return TemplateResponse
 	 */
 	public function getForm(): TemplateResponse {
 		
-		// retrieve user configuration
-		$configuration = $this->ConfigurationService->retrieveUser($this->userId);
+		// retrieve system configuration
+		$configuration['system_contacts'] = $this->configurationService->isContactsAppAvailable();
+		$configuration['system_events'] = $this->configurationService->isCalendarAppAvailable();
+		$configuration['system_tasks'] = $this->configurationService->isTasksAppAvailable();
 		
-		$this->initialStateService->provideInitialState('user-configuration', $configuration);
+		$this->initialStateService->provideInitialState('system-configuration', $configuration);
 
 		return new TemplateResponse(Application::APP_ID, 'userSettings');
 	}

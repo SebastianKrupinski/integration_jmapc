@@ -8,6 +8,9 @@
     <licence>agpl</licence>
     <author mail="krupinski01@gmail.com">Sebastian Krupinski</author>
     <namespace>JMAPC</namespace>
+    <types>
+        <dav/>
+    </types>
     <documentation>
         <developer>https://github.com/SebastianKrupinski/integration_jmapc</developer>
     </documentation>

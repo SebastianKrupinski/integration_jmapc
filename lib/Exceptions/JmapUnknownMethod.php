@@ -23,27 +23,7 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Exceptions;
 
-class ContactCollectionObject {
-
-    public string $id,
-        public string $name = null,
-        public string $signature = null,
-        public int $count = null,
-        public string $aid = null
-        
-    public function __construct(
-        public string $id,
-        public string $name = null,
-        public string $signature = null,
-        public int $count = null,
-        public string $aid = null
-    ) {
-        $this->Id = $id;
-        $this->Name = $name;
-        $this->Signature = $signature;
-        $this->Count = $count;
-        $this->AffiliationId = $aid;
-	}
+class JmapUnknownMethod extends \Exception {
 }

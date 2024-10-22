@@ -121,7 +121,7 @@ export default {
 				values: {
 					harmonization_mode: this.state.harmonization_mode,
 					harmonization_thread_duration: this.state.harmonization_thread_duration,
-					harmonization_thread_pause: this.state.harmonization_thread_pause
+					harmonization_thread_pause: this.state.harmonization_thread_pause,
 				},
 			}
 			const url = generateUrl('/apps/integration_jmapc/admin-configuration')

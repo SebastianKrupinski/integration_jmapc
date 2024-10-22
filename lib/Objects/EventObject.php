@@ -32,35 +32,35 @@ class EventObject {
 
     public ?string $Origin = null;                 // Source System / L - Local / R - Remote
     public ?string $ID = null;                     // Source System Id
-    public ?string $UUID = null;                   // Object UUID
     public ?string $CID = null;                    // Source System Object Collection Affiliation Id
     public ?string $Signature = null;              // Source System Object State
     public ?DateTime $CreatedOn = null;            // Source System Creation Date/Time
     public ?DateTime $ModifiedOn = null;           // Source System Modification Date/Time
+    public ?string $CCID = null;                   // Correlation Collection Id
+    public ?string $CEID = null;                   // Correlation Entity Id
+    public ?string $CESN = null;                   // Correlation Entity Signature
+    public ?string $UUID = null;                   // Event UUID
     public ?DateTime $StartsOn = null;             // Event Start Date/Time
     public ?DateTimeZone $StartsTZ = null;         // Event Start Time Zone
     public ?DateTime $EndsOn = null;               // Event End Date/Time
     public ?DateTimeZone $EndsTZ = null;           // Event End Time Zone
     public ?DateTimeZone $TimeZone = null;         // Event Time Zone
     public ?string $Label = null;                  // Event Title/Summary
-    public ?string $Notes = null;                  // Event Notes
+    public ?string $Description = null;            // Event Description
     public ?string $Location = null;               // Event Location
     public ?string $Availability = null;           // Event Free Busy Status / F - Free / B - Busy
     public ?string $Priority = null;               // Event Priority / 0 - Low / 1 - Normal / 2 - High
-    public ?string $Sensitivity = null;            // Event Sensitivity / 0 - Normal / 1 - Personnal / 2 - Private / 3 - Confidential
+    public ?string $Sensitivity = null;            // Event Sensitivity / 0 - Normal / 1 - Personal / 2 - Private / 3 - Confidential
     public ?string $Color = null;                  // Event Display Color
     public array $Tags = [];                       // Event Categories
     public ?EventOrganizerObject $Organizer;       // Event Organizer Name/Email
     public array $Attendee = [];                   // Event Attendees Name/Email/Attendance
     public array $Notifications = [];              // Event Reminders/Alerts
-    public ?EventOccurrenceObject $Occurrence = null; // Event Recurrance Data
+    public ?EventOccurrenceObject $Occurrence = null; // Event Recurrence Data
     public array $Attachments = [];                // Event Attachments
     public ?array $Other = [];
 	
-	public function __construct($data = null) {
-        $this->Data = (object) array();
-        $this->Data->Original = (object) array();
-        $this->Data->Changed = (object) array();
+	public function __construct() {
         $this->Organizer = new EventOrganizerObject();
         $this->Occurrence = new EventOccurrenceObject();
 	}

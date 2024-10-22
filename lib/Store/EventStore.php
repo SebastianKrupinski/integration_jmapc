@@ -25,7 +25,8 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Store;
 
-use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCA\JMAPC\Store\CollectionEntity;
+use OCA\JMAPC\Store\EventEntity;
 use OCP\IDBConnection;
 
 class EventStore extends BaseStore {
@@ -35,8 +36,10 @@ class EventStore extends BaseStore {
 		$this->_Store = $store;
 		$this->_CollectionTable = 'jmapc_collections';
 		$this->_CollectionIdentifier = 'EC';
+		$this->_CollectionClass = 'OCA\JMAPC\Store\CollectionEntity';
 		$this->_EntityTable = 'jmapc_entities_event';
 		$this->_EntityIdentifier = 'EE';
+		$this->_EntityClass = 'OCA\JMAPC\Store\EventEntity';
 		$this->_ChronicleTable = 'jmapc_chronicle';
 
 	}

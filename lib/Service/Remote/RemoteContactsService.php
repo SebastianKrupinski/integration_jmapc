@@ -31,28 +31,62 @@ use DateTimeInterface;
 use finfo;
 use Psr\Log\LoggerInterface;
 
-use OCA\JMAPC\Service\Remote\RemoteCommonService;
+use JmapClient\Client;
+use JmapClient\Responses\ResponseException;
+use JmapClient\Requests\Contacts\AddressBookGet;
+use JmapClient\Requests\Contacts\AddressBookSet;
+use JmapClient\Requests\Contacts\AddressBookQuery;
+use JmapClient\Requests\Contacts\ContactGet;
+use JmapClient\Requests\Contacts\ContactSet;
+use JmapClient\Requests\Contacts\ContactQuery;
+use JmapClient\Requests\Contacts\ContactSubmissionSet;
+use JmapClient\Requests\Contacts\ContactParameters;
+
+use OCA\JMAPC\Exceptions\JmapUnknownMethod;
 use OCA\JMAPC\Objects\ContactCollectionObject;
 use OCA\JMAPC\Objects\ContactObject;
 use OCA\JMAPC\Objects\ContactAttachmentObject;
-use OCA\JMAPC\Utile\Eas\EasClient;
-use OCA\JMAPC\Utile\Eas\EasCollection;
-use OCA\JMAPC\Utile\Eas\EasObject;
-use OCA\JMAPC\Utile\Eas\EasProperty;
-use OCA\JMAPC\Utile\Eas\EasTypes;
 
 class RemoteContactsService {
-	
-	private RemoteCommonService $RemoteCommonService;
-	public ?EasClient $DataStore = null;
 
-	public function __construct (RemoteCommonService $RemoteCommonService) {
-		$this->RemoteCommonService = $RemoteCommonService;
+	protected Client $dataStore;
+    protected string $dataAccount;
+
+    protected ?string $resourceNamespace = null;
+    protected ?string $resourceCollectionLabel = null;
+    protected ?string $resourceEntityLabel = null;
+
+    protected array $defaultCollectionProperties = [];
+	protected array $defaultEntityProperties = [];
+
+	public function __construct () {
+
 	}
 
-    public function initialize(EasClient $DataStore) {
+	public function initialize(Client $dataStore, ?string $dataAccount = null) {
 
-		$this->DataStore = $DataStore;
+		$this->dataStore = $dataStore;
+        // evaluate if client is connected 
+		if (!$this->dataStore->sessionStatus()) {
+			$this->dataStore->connect();
+		}
+        // determine capabilities
+        if ($this->dataStore->sessionCapable('https://www.fastmail.com/dev/contacts', false)) {
+            $this->resourceNamespace = 'https://www.fastmail.com/dev/contacts';
+            $this->resourceCollectionLabel = null;
+            $this->resourceEntityLabel = 'Contact';
+        }
+        // determine account
+        if ($dataAccount === null) {
+            if ($this->resourceNamespace !== null) {
+                $this->dataAccount = $dataStore->sessionAccountDefault($this->resourceNamespace, false);
+            } else {
+                $this->dataAccount = $dataStore->sessionAccountDefault('contacts');
+            }
+        }
+        else {
+            $this->dataAccount = $dataAccount;
+        }
 
 	}
 
@@ -61,60 +95,38 @@ class RemoteContactsService {
      * 
      * @since Release 1.0.0
      * 
-	 * @param string $cht				Collections Hierarchy Synchronization Token
-	 * @param string $chl				Collections Hierarchy Location
-	 * @param string $cid				Collection ID
-	 * 
-	 * @return ContactCollectionObject  ContactCollectionObject on success / Null on failure
 	 */
-	public function fetchCollection(string $cht, string $chl, string $cid): ?ContactCollectionObject {
-
-        // execute command
-		$rs = $this->RemoteCommonService->fetchFolder($this->DataStore, $cid, false, 'I', $this->constructDefaultCollectionProperties());
-        // process response
-		if (isset($rs) && (count($rs->ContactsFolder) > 0)) {
-		    $ec = new ContactCollectionObject(
-				$rs->ContactsFolder[0]->FolderId->Id,
-				$rs->ContactsFolder[0]->DisplayName,
-				$rs->ContactsFolder[0]->FolderId->ChangeKey,
-				$rs->ContactsFolder[0]->TotalCount
-			);
-			if (isset($rs->ContactsFolder[0]->ParentFolderId->Id)) {
-				$ec->AffiliationId = $rs->ContactsFolder[0]->ParentFolderId->Id;
-			}
-			return $ec;
-		} else {
-			return null;
-		}
-        
+	public function collectionFetch(string $location, string $id): ICollection {
+		// construct get request
+		$r0 = new AddressBookGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		$r0->target($id);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// convert json object to message object and return
+		return new Collection($response->object(0)->parametersRaw());
     }
 
 	/**
      * create collection in remote storage
      * 
      * @since Release 1.0.0
-     * 
-	 * @param string $cht				Collections Hierarchy Synchronization Token
-	 * @param string $chl				Collections Hierarchy Location
-	 * @param string $name				Collection Name
 	 * 
-	 * @return ContactCollectionObject  ContactCollectionObject on success / Null on failure
 	 */
-	public function createCollection(string $cht, string $chl, string $name): ?ContactCollectionObject {
-        
-		// execute command
-		$rs = $RemoteCommonService->createCollection($this->DataStore, $cht, $chl, $name, EasTypes::COLLECTION_TYPE_USER_CONTACTS);
-        // process response
-		if (isset($rs->Status) && $rs->Status->getContents() == '1') {
-		    return new ContactCollectionObject(
-				$rs->Id->getContents(),
-				$name,
-				$rs->SyncKey->getContents()
-			);
-		} else {
-			return null;
-		}
-
+	public function collectionCreate(string $location, string $label): string {
+		// construct set request
+		$r0 = new AddressBookSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// construct object
+		$m0 = $r0->create('1');
+		$m0->in($location);
+		$m0->label($label);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return (string) $response->created()['1']['id'];
     }
 
     /**
@@ -122,28 +134,19 @@ class RemoteContactsService {
      * 
      * @since Release 1.0.0
      * 
-	 * @param string $cht				Collections Hierarchy Synchronization Token
-	 * @param string $chl				Collections Hierarchy Location
-	 * @param string $cid				Collection ID
-	 * @param string $name				Collection Name
-	 * 
-	 * @return ContactCollectionObject  ContactCollectionObject on success / Null on failure
 	 */
-	public function updateCollection(string $cht, string $chl, string $cid, string $name): ?ContactCollectionObject {
-        
-		// execute command
-		$rs = $RemoteCommonService->updateCollection($this->DataStore, $cht, $chl, $cid, $name);
-        // process response
-		if (isset($rs->Status) && $rs->Status->getContents() == '1') {
-		    return new ContactCollectionObject(
-				$rs->Id->getContents(),
-				$name,
-				$rs->SyncKey->getContents()
-			);
-		} else {
-			return null;
-		}
-
+	public function collectionUpdate(string $location, string $id, string $label): string {
+        // construct set request
+		$r0 = new AddressBookSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// construct object
+		$m0 = $r0->update($id);
+		$m0->label($label);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return array_key_exists($id, $response->updated()) ? (string) $id : '';
     }
 
     /**
@@ -151,220 +154,361 @@ class RemoteContactsService {
      * 
      * @since Release 1.0.0
      * 
-     * @param string $cht				Collections Hierarchy Synchronization Token
-	 * @param string $cid				Collection ID
-	 * 
-	 * @return bool 					True on success / Null on failure
 	 */
-    public function deleteCollection(string $cht, string $cid): bool {
-        
-		// execute command
-        $rs = $this->RemoteCommonService->deleteCollection($this->DataStore, $cht, $cid);
-		// process response
-        if (isset($rs->CollectionDelete->Status) && $rs->CollectionDelete->Status->getContents() == '1') {
-            return true;
-        } else {
-            return false;
+    public function collectionDelete(string $location, string $id): string {
+        // construct set request
+		$r0 = new AddressBookSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// construct object
+		$r0->delete($id);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return (string) $response->deleted()[0];
+    }
+
+	/**
+     * move collection in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function collectionMove(string $sourceLocation, string $id, string $destinationLocation): string {
+        // construct set request
+		$r0 = new AddressBookSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// construct object
+		$m0 = $r0->update($id);
+		$m0->in($destinationLocation);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return array_key_exists($id, $response->updated()) ? (string) $id : '';
+    }
+
+	/**
+     * list of collections in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function collectionList(?string $location = null, ?string $scope = null): array {
+		// construct get request
+ 		$r0 = new AddressBookGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// set target to query request
+        if ($location !== null) {
+            $r0->target($location);
+        }
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+        // determine if command errored
+        if (method_exists($response, 'type')) {
+            if ($response->type() === 'unknownMethod') {
+                throw new JmapUnknownMethod($response->description(), 1);
+            } else {
+                throw new Exception($response->type() . ': ' . $response->description(), 1);
+            }
         }
 
+        // convert json objects to collection objects
+        $list = [];
+		foreach ($response->objects() as $ro) {
+            $collection = new ContactCollectionObject(
+                $ro->id(),
+                $ro->name(),
+                $ro->priority(),
+                $ro->visible(),
+                $ro->color(),
+            );
+			$list[] = $collection;
+		}
+		// return collection of collections
+		return $list;
+	}
+
+	/**
+     * search for collection in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function collectionSearch(string $location, string $filter, string $scope): array {
+        // construct set request
+		$r0 = new AddressBookQuery($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// set location constraint
+		if (!empty($location)) {
+			$r0->filter()->in($location);
+		}
+		// set name constraint
+		if (!empty($filter)) {
+			$r0->filter()->Name($filter);
+		}
+		// construct get request
+		$r1 = new AddressBookGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		// set target to query request
+		$r1->targetFromRequest($r0, '/ids');
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0, $r1]);
+		// extract response
+		$response = $bundle->response(1);
+		// convert json objects to collection objects
+		$list = $response->objects();
+		foreach ($list as $id => $message) {
+			$list[$id] = new Collection($message->parametersRaw());
+		}
+		// return collection of collections
+		return $list;
+    }
+
+	/**
+     * retrieve entity from remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function entityFetch(string $location, string $id, string $particulars = 'D'): IMessage {
+		// construct set request
+		$r0 = new ContactGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		$r0->target($id);
+		// select properties to return
+		//$r0->property(...$this->defaultMailProperties);
+		$r0->bodyAll(true);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// convert json object to message object and return
+		return new Message($response->object(0)->parametersRaw());
+    }
+    
+	/**
+     * create entity in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function entityCreate(string $location, IMessage $message): string {
+		// construct set request
+		$r0 = new ContactSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		$r0->create('1')->parametersRaw($message->getParameters())->in($location);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return (string) $response->created()['1']['id'];
     }
 
     /**
-	 * retrieve alteration for specific collection
+     * update entity in remote storage
      * 
      * @since Release 1.0.0
-	 * 
-     * @param string $cid		Collection ID
-	 * @param string $cst		Collections Synchronization Token
-	 * 
-	 * @return object
+     * 
 	 */
-	public function reconcileCollection(string $cid, string $cst): ?object {
+	public function entityUpdate(string $location, string $id, IMessage $message): string {
+		//
+		//TODO: Replace this code with an actual property update instead of replacement
+		//
+		// construct set request
+		//$r0 = new ContactSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		//$r0->create('1')->parametersRaw($message->getParameters())->in($location);
+		// construct set request
+		//$r1 = new ContactSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		//$r1->delete($id);
+		// construct set request
+		$r0 = new ContactSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		$messageData = $message->getParameters();
+		$messageData['id'] = $id;
+		$r0->update($id)->parametersRaw($messageData);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return array_key_exists($id, $response->updated()) ? (string) $id : '';
+    }
+    
+    /**
+     * delete entity from remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function entityDelete(string $location, string $id): string {
+        // construct set request
+		$r0 = new ContactSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		$r0->delete($id);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return (string) $response->deleted()[0];
+    }
 
-        // evaluate synchronization token, if empty or 0 retrieve initial synchronization token
-        if (empty($cst) || $cst == '0') {
-            // execute command
-            $rs = $this->RemoteCommonService->reconcileCollection($this->DataStore, '0', $cid, []);
-            // extract synchronization token
-            $cst = $rs->SyncKey->getContents();
+	/**
+     * copy entity in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function entityCopy(string $sourceLocation, string $id, string $destinationLocation): string {
+        
+    }
+
+	/**
+     * move entity in remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+    public function entityMove(string $sourceLocation, string $id, string $destinationLocation): string {
+        // construct set request
+		$r0 = new ContactSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		$m0 = $r0->update($id);
+		$m0->in($destinationLocation);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return array_key_exists($id, $response->updated()) ? (string) $id : '';
+    }
+
+	/**
+     * retrieve entities from remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function entityList(string $location, IRange $range = null, string $sort = null, string $particulars = 'D'): array {
+		// construct query request
+		$r0 = new ContactQuery($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// set location constraint
+        if (!empty($location)) {
+            $r0->filter()->in($location);
         }
-        // execute command
-        $rs = $this->RemoteCommonService->reconcileCollection($this->DataStore, $cst, $cid, ['CHANGES' => 1, 'LIMIT' => 32, 'FILTER' => 0, 'BODY' => EasTypes::BODY_TYPE_TEXT]);
-        // evaluate response
-		if (isset($rs->Status) && $rs->Status->getContents() == '1') {
-		    return $rs;
-		} else {
-			return null;
+		// set range constraint
+		if ($range !== null) {
+			if ($range->type()->value === 'absolute') {
+				$r0->startAbsolute($range->getStart())->limitAbsolute($range->getCount());
+			}
+			if ($range->type()->value === 'relative') {
+				$r0->startRelative($range->getStart())->limitRelative($range->getCount());
+			}
+		}
+		// set sort
+		if ($sort !== null) {
+			match($sort) {
+				'received' => $r0->sort()->received(),
+				'sent' => $r0->sort()->sent(),
+				'from' => $r0->sort()->from(),
+				'to' => $r0->sort()->to(),
+				'subject' => $r0->sort()->subject(),
+				'size' => $r0->sort()->size(),
+			};
 		}
 
-
+        if ($particulars === 'B') {
+            // transmit request and receive response
+            $bundle = $this->dataStore->perform([$r0]);
+            // extract response
+            $response = $bundle->response(0);
+            // return response
+            return $response[1];
+        } else {
+            // construct get request
+            $r1 = new ContactGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+            // set target to query request
+            $r1->targetFromRequest($r0, '/ids');
+            // select properties to return
+            $r1->property(...$this->defaultMailProperties);
+            // transmit request and receive response
+            $bundle = $this->dataStore->perform([$r0, $r1]);
+            // extract response
+            $response = $bundle->response(1);
+            // convert json objects to message objects
+            $list = $response->objects();
+            foreach ($list as $id => $message) {
+                $list[$id] = new Message($message->parametersRaw());
+            }
+            // return message collection
+            return $list;
+        }
+		
     }
 
 	/**
-     * retrieve collection entity in remote storage
+     * search for entities from remote storage
      * 
      * @since Release 1.0.0
      * 
-	 * @param string $cid			Collection ID
-     * @param string $cst           Collection Signature Token
-	 * @param string $eid			Entity ID
-	 * 
-	 * @return ContactObject        ContactObject on success / Null on failure
 	 */
-	public function fetchEntity(string $cid, string &$cst, string $eid): ?ContactObject {
-
-        // execute command
-		$ro = $this->RemoteCommonService->fetchEntity($this->DataStore, $cid, $eid, ['BODY' => EasTypes::BODY_TYPE_TEXT]);
-        // validate response
-		if (isset($ro->Status) && $ro->Status->getContents() == '1') {
-            // convert to contact object
-            $co = $this->toContactObject($ro->Properties);
-            $co->Origin = 'R';
-            $co->ID = ($ro->EntityId) ? $ro->EntityId->getContents() : $eid;
-            $co->CID = ($ro->CollectionId) ? $ro->CollectionId->getContents() : $cid;
-            $co->RCID = $co->CID;
-            $co->REID = $co->ID;
-            // retrieve attachment(s) from remote data store
-			if (count($co->Attachments) > 0) {
-				// retrieve all attachments
-				$ro = $this->RemoteCommonService->fetchAttachment($this->DataStore, array_column($co->Attachments, 'Id'));
-				// evaluate returned object
-				if (count($ro) > 0) {
-					foreach ($ro as $entry) {
-						// evaluate status
-						if (isset($entry->Status) && $entry->Status->getContents() == '1') {
-							$key = array_search($entry->FileReference->getContents(), array_column($co->Attachments, 'Id'));
-							if ($key !== false) {
-								$co->Attachments[$key]->Data = base64_decode($entry->Properties->Data->getContents());
-							}
-						}
-					}
+	public function entitySearch(string $location, array $filter = null, IRange $range = null, string $sort = null, string $particulars = 'D'): array {
+		// construct query request
+		$r0 = new ContactQuery($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// set location constraint
+		$r0->filter()->in($location);
+		// set filter constraints
+		if (!empty($filter)) {
+			// extract request filter
+			$rf = $r0->filter();
+			// iterate filter values
+			foreach ($filter as $key => $value) {
+				if (method_exists($rf, $key)) {
+					$rf->$key($value);
 				}
 			}
-            // generate a signature for the entity
-			// this a crude but nessary as EAS does not transmit a harmonization signature for entities
-			$co->Signature = $this->generateSignature($co);
-            // return object
-		    return $co;
-        } else {
-            // return null
-            return null;
-        }
-
-    }
-    
-	/**
-     * create collection entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $cid			Collection ID
-	 * @param string $cst			Collection Signature Token
-     * @param ContactObject $so     Source Object
-	 * 
-	 * @return ContactObject        ContactObject on success / Null on failure
-	 */
-	public function createEntity(string $cid, string &$cst, ContactObject $so): ?ContactObject {
-
-        // convert source ContactObject to EasObject
-        $ro = $this->fromContactObject($so);
-	    // execute command
-	    $ro = $this->RemoteCommonService->createEntity($this->DataStore, $cid, $cst, EasTypes::ENTITY_TYPE_CONTACT, $ro);
-        // evaluate response
-        if (isset($ro->Status) && $ro->Status->getContents() == '1') {
-            // extract signature token
-            $cst = $ro->SyncKey->getContents();
-            //
-			$co = clone $so;
-            $co->Origin = 'R';
-            $co->ID = ($ro->Responses->Add->EntityId) ? $ro->Responses->Add->EntityId->getContents() : $eid;
-            $co->CID = ($ro->CollectionId) ? $ro->CollectionId->getContents() : $cid;
-            $co->RCID = $co->CID;
-            $co->REID = $co->ID;
-			// deposit attachment(s)
-			if (count($co->Attachments) > 0) {
-				// create attachments in remote data store
-				$co->Attachments = $this->createCollectionItemAttachment($co->ID, $co->Attachments);
-				$co->Signature = $co->Attachments[0]->AffiliateState;
+		}
+		// set range constraint
+		if ($range !== null) {
+			if ($range->type()->value === 'absolute') {
+				$r0->startAbsolute($range->getStart())->limitAbsolute($range->getCount());
 			}
-            // generate a signature for the entity
-			// this a crude but nessary as EAS does not transmit a harmonization signature for entities
-			$co->Signature = $this->generateSignature($co);
-            return $co;
-        } else {
-            return null;
-        }
-
-    }
-
-     /**
-     * update collection entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param string $cid			Collection ID
-	 * @param string $cst			Collection Signature Token
-     * @param string $eid           Entity ID
-     * @param ContactObject $so     Source Object
-	 * 
-	 * @return ContactObject        ContactObject on success / Null on failure
-	 */
-	public function updateEntity(string $cid, string &$cst, string $eid, ContactObject $so): ?ContactObject {
-
-        // convert source ContactObject to EasObject
-        $ro = $this->fromContactObject($so);
-	    // execute command
-	    $ro = $this->RemoteCommonService->updateEntity($this->DataStore, $cid, $cst, $eid, $ro);
-        // evaluate response
-        if (isset($ro->Status) && $ro->Status->getContents() == '1') {
-            // extract signature token
-            $cst = $ro->SyncKey->getContents();
-            //
-			$co = clone $so;
-			$co->Origin = 'R';
-            $co->ID = ($ro->Responses->Modify->EntityId) ? $ro->Responses->Modify->EntityId->getContents() : $eid;
-            $co->CID = ($ro->CollectionId) ? $ro->CollectionId->getContents() : $cid;
-			// deposit attachment(s)
-			if (count($so->Attachments) > 0) {
-				// create attachments in remote data store
-				$co->Attachments = $this->createCollectionItemAttachment($co->ID, $co->Attachments);
-				$co->Signature = $co->Attachments[0]->AffiliateState;
+			if ($range->type()->value === 'relative') {
+				$r0->startRelative($range->getStart())->limitRelative($range->getCount());
 			}
-            // generate a signature for the entity
-			// this a crude but nessary as EAS does not transmit a harmonization signature for entities
-			$co->Signature = $this->generateSignature($co);
-            return $co;
-        } else {
-            return null;
-        }
-        
-    }
-    
-    /**
-     * delete collection entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param string $cid			Collection Id
-	 * @param string $cst			Collection Synchronization Token
-	 * @param string $eid			Entity Id
-	 * 
-	 * @return bool                 True on success / False on failure
-	 */
-    public function deleteEntity(string $cid, string &$cst, string $eid): bool {
-        
-        // execute command
-        $ro = $this->RemoteCommonService->deleteEntity($this->DataStore, $cid, $cst, $eid);
-        // evaluate response
-        if (isset($ro->Status) && $ro->Status->getContents() == '1') {
-            // extract signature token
-            $cst = $ro->SyncKey->getContents();
-            //
-            return true;
-        } else {
-            return false;
-        }
-
+		}
+		// set sort
+		if ($sort !== null) {
+			match($sort) {
+				'received' => $r0->sort()->received(),
+				'sent' => $r0->sort()->sent(),
+				'from' => $r0->sort()->from(),
+				'to' => $r0->sort()->to(),
+				'subject' => $r0->sort()->subject(),
+				'size' => $r0->sort()->size(),
+			};
+		}
+		// construct get request
+		$r1 = new ContactGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// set target to query request
+		$r1->targetFromRequest($r0, '/ids');
+		// select properties to return
+		$r1->property(...$this->defaultMailProperties);
+		$r1->bodyAll(true);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0, $r1]);
+		// extract response
+		$response = $bundle->response(1);
+		// convert json objects to message objects
+		$list = $response->objects();
+		foreach ($list as $id => $message) {
+			$list[$id] = new Message($message->parametersRaw());
+		}
+		// return message collection
+		return $list;
     }
 
     /**
@@ -422,7 +566,7 @@ class RemoteContactsService {
 	 * 
 	 * @return array
 	 */
-	public function createEntityAttachment(string $aid, array $batch): array {
+	public function entityCreateAttachment(string $aid, array $batch): array {
 
 		// check to for entries in batch collection
         if (count($batch) == 0) {
@@ -488,7 +632,7 @@ class RemoteContactsService {
 	 * 
 	 * @return array
 	 */
-	public function deleteEntityAttachment(array $batch): array {
+	public function entityDeleteAttachment(array $batch): array {
 
 		// check to for entries in batch collection
         if (count($batch) == 0) {
@@ -1065,7 +1209,7 @@ class RemoteContactsService {
         if (\OCA\JMAPC\Utile\Validator::email($address)) {
             return $address;
         }
-        // evaluate if address is in mailbox format
+        // evaluate if address is in AddressBook format
         if (str_contains($address, '<') && str_contains($address, '>')) {
             preg_match_all("/[\._a-zA-Z0-9-]+@[\._a-zA-Z0-9-]+/i", $address, $matches);
             if (count($matches[0]) > 0) {

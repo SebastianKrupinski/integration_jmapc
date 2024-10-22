@@ -109,13 +109,13 @@ try {
 		exit(0);
 	}
 
-	// assign execusion limit
+	// assign execution limit
 	@set_time_limit($executionDuration);
 
 	// load all apps to get all api routes properly setup
 	OC_App::loadApps();
 
-	// initilize required services
+	// initialize required services
 	$ConfigurationService = \OC::$server->get(\OCA\JMAPC\Service\ConfigurationService::class);
 	$HarmonizationService = \OC::$server->get(\OCA\JMAPC\Service\HarmonizationService::class);
 	$HarmonizationThreadService = \OC::$server->get(\OCA\JMAPC\Service\HarmonizationThreadService::class);

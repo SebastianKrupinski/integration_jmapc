@@ -2,13 +2,13 @@
 
 namespace OCA\JMAPC\Providers\Calendar;
 
+use OCA\JMAPC\Providers\Calendar\EventCollection;
+use OCA\JMAPC\Store\EventEntity as EventEntityData;
+
 class EventEntity implements \Sabre\CalDAV\ICalendarObject, \Sabre\DAVACL\IACL {
 
 	private EventCollection $_collection;
-	private string $_id;
-	private string $_uuid;
-	private ?string $_label;
-	private array $_data;
+	private EventEntityData $_entity;
 
 	/**
 	 * Entity Constructor
@@ -16,12 +16,9 @@ class EventEntity implements \Sabre\CalDAV\ICalendarObject, \Sabre\DAVACL\IACL {
 	 * @param Collection $calendar
 	 * @param string $name
 	 */
-	public function __construct(EventCollection $collection, string $id, string $uuid, ?string $label, array $data) {
+	public function __construct(EventCollection $collection, EventEntityData $entity) {
 		$this->_collection = $collection;
-		$this->_id = $id;
-		$this->_uuid = $uuid;
-		$this->_label = $label;
-		$this->_data = $data;
+		$this->_entity = $entity;
 	}
 
 	/**
@@ -69,21 +66,21 @@ class EventEntity implements \Sabre\CalDAV\ICalendarObject, \Sabre\DAVACL\IACL {
 	 * @inheritDoc
 	 */
 	function get() {
-		return $this->_data['data'];
+		return $this->_entity->getData();
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	function put($data) {
-		return $this->_collection->modifyFile($this->_id, $this->_uuid, $data);
+		return $this->_collection->modifyFile($this->_entity, $data);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	function delete() {
-		return $this->_collection->deleteFile($this->_id);
+		return $this->_collection->deleteFile($this->_entity);
 	}
 
 	/**
@@ -97,21 +94,21 @@ class EventEntity implements \Sabre\CalDAV\ICalendarObject, \Sabre\DAVACL\IACL {
 	 * @inheritDoc
 	 */
 	function getETag() {
-		return $this->_data['signature'];
+		return $this->_entity->getSignature();
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	function getSize() {
-		return $this->_data['size'];
+		return strlen($this->_entity->getData());
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	function getName() {
-		return $this->_uuid;
+		return $this->_entity->getUuid();
 	}
 
 	/**

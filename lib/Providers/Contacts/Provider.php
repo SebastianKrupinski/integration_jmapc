@@ -29,7 +29,7 @@ class Provider implements IAddressBookProvider {
 	public function fetchAllForAddressBookHome(string $principalUri): array {
 
 		// retrieve collection(s)
-		$collections = $this->_store->listCollectionsByUser(substr($principalUri, 17), 'EC');
+		$collections = $this->_store->collectionListByUser(substr($principalUri, 17), 'EC');
 		// construct collection objects list
 		$list = [];
 		foreach ($collections as $entry) {
@@ -45,7 +45,7 @@ class Provider implements IAddressBookProvider {
 	 */
 	public function hasAddressBookInAddressBookHome(string $principalUri, string $calendarUri): bool {
 
-		return $this->_store->confirmCollectionByUUID(substr($principalUri, 17), $calendarUri);
+		return $this->_store->collectionConfirmByUUID(substr($principalUri, 17), $calendarUri);
 
 	}
 
@@ -54,7 +54,7 @@ class Provider implements IAddressBookProvider {
 	 */
 	public function getAddressBookInAddressBookHome(string $principalUri, string $calendarUri): ?ExternalAddressBook {
 
-		$entry = $this->_store->fetchCollectionByUUID(substr($principalUri, 17), $calendarUri);
+		$entry = $this->_store->collectionFetchByUUID(substr($principalUri, 17), $calendarUri);
 
 		if (isset($entry)) {
 			return new Collection($this->_store, $entry['id'], $entry['uid'], $entry['uuid'], $entry['label'], $entry['color']);

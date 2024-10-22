@@ -25,19 +25,22 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Store;
 
-use OCP\DB\QueryBuilder\IQueryBuilder;
-use OC\DB\QueryBuilder\Literal;
+use OCA\JMAPC\Store\ServiceEntity;
 use OCP\IDBConnection;
 
 class ServicesStore {
 
 	protected IDBConnection $_Store;
-	protected string $_ServicesTable = 'jmapc_services';
+	protected string $_EntityTable = 'jmapc_services';
+	protected string $_EntityClass = 'OCA\JMAPC\Store\ServiceEntity';
 
 	public function __construct(IDBConnection $store) {
-		
 		$this->_Store = $store;
+	}
 
+	protected function toEntity(array $row): ServiceEntity {
+		unset($row['DOCTRINE_ROWNUM']); // remove doctrine/dbal helper column
+		return \call_user_func($this->_EntityClass .'::fromRow', $row);
 	}
 
 	/**
@@ -54,7 +57,7 @@ class ServicesStore {
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select('*')
-			->from($this->_ServicesTable)
+			->from($this->_EntityTable)
 			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)));
 
 		// execute command
@@ -70,7 +73,7 @@ class ServicesStore {
 
 	}
 
-		/**
+	/**
 	 * retrieve services for specific user from data store
 	 * 
 	 * @since Release 1.0.0
@@ -79,17 +82,17 @@ class ServicesStore {
 	 * 
 	 * @return array 			of services
 	 */
-	public function fetchByUserIdAndServiceId(string $uid, string $sid): array {
+	public function fetchByUserIdAndServiceId(string $uid, int $sid): array {
 		
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select('*')
-			->from($this->_ServicesTable)
+			->from($this->_EntityTable)
 			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
 			->andWhere($cmd->expr()->eq('id', $cmd->createNamedParameter($sid)));
 
 		// execute command
-		$rs = $cmd->executeQuery()->fetchAll();
+		$rs = $cmd->executeQuery()->fetch();
 		$cmd->executeQuery()->closeCursor();
 		// return result or null
 		if (is_array($rs) && count($rs) > 0) {
@@ -115,7 +118,7 @@ class ServicesStore {
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select('*')
-			->from($this->_ServicesTable)
+			->from($this->_EntityTable)
 			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
 			->andWhere($cmd->expr()->eq('address_primary', $cmd->createNamedParameter($address)));
 
@@ -133,69 +136,20 @@ class ServicesStore {
 	}
 
 	/**
-	 * delete services for a specific user from data store
+	 * confirm entity exists in data store
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid		user id
+	 * @param int $id			entity id
 	 * 
-	 * @return mixed
+	 * @return int|false		entry id on success / false on failure
 	 */
-	public function deleteByUser(string $uid): mixed {
-
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->delete($this->_ServicesTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)));
-		// execute command and return result
-		return $cmd->executeStatement();
-
-	}
-
-	/**
-	 * retrieve services from data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param int $id		entity id
-	 * 
-	 * @return array
-	 */
-	public function fetch(int $id): array {
-
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_ServicesTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
-		// execute command
-		$data = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// return result or empty array
-		if (is_array($data) && count($data) > 0) {
-			return $data;
-		}
-		else {
-			return [];
-		}
-
-	}
-
-	/**
-	 * confirm service exists in data store
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $id		entity id
-	 * 
-	 * @return int|bool			entry id on success / false on failure
-	 */
-	public function confirm(string $id): int|bool {
+	public function confirm(int $id): int|false {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select('id')
-			->from($this->_ServicesTable)
+			->from($this->_EntityTable)
 			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
 		// execute command
 		$data = $cmd->executeQuery()->fetch();
@@ -211,28 +165,67 @@ class ServicesStore {
 	}
 
 	/**
-	 * create a service entry in the data store
+	 * retrieve entity from data store
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param array $data		entity data
+	 * @param int $id		entity id
 	 * 
-	 * @return int				entity id
+	 * @return ServiceEntity|null
 	 */
-	public function create(array $data) : int {
+	public function fetch(int $id): ServiceEntity|null {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->insert($this->_ServicesTable);
-		foreach ($data as $column => $value) {
+		$cmd->select('*')
+			->from($this->_EntityTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
+		// execute command
+		$rsl = $cmd->executeQuery();
+		try {
+			$entity = $rsl->fetch();
+			if (is_array($entity)) {
+				return $this->toEntity($entity);
+			} else {
+				return null;
+			}
+		} finally {
+			$rsl->closeCursor();
+		}
+
+	}
+
+	/**
+	 * create a entity entry in the data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param ServiceEntity $entity
+	 * 
+	 * @return ServiceEntity
+	 */
+	public function create(ServiceEntity $entity): ServiceEntity {
+
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->insert($this->_EntityTable);
+		// assign values
+		foreach (array_keys($entity->getUpdatedFields()) as $property) {
+			$column = $entity->propertyToColumn($property);
+			$getter = 'get' . ucfirst($property);
+			$value = $entity->$getter();
 			$cmd->setValue($column, $cmd->createNamedParameter($value));
 		}
 		// execute command
 		$cmd->executeStatement();
-		// retreive id
-		$id = $cmd->getLastInsertId();
-		// return result
-		return (int) $id;
+		// determine if id needs to be assigned
+		if ($entity->id === null) {
+			$entity->setId($cmd->getLastInsertId());
+		}
+
+		$entity->resetUpdatedFields();
+
+		return $entity;
 		
 	}
 	
@@ -241,49 +234,79 @@ class ServicesStore {
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param int $id			entity id
-	 * @param array $data		entity data
+	 * @param ServiceEntity $entity
 	 * 
-	 * @return bool
+	 * @return ServiceEntity
 	 */
-	public function modify(int $id, array $data) : bool {
+	public function modify(ServiceEntity $entity): ServiceEntity {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->update($this->_ServicesTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
-		foreach ($data as $column => $value) {
-			$cmd->set($column, $cmd->createNamedParameter($value));
+		$cmd->update($this->_EntityTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($entity->getId())));
+		// assign values
+		if (count($entity->getUpdatedFields())) {
+			foreach (array_keys($entity->getUpdatedFields()) as $property) {
+				$column = $entity->propertyToColumn($property);
+				$getter = 'get' . ucfirst($property);
+				$value = $entity->$getter();
+				$cmd->set($column, $cmd->createNamedParameter($value));
+			}
+			// execute command
+			$cmd->executeStatement();
+			// determine if id needs to be assigned
+			if ($entity->id === null) {
+				$entity->setId($cmd->getLastInsertId());
+			}
 		}
-		// execute command
-		$cmd->executeStatement();
-		// return result
-		return true;
+
+		$entity->resetUpdatedFields();
+		
+		return $entity;
 		
 	}
 
 	/**
-	 * delete a entity entry from the data store
+	 * delete a entity from the data store
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param int $id		entity id
+	 * @param ServiceEntity $entity
 	 * 
-	 * @return bool
+	 * @return ServiceEntity
 	 */
-	public function delete(int $id) : bool {
+	public function delete(ServiceEntity $entity): ServiceEntity {
 
-		// retrieve original entity so we can chonicle it later
-		$data = $this->fetchEntity($id);
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->delete($this->_ServicesTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
+		$cmd->delete($this->_EntityTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($entity->getId())));
 		// execute command
 		$cmd->executeStatement();
+
 		// return result
-		return true;
+		return $entity;
 		
+	}
+
+	/**
+	 * delete services for a specific user from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param string $uid		user id
+	 * 
+	 * @return mixed
+	 */
+	public function deleteByUser(string $uid): mixed {
+
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->delete($this->_EntityTable)
+			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)));
+		// execute command and return result
+		return $cmd->executeStatement();
+
 	}
 
 }

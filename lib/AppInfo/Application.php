@@ -45,6 +45,7 @@ use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Notification\IManager as INotificationManager;
 use OCP\User\Events\UserDeletedEvent;
 
+use OCA\JMAPC\Capabilities;
 use OCA\JMAPC\Events\AddressBookDeletedListener;
 use OCA\JMAPC\Events\CardCreatedListener;
 use OCA\JMAPC\Events\CardUpdatedListener;
@@ -73,20 +74,25 @@ class Application extends App implements IBootstrap {
 
     public function __construct(array $urlParams = []) {
         if ((@include_once __DIR__ . '/../../vendor/autoload.php') === false) {
-			throw new Exception('Cannot include autoload. Did you run install dependencies using composer?');
+			throw new \Exception('Cannot include autoload. Did you run install dependencies using composer?');
 		}
         
         parent::__construct(self::APP_ID, $urlParams);
 
-        /*
-        // retrieve harmonization mode
-        $mode = \OC::$server->getConfig()->getAppValue(Application::APP_ID, 'harmonization_mode');
-        $contacts = \OC::$server->getConfig()->getAppValue('contacts', 'enabled');
-        $calendar = \OC::$server->getConfig()->getAppValue('calendar', 'enabled');
+    }
 
+    public function register(IRegistrationContext $context): void {
+        
+        $context->registerCapability(Capabilities::class);
+
+        // retrieve harmonization mode
+        //$mode = \OC::$server->getConfig()->getAppValue(Application::APP_ID, 'harmonization_mode');
+        //$contacts = \OC::$server->getConfig()->getAppValue('contacts', 'enabled');
+        //$calendar = \OC::$server->getConfig()->getAppValue('calendar', 'enabled');
         // register notifications
-        $manager = $this->getContainer()->get(INotificationManager::class);
-        $manager->registerNotifierService(Notifier::class);
+        //$manager = $this->getContainer()->get(INotificationManager::class);
+        //$manager->registerNotifierService(Notifier::class);
+        /*
         // register event handlers
         $dispatcher = $this->getContainer()->get(IEventDispatcher::class);
         $dispatcher->addServiceListener(UserDeletedEvent::class, UserDeletedListener::class);
@@ -115,9 +121,6 @@ class Application extends App implements IBootstrap {
         }
         */
 
-    }
-
-    public function register(IRegistrationContext $context): void {
 		// evaluate, if mail provider registration is possible
 		if (method_exists($context, 'registerMailProvider')) {
 			// register mail provider

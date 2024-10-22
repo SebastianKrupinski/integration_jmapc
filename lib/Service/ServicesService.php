@@ -24,9 +24,8 @@ declare(strict_types=1);
 */
 namespace OCA\JMAPC\Service;
 
-use OCA\JMAPC\AppInfo\Application;
 use OCA\JMAPC\Store\ServicesStore;
-
+use OCA\JMAPC\Store\ServiceEntity;
 use OCP\Security\ICrypto;
 
 class ServicesService {
@@ -58,7 +57,7 @@ class ServicesService {
 
 	}
 
-	public function fetchByUserIdAndServiceId(string $uid, string $sid): array {
+	public function fetchByUserIdAndServiceId(string $uid, int $sid): array {
 
 		// return collection of services/accounts
 		return $this->_Store->fetchByUserIdAndServiceId($uid, $sid);
@@ -72,11 +71,23 @@ class ServicesService {
 
 	}
 
-	public function fetch(string $id): array {
+	public function fetch(int $id): ServiceEntity {
 
 		// return service/account information
 		return $this->_Store->fetch($id);
 
+	}
+
+	public function deposit(string $uid, ServiceEntity $service): ServiceEntity {
+
+		// create or update service/account information
+		if (is_numeric($service->getId())) {
+			return $this->_Store->modify($service);
+		} else {
+			$service->setUid($uid);
+			return $this->_Store->create($service);
+		}
+		
 	}
 
 	public function create(array $service): string {

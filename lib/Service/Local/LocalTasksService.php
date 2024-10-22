@@ -62,10 +62,10 @@ class LocalTasksService {
 	 * 
 	 * @return TaskCollectionObject  TaskCollectionObject on success / null on fail
 	 */
-	public function fetchCollection(string $id): ?TaskCollectionObject {
+	public function collectionFetch(string $id): ?TaskCollectionObject {
 
         // retrieve object properties
-        $lo = $this->_Store->fetchCollection($id);
+        $lo = $this->_Store->collectionFetch($id);
         // evaluate if object properties where retrieved
         if (is_array($lo) && count($lo) > 0) {
             // construct object and return
@@ -107,10 +107,10 @@ class LocalTasksService {
 	 * 
 	 * @return TaskObject        TaskObject on success / null on fail
 	 */
-	public function fetchEntity(string $id): ?TaskObject {
+	public function entityFetch(string $id): ?TaskObject {
 
         // retrieve object properties
-        $lo = $this->_Store->fetchEntity($id);
+        $lo = $this->_Store->entityFetch($id);
         // evaluate if object properties where retrieved
         if (is_array($lo) && count($lo) > 0) {
             // read object data
@@ -141,10 +141,10 @@ class LocalTasksService {
 	 * 
 	 * @return TaskObject        TaskObject on success / null on fail
 	 */
-	public function fetchEntityByRID(string $uid, string $rcid, string $reid): ?TaskObject {
+	public function entityFetchByRID(string $uid, string $rcid, string $reid): ?TaskObject {
 
         // retrieve object properties
-        $lo = $this->_Store->fetchEntityByRID($uid, $rcid, $reid);
+        $lo = $this->_Store->entityFetchByRID($uid, $rcid, $reid);
 		// evaluate if object properties where retrieved
         if (is_array($lo) && count($lo) > 0) {
             // read object data
@@ -175,9 +175,9 @@ class LocalTasksService {
 	 * 
 	 * @return object               Status Object - item id, item uuid, item state token / Null - failed to create
 	 */
-	public function createEntity(string $uid, string $cid, TaskObject $so): ?object {
+	public function entityCreate(string $uid, string $cid, TaskObject $so): ?object {
 
-        // initilize data place holder
+        // initialize data place holder
         $lo = [];
         // convert contact object to vcard object
         $lo['data'] = "BEGIN:VCALENDAR\nVERSION:2.0\n" . $this->fromTaskObject($so)->serialize() . "\nEND:VCALENDAR";
@@ -193,7 +193,7 @@ class LocalTasksService {
         $lo['startson'] = $so->StartsOn->setTimezone(new DateTimeZone('UTC'))->format('U');
         $lo['dueon'] = $so->DueOn->setTimezone(new DateTimeZone('UTC'))->format('U');
         // create entry in data store
-        $id = $this->_Store->createEntity($lo);
+        $id = $this->_Store->entityCreate($lo);
         // return status object or null
         if ($id) {
             return (object) array('ID' => $id, 'UUID' => $lo['uuid'], 'signature' => $lo['signature']);
@@ -213,13 +213,13 @@ class LocalTasksService {
 	 * 
 	 * @return object               Status Object - item id, item uuid, item state token / Null - failed to create
 	 */
-	public function updateEntity(string $uid, string $cid, string $eid, TaskObject $so): ?object {
+	public function entityModify(string $uid, string $cid, string $eid, TaskObject $so): ?object {
 
         // evaluate if collection or entity id is missing - must contain id to update
         if (empty($uid) || empty($cid) || empty($eid)) {
             return null;
         }
-        // initilize data place holder
+        // initialize data place holder
         $lo = [];
         // convert contact object to vcard object
         $lo['data'] = "BEGIN:VCALENDAR\nVERSION:2.0\n" . $this->fromTaskObject($so)->serialize() . "\nEND:VCALENDAR";
@@ -235,7 +235,7 @@ class LocalTasksService {
         $lo['startson'] = $so->StartsOn->setTimezone(new DateTimeZone('UTC'))->format('U');
         $lo['dueon'] = $so->DueOn->setTimezone(new DateTimeZone('UTC'))->format('U');
         // modify entry in data store
-        $rs = $this->_Store->modifyEntity($eid, $lo);
+        $rs = $this->_Store->entityModify($eid, $lo);
         // return status object or null
         if ($rs) {
             return (object) array('ID' => $eid, 'UUID' => $lo['uuid'], 'signature' => $lo['signature']);
@@ -254,14 +254,14 @@ class LocalTasksService {
 	 * 
 	 * @return bool                 true - successfully delete / false - failed to delete
 	 */
-	public function deleteEntity(string $uid, string $cid, string $eid): bool {
+	public function entityDelete(string $uid, string $cid, string $eid): bool {
 
         // evaluate if collection or entity id is missing - must contain id to delete
         if (empty($uid) || empty($cid) || empty($eid)) {
             return null;
         }
         // delete entry from data store
-        $rs = $this->_Store->deleteEntity($eid);
+        $rs = $this->_Store->entityDelete($eid);
         // return result
         if ($rs) {
             return true;
@@ -282,7 +282,7 @@ class LocalTasksService {
 	 * 
 	 * @return TaskAttachmentObject
 	 */
-	public function fetchCollectionItemAttachment(array $batch, string $flag = 'I'): array {
+	public function collectionFetchItemAttachment(array $batch, string $flag = 'I'): array {
 
         // check to for entries in batch collection
         if (count($batch) == 0) {
@@ -328,7 +328,7 @@ class LocalTasksService {
 	 * 
 	 * @return string
 	 */
-	public function createCollectionItemAttachment(string $fn, array $batch): array {
+	public function collectionCreateItemAttachment(string $fn, array $batch): array {
 
         // check to for entries in batch collection
         if (count($batch) == 0) {
@@ -395,7 +395,7 @@ class LocalTasksService {
 	 * 
 	 * @return bool true - successfully delete / False - failed to delete
 	 */
-	public function deleteCollectionItemAttachment(array $batch): array {
+	public function collectionDeleteItemAttachment(array $batch): array {
 
         // check to for entries in batch collection
         if (count($batch) == 0) {

@@ -33,7 +33,6 @@ use Psr\Log\LoggerInterface;
 use OCP\Files\IRootFolder;
 
 use OCA\JMAPC\Store\TaskStore;
-use OCA\JMAPC\Service\CorrelationsService;
 use OCA\JMAPC\Service\Local\LocalTasksService;
 use OCA\JMAPC\Service\Remote\RemoteTasksService;
 use OCA\JMAPC\Utile\Eas\EasClient;
@@ -44,7 +43,6 @@ class TasksService {
 	
 	private LoggerInterface $logger;
 	private Object $Configuration;
-	private CorrelationsService $CorrelationsService;
 	private LocalTasksService $LocalTasksService;
 	private RemoteTasksService $RemoteTasksService;
 	private IRootFolder $LocalFileStore;
@@ -52,13 +50,11 @@ class TasksService {
 	private EasClient $RemoteStore;
 
 	public function __construct (LoggerInterface $logger,
-								CorrelationsService $CorrelationsService,
 								LocalTasksService $LocalTasksService,
 								RemoteTasksService $RemoteTasksService,
 								IRootFolder $LocalFileStore,
 								TaskStore $LocalStore) {
 		$this->logger = $logger;
-		$this->CorrelationsService = $CorrelationsService;
 		$this->LocalTasksService = $LocalTasksService;
 		$this->RemoteTasksService = $RemoteTasksService;
 		$this->LocalStore = $LocalStore;
@@ -107,14 +103,14 @@ class TasksService {
 			return $statistics;
 		}
 		// delete and skip collection correlation if local collection is missing
-		$lcollection = $this->LocalTasksService->fetchCollection($lcid);
+		$lcollection = $this->LocalTasksService->collectionFetch($lcid);
 		if (!isset($lcollection) || ($lcollection->Id != $lcid)) {
 			$this->CorrelationsService->delete($correlation);
 			$this->logger->debug('EAS - Deleted tasks collection correlation for ' . $this->Configuration->UserId . ' due to missing Local Collection');
 			return $statistics;
 		}
 		// delete and skip collection correlation if remote collection is missing
-		//$rcollection = $this->RemoteTasksService->fetchCollection(0, 0, $rcid);
+		//$rcollection = $this->RemoteTasksService->collectionFetch(0, 0, $rcid);
 		//if (!isset($rcollection) || ($rcollection->Id != $rcid)) {
 		//	$this->CorrelationsService->delete($correlation);
 		//	$this->logger->debug('EAS - Deleted tasks collection correlation for ' . $this->Configuration->UserId . ' due to missing Remote Collection');
@@ -308,7 +304,7 @@ class TasksService {
 		// define remote entity place holder
 		$ro = null;
 		// retrieve local contact object
-		$lo = $this->LocalTasksService->fetchEntity($leid);
+		$lo = $this->LocalTasksService->entityFetch($leid);
 		// evaluate, if local contact entity was returned
 		if (!($lo instanceof \OCA\JMAPC\Objects\TaskObject)) {
 			// return default operation status
@@ -328,7 +324,7 @@ class TasksService {
 		if ($ci instanceof \OCA\JMAPC\Store\Correlation && 
 			!empty($ci->getroid())) {
 			// retrieve entity
-			$ro = $this->RemoteTasksService->fetchEntity($ci->getrcid(), $rcst, $ci->getroid());
+			$ro = $this->RemoteTasksService->entityFetch($ci->getrcid(), $rcst, $ci->getroid());
 			// generate a signature for the data
 			// this a crude but nessary as EAS does not transmit a harmonization signature for entities
 			$ro->Signature = $this->generateSignature($ro);
@@ -341,7 +337,7 @@ class TasksService {
 			// if signatures DO MATCH modify remote entity
 			if ($ci instanceof \OCA\JMAPC\Store\Correlation && $ro->Signature == $ci->getrosignature()) {
 				// update remote entity
-				$ro = $this->RemoteTasksService->updateEntity($ci->getrcid(), $rcst, $ci->getroid(), $lo);
+				$ro = $this->RemoteTasksService->entityModify($ci->getrcid(), $rcst, $ci->getroid(), $lo);
 				// assign operation status
 				$status = 'RU'; // Remote Update
 			}
@@ -353,14 +349,14 @@ class TasksService {
 					// append missing remote parameters from local object
 					$ro->UUID = $lo->UUID;
 					// update local entity
-					$lo = $this->LocalTasksService->updateEntity($uid, $lcid, $lo->ID, $ro);
+					$lo = $this->LocalTasksService->entityModify($uid, $lcid, $lo->ID, $ro);
 					// assign operation status
 					$status = 'LU'; // Local Update
 				}
 				// update remote entity if local wins mode selected
 				if ($this->Configuration->TasksPrevalence == 'L') {
 					// update remote entity
-					$ro = $this->RemoteTasksService->updateEntity($rcid, $rcst, $ro->ID, $lo);
+					$ro = $this->RemoteTasksService->entityModify($rcid, $rcst, $ro->ID, $lo);
 					// assign operation status
 					$status = 'RU'; // Remote Update
 				}
@@ -368,7 +364,7 @@ class TasksService {
 		}
 		else {
 			// create remote entity
-			$ro = $this->RemoteTasksService->createEntity($rcid, $rcst, $lo);
+			$ro = $this->RemoteTasksService->entityCreate($rcid, $rcst, $lo);
 			// assign operation status
 			$status = 'RC'; // Remote Create
 		}
@@ -420,7 +416,7 @@ class TasksService {
 		// validate result
 		if ($ci instanceof \OCA\JMAPC\Store\Correlation) {
 			// destroy remote entity
-			$rs = $this->RemoteTasksService->deleteEntity($ci->getrcid(), $rcst, $ci->getroid());
+			$rs = $this->RemoteTasksService->entityDelete($ci->getrcid(), $rcst, $ci->getroid());
 			// destroy correlation
 			$this->CorrelationsService->delete($ci);
 			// return status of action
@@ -482,7 +478,7 @@ class TasksService {
 		// if correlation exists, try to retrieve local entity
 		if ($ci instanceof \OCA\JMAPC\Store\Correlation && 
 			$ci->getloid()) {			
-			$lo = $this->LocalTasksService->fetchEntity($ci->getloid());
+			$lo = $this->LocalTasksService->entityFetch($ci->getloid());
 		}
 		// modify local entity if one EXISTS
 		// create local entity if one DOES NOT EXIST
@@ -494,7 +490,7 @@ class TasksService {
 				// append missing remote parameters from local object
 				$ro->UUID = $lo->UUID;
 				// update local enitity
-				$lo = $this->LocalTasksService->updateEntity($uid, $ci->getlcid(), $ci->getloid(), $ro);
+				$lo = $this->LocalTasksService->entityModify($uid, $ci->getlcid(), $ci->getloid(), $ro);
 				// assign operation status
 				$status = 'LU'; // Local Update
 			}
@@ -506,14 +502,14 @@ class TasksService {
 					// append missing remote parameters from local object
 					$ro->UUID = $lo->UUID;
 					// update local entity
-					$lo = $this->LocalTasksService->updateEntity($uid, $lcid, $lo->ID, $ro);
+					$lo = $this->LocalTasksService->entityModify($uid, $lcid, $lo->ID, $ro);
 					// assign operation status
 					$status = 'LU'; // Local Update
 				}
 				// update remote entiry if local wins mode selected
 				if ($this->Configuration->TasksPrevalence == 'L') {
 					// update remote entity
-					$ro = $this->RemoteTasksService->updateEntity($rcid, $ro->ID, '', $lo);
+					$ro = $this->RemoteTasksService->entityModify($rcid, $ro->ID, '', $lo);
 					// assign operation status
 					$status = 'RU'; // Remote Update
 				}
@@ -521,7 +517,7 @@ class TasksService {
 		}
 		else {
 			// create local entity
-			$lo = $this->LocalTasksService->createEntity($uid, $lcid, $ro);
+			$lo = $this->LocalTasksService->entityCreate($uid, $lcid, $ro);
 			// assign operation status
 			$status = 'LC'; // Local Create
 		}
@@ -572,7 +568,7 @@ class TasksService {
 		// evaluate correlation object
 		if ($ci instanceof \OCA\JMAPC\Store\Correlation) {
 			// destroy local entity
-			$rs = $this->LocalTasksService->deleteEntity($uid, $ci->getlcid(), $ci->getloid());
+			$rs = $this->LocalTasksService->entityDelete($uid, $ci->getlcid(), $ci->getloid());
 			// destroy correlation
 			$this->CorrelationsService->delete($ci);
 			// return operation status
