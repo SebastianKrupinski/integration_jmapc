@@ -23,16 +23,10 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Objects\Event;
 
-class EventCollectionObject {
-
-    public function __construct(
-        public string $Id,
-        public ?string $Name = null,
-        public ?int $Priority = null,
-        public ?bool $Visibility = null,
-        public ?string $Color = null,    
-    ) {}
-    
+enum EventNotificationAnchorTypes {
+    case Start;
+    case End;
 }
+

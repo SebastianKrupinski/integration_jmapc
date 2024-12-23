@@ -23,23 +23,17 @@
 *
 */
 
-namespace OCA\JMAPC\Service\Remote;
+namespace OCA\JMAPC\Objects\Event;
 
-use Psr\Log\LoggerInterface;
-use OCA\JMAPC\AppInfo\Application;
+class EventOrganizerObject {
+    public ?string $Address = null;
+    public ?string $Name = null;
 
-class RemoteCommonService {
-
-	private LoggerInterface $logger;
-
-	/**
-	 * Service to construct basic commands
-	 */
-	public function __construct (LoggerInterface $logger) {
-
-		$this->logger = $logger;
-
+    public function __construct(
+        string $Address = null,
+        string $Name = null
+    ) {
+        $this->Address = $Address;
+        $this->Name = $Name;
 	}
-	
-	
 }

@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -23,23 +23,21 @@
 *
 */
 
-namespace OCA\JMAPC\Service\Remote;
+namespace OCA\JMAPC\Objects\Event;
 
-use Psr\Log\LoggerInterface;
-use OCA\JMAPC\AppInfo\Application;
+class EventParticipantObject {
 
-class RemoteCommonService {
+    public ?string $id = null;
+    public ?string $name = null;
+    public ?string $description = null;
+    public ?string $address = null;
+    public ?EventParticipantTypes $type = null;
+    public ?EventParticipantStatusTypes $status = null;
+    public ?string $comment = null;
+    public EventParticipantRoleCollection $roles;
 
-	private LoggerInterface $logger;
+    public function __construct() {
+        $this->roles = new EventParticipantRoleCollection();
+    }
 
-	/**
-	 * Service to construct basic commands
-	 */
-	public function __construct (LoggerInterface $logger) {
-
-		$this->logger = $logger;
-
-	}
-	
-	
 }

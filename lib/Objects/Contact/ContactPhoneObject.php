@@ -23,23 +23,17 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Objects\Contact;
 
-class EventAttendeeObject {
-    public ?string $Address = null;
-    public ?string $Name = null;
-    public ?string $Type = null;
-    public ?string $Attendance = null;
+class ContactPhoneObject {
 
-    public function __construct(
-        string $Address = null,
-        ?string $Name = null,
-        ?string $Type = 'R',
-        ?string $Attendance = 'T'
-    ) {
-        $this->Address = $Address;
-        $this->Name = $Name;
-        $this->Type = $Type;
-        $this->Attendance = $Attendance;
+    public ?string $Type;
+    public ?string $SubType;
+	public ?string $Number;
+	
+	public function __construct(?string $type = null, ?string $subtype = null, ?string $number = null) {
+        $this->Type = $type;
+        $this->SubType = $subtype;
+        $this->Number = $number;
 	}
 }

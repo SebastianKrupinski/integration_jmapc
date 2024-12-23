@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -23,23 +23,12 @@
 *
 */
 
-namespace OCA\JMAPC\Service\Remote;
+namespace OCA\JMAPC\Objects\Event;
 
-use Psr\Log\LoggerInterface;
-use OCA\JMAPC\AppInfo\Application;
+use OCA\JMAPC\Objects\BaseCollection;
 
-class RemoteCommonService {
-
-	private LoggerInterface $logger;
-
-	/**
-	 * Service to construct basic commands
-	 */
-	public function __construct (LoggerInterface $logger) {
-
-		$this->logger = $logger;
-
-	}
-	
-	
+class EventTagCollection extends BaseCollection {
+    public function __construct($data = []) {
+        parent::__construct('string', $data);
+    }
 }

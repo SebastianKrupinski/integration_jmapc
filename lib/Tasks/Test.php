@@ -82,16 +82,12 @@ try {
 	// initialize required services
 	//$ConfigurationService = Server::get(\OCA\JMAPC\Service\ConfigurationService::class);
 	//$CoreService = Server::get(\OCA\JMAPC\Service\CoreService::class);
-	//$HarmonizationService = Server::get(\OCA\JMAPC\Service\HarmonizationService::class);
+	$HarmonizationService = Server::get(\OCA\JMAPC\Service\HarmonizationService::class);
 	// $RemoteCommonService = Server::get(\OCA\JMAPC\Service\Remote\RemoteCommonService::class);
 	// $RemoteEventsService = Server::get(\OCA\JMAPC\Service\Remote\RemoteEventsService::class);
 	
 	// execute initial harmonization
-	//$HarmonizationService->performHarmonization($uid, 7, 'S');
-
-	$mailService = Server::get(\OCA\Mail\Service\MessageOperationService::class);
-
-	$mailService->changeFlags('user1',[62241, 62242, 62243, 62244],['seen' => true]);
+	$HarmonizationService->performHarmonization($uid, 7, 'S');
 
 	exit;
 

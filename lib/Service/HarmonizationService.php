@@ -25,9 +25,6 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Service;
 
-use DateTime;
-use Exception;
-use Throwable;
 use Psr\Log\LoggerInterface;
 
 use OCA\JMAPC\Service\ConfigurationService;
@@ -69,17 +66,15 @@ class HarmonizationService {
 		// retrieve service
 		$service = $this->ServicesService->fetchByUserIdAndServiceId($uid, $sid);
 		// determine if we should run harmonization
-		if ($service['connected'] !== 1 || $service['enabled'] !== 1) {
+		if (!$service->getEnabled() || !$service->getConnected()) {
 			return;
 		}
 		// update harmonization state and start time
-		$this->ServicesService->deposit($uid, [
-			'id' => $service['id'],
-			'harmonization_state' => 1,
-			'harmonization_start' => time()
-		]);
+		$service->setHarmonizationState(true);
+		$service->setHarmonizationStart(time());
+		$service = $this->ServicesService->deposit($uid, $service);
 		// initialize store(s)
-		$remoteStore = RemoteService::initializeStoreFromCollection($service);
+		$remoteStore = RemoteService::initializeStoreFromEntity($service);
 
 		// contacts
 		if ($this->ConfigurationService->isCalendarAppAvailable()) {
@@ -109,11 +104,9 @@ class HarmonizationService {
 		}
 
 		// update harmonization state and end time
-		$this->ServicesService->deposit($uid, [
-			'id' => $service['id'],
-			'harmonization_state' => 0,
-			'harmonization_end' => time()
-		]);
+		$service->setHarmonizationState(false);
+		$service->setHarmonizationEnd(time());
+		$service = $this->ServicesService->deposit($uid, $service);
 
 		$this->logger->info('Finished Harmonization of Collections for ' . $uid);
 	}
@@ -129,7 +122,7 @@ class HarmonizationService {
 	 */
 	public function performLiveHarmonization(string $uid): void {
 
-		$this->logger->info('Statred Live Harmonization of Collections for ' . $uid);
+		$this->logger->info('Started Live Harmonization of Collections for ' . $uid);
 
 		// update harmonization state and start time
 		$this->ConfigurationService->setHarmonizationState($uid, true);

@@ -50,6 +50,8 @@ use OCA\JMAPC\Service\Remote\RemoteEventsService;
 use OCA\JMAPC\Service\Remote\RemoteTasksService;
 */
 use OCA\JMAPC\Service\Remote\RemoteCommonService;
+use OCA\JMAPC\Store\ServiceEntity;
+
 /*
 use OCA\JMAPC\Tasks\HarmonizationLauncher;
 */
@@ -163,51 +165,35 @@ class CoreService {
 	 * @since Release 1.0.0
 	 * 
 	 * @param string $uid					user id
-	 * @param string $account_bauth_id		account username
-	 * @param string $account_bauth_secret	account secret
-	 * @param string $account_server		FQDN or IP
+	 * @param array $service				service connection data
 	 * @param array $flags
 	 * 
 	 * @return bool
 	 */
 	public function connectAccount(string $uid, array $service, array $flags = []): bool {
 
-		// extract values
-		$service_id = $service['id'] ?? null;
-		$service_label = $service['label'] ?? 'Unknown';
-		$service_auth = $service['auth'] ?? 'BA';
-		$service_bauth_id = $service['bauth_id'] ?? null;
-		$service_bauth_secret = $service['bauth_secret'] ?? null;
-		$service_oauth_id = $service['oauth_id'] ?? null;
-		$service_oauth_access_token = $service['oauth_access_token'] ?? null;
-		$service_location_protocol = $service['location_protocol'] ?? 'https://';
-		$service_location_host = $service['location_host'] ?? null;
-		$service_location_port = $service['location_port'] ?? '443';
-		$service_location_path = $service['location_path'] ?? '/';
-		$service_primary_address = $service_auth === 'BA' ? $service_bauth_id : $service_oauth_id;
-		
 		// validate server
-		if (!\OCA\JMAPC\Utile\Validator::host($service_location_host)) {
+		if (!\OCA\JMAPC\Utile\Validator::host($service['location_host'])) {
 			return false;
 		}
 
-		if ($service_auth === 'BA') {
+		if ($service['auth'] === 'BA' || $service['auth'] === 'JA') {
 			// validate id
-			if (!\OCA\JMAPC\Utile\Validator::username($service_bauth_id)) {
+			if (!\OCA\JMAPC\Utile\Validator::username($service['bauth_id'])) {
 				return false;
 			}
 			// validate secret
-			if (empty($service_bauth_secret)) {
+			if (empty($service['bauth_secret'])) {
 				return false;
 			}
 		}
-		elseif ($service_auth === 'OA') {
+		elseif ($service['auth'] === 'OA') {
 			// validate id
-			if (!\OCA\JMAPC\Utile\Validator::username($service_oauth_id)) {
+			if (!\OCA\JMAPC\Utile\Validator::username($service['oauth_id'])) {
 				return false;
 			}
 			// validate secret
-			if (empty($service_oauth_access_token)) {
+			if (empty($service['oauth_access_token'])) {
 				return false;
 			}
 		}
@@ -215,19 +201,30 @@ class CoreService {
 			return false;
 		}
 
+		// construct service entity
+		$service = new ServiceEntity();
+		if (isset($service['id'])) {
+			$service->setId($service['id']);
+		}
+		$service->setLabel($service['label'] ?? 'Unknown');
+		$service->setLocationProtocol($service['location_protocol'] ?? 'https://');
+		$service->setLocationHost($service['location_host']);
+		$service->setLocationPort($service['location_port'] ?? 443);
+		$service->setLocationPath($service['location_path'] ?? null);
+		$service->setLocationSecurity((bool)$service['location_security'] ?? 1);
+		$service->setAuth($service['auth']);
+		if ($service['auth'] === 'BA' || $service['auth'] === 'JA') {
+			$service->setBauthId($service['bauth_id']);
+			$service->setBauthSecret($service['bauth_secret']);
+			$service->setAddressPrimary($service['bauth_id']);
+		} elseif ($service['auth'] === 'OA') {
+			$service->setOauthId($service['oauth_id']);
+			$service->setOauthAccessToken($service['oauth_access_token']);
+			$service->setAddressPrimary($service['oauth_id']);
+		}
+		
 		// construct remote data store client
-		$remoteStore = $this->RemoteService->initializeStoreFromCollection([
-			'auth' => $service_auth,
-			'bauth_id' => $service_bauth_id,
-			'bauth_secret' => $service_bauth_secret,
-			'oauth_id' => $service_oauth_id,
-			'oauth_access_token' => $service_oauth_access_token,
-			'location_protocol' => $service_location_protocol,
-			'location_host' => $service_location_host,
-			'location_port' => $service_location_port,
-			'location_path' => $service_location_path,
-			'address_primary' => $service_primary_address,
-		]);
+		$remoteStore = $this->remoteService->initializeStoreFromEntity($service);
 	
 		// connect client
 		$remoteStore->connect();
@@ -239,26 +236,8 @@ class CoreService {
 
 		// TODO: retrieve capabilities
 
-		// deposit service to datastore
-		$service = [
-			'enabled' => 1,
-			'connected' => 1,
-			'label'=> $service_label,
-			'auth' => $service_auth,
-			'bauth_id' => $service_bauth_id,
-			'bauth_secret' => $service_bauth_secret,
-			'oauth_id' => $service_oauth_id,
-			'oauth_access_token' => $service_oauth_access_token,
-			'location_protocol' => $service_location_protocol,
-			'location_host' => $service_location_host,
-			'location_port' => $service_location_port,
-			'location_path' => $service_location_path,
-			'address_primary' => $service_primary_address,
-		];
-
-		if (isset($service_id)) {
-			$service['id'] = $service_id;
-		}
+		$service->setEnabled(true);
+		$service->setConnected(true);
 
 		$this->ServicesService->deposit($uid, $service);
 
@@ -279,32 +258,36 @@ class CoreService {
 	 * 
 	 * @return void
 	 */
-	public function disconnectAccount(string $uid, string $sid): void {
-		
+	public function disconnectAccount(string $uid, int $sid): void {
+
+		// retrieve service information
+		$service = $this->ServicesService->fetch($sid);
+		// determine if user if the service owner
+		if ($service->getUid() !== $uid) {
+			return;
+		}
 		// deregister task
-		$this->TaskService->remove(\OCA\JMAPC\Tasks\HarmonizationLauncher::class, ['uid' => $uid]);
+		$this->TaskService->remove(\OCA\JMAPC\Tasks\HarmonizationLauncher::class, ['uid' => $uid, 'uid' => $sid]);
 		// terminate harmonization thread
 		$this->HarmonizationThreadService->terminate($uid);
 		// initialize contacts data store
-		$DataStore = \OC::$server->get(\OCA\JMAPC\Store\ContactStore::class);
+		$localStore = $this->localService->initializeContactStore();
 		// delete local entities
-		$DataStore->entityDeleteByUser($uid);
+		$localStore->entityDeleteByService($sid);
 		// delete local collection
-		$DataStore->collectionDeletesByUser($uid);
+		$localStore->collectionDeleteByService($sid);
 		// initialize events data store
-		$DataStore = \OC::$server->get(\OCA\JMAPC\Store\EventStore::class);
+		$localStore = $this->localService->initializeEventStore();
 		// delete local entities
-		$DataStore->entityDeleteByUser($uid);
+		$localStore->entityDeleteByService($sid);
 		// delete local collection
-		$DataStore->collectionDeletesByUser($uid);
+		$localStore->collectionDeleteByService($sid);
 		// initialize tasks data store
-		$DataStore = \OC::$server->get(\OCA\JMAPC\Store\TaskStore::class);
+		$localStore = $this->localService->initializeTaskStore();
 		// delete local entities
-		$DataStore->entityDeleteByUser($uid);
+		$localStore->entityDeleteByService($sid);
 		// delete local collection
-		$DataStore->collectionDeletesByUser($uid);
-		// delete configuration
-		$this->ConfigurationService->destroyUser($uid);
+		$localStore->collectionDeleteByService($sid);
 
 	}
 
@@ -325,11 +308,11 @@ class CoreService {
 		// retrieve service information
 		$service = $this->ServicesService->fetch($sid);
 		// determine if user if the service owner
-		if ($service['uid'] !== $uid) {
+		if ($service->getUid() !== $uid) {
 			return $data;
 		}
 		// create remote store client
-		$remoteStore = $this->remoteService->initializeStoreFromCollection($service);
+		$remoteStore = $this->remoteService->initializeStoreFromEntity($service);
 		// retrieve collections for contacts module
 		$this->remoteContactsService->initialize($remoteStore);
 		try {
@@ -393,7 +376,7 @@ class CoreService {
 		// retrieve service information
 		$service = $this->ServicesService->fetch($sid);
 		// determine if user if the service owner
-		if ($service['uid'] !== $uid) {
+		if ($service->getUid() !== $uid) {
 			return $data;
 		}
 		// retrieve local collections

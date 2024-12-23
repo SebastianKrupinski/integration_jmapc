@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -23,23 +23,12 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Objects\Event;
 
-class ContactAddressObject {
+use OCA\JMAPC\Objects\BaseCollection;
 
-    public ?string $Type;
-    public ?string $Street;
-	public ?string $Locality;
-    public ?string $Region;
-    public ?string $Code;
-	public ?string $Country;
-	
-	public function __construct(?string $type = null, ?string $street = null, ?string $locality = null, ?string $region = null, ?string $code = null, ?string $country = null) {
-        $this->Type = $type;
-        $this->Street = $street;
-        $this->Locality = $locality;
-        $this->Region = $region;
-        $this->Code = $code;
-        $this->Country = $country;
-	}
+class EventNotificationCollection extends BaseCollection {
+    public function __construct($data = []) {
+        parent::__construct(EventNotificationObject::class, $data);
+    }
 }

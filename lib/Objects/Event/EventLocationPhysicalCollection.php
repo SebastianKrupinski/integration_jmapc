@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -23,17 +23,12 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Objects\Event;
 
-class EventOrganizerObject {
-    public ?string $Address = null;
-    public ?string $Name = null;
+use OCA\JMAPC\Objects\BaseCollection;
 
-    public function __construct(
-        string $Address = null,
-        string $Name = null
-    ) {
-        $this->Address = $Address;
-        $this->Name = $Name;
-	}
+class EventLocationPhysicalCollection extends BaseCollection {
+    public function __construct($data = []) {
+        parent::__construct(EventLocationPhysicalObject::class, $data);
+    }
 }

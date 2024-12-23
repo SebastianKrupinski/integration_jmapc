@@ -23,23 +23,15 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Objects\Contact;
 
-use DateTime;
+class ContactRelationObject {
 
-class EventOccurrenceObject {
-    public ?string $Pattern = null;         // Pattern - A - Absolute / R - Relative
-	public ?string $Precision = null;       // Time Scale - D - Daily / W - Weekly / M - Monthly / Y - Yearly
-    public ?string $Interval = null;        // Time Interval - Every 2 Days / Every 4 Weeks / Every 1 Year
-    public ?string $Iterations = null;      // Number of recurrence
-    public ?DateTime $Concludes = null;     // Date to stop recurrence
-    public array $Excludes = [];
-    public array $OnDayOfWeek = [];
-    public array $OnDayOfMonth = [];
-    public array $OnDayOfYear = [];
-    public array $OnWeekOfMonth = [];
-    public array $OnWeekOfYear = [];
-    public array $OnMonthOfYear = [];
-
-    public function __construct() {}
+    public ?string $Type;
+	public ?string $Value;
+	
+	public function __construct(?string $type = null, ?string $value = null) {
+        $this->Type = $type;
+        $this->Value = $value;
+	}
 }

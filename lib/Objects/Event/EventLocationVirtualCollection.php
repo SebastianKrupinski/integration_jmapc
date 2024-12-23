@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -23,15 +23,12 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Objects\Event;
 
-class ContactEmailObject {
+use OCA\JMAPC\Objects\BaseCollection;
 
-    public ?string $Type;
-	public ?string $Address;
-	
-	public function __construct(?string $type = null, ?string $address = null) {
-        $this->Type = $type;
-        $this->Address = $address;
-	}
+class EventLocationVirtualCollection extends BaseCollection {
+    public function __construct($data = []) {
+        parent::__construct(EventLocationVirtualObject::class, $data);
+    }
 }

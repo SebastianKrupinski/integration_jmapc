@@ -23,23 +23,13 @@
 *
 */
 
-namespace OCA\JMAPC\Service\Remote;
+namespace OCA\JMAPC\Objects\Event;
 
-use Psr\Log\LoggerInterface;
-use OCA\JMAPC\AppInfo\Application;
-
-class RemoteCommonService {
-
-	private LoggerInterface $logger;
-
-	/**
-	 * Service to construct basic commands
-	 */
-	public function __construct (LoggerInterface $logger) {
-
-		$this->logger = $logger;
-
-	}
-	
-	
+enum EventParticipantStatusTypes {
+    case None;
+    case Accepted;
+    case Declined;
+    case Tentative;
+    case Delegated;
 }
+

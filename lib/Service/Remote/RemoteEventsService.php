@@ -28,13 +28,14 @@ namespace OCA\JMAPC\Service\Remote;
 use Datetime;
 use DateTimeZone;
 use DateInterval;
+use DateTimeImmutable;
 use Exception;
 
 use JmapClient\Client;
 
+use JmapClient\Responses\ResponseException;
 use JmapClient\Responses\Calendar\EventParameters as EventParametersResponse;
 
-use JmapClient\Responses\ResponseException;
 use JmapClient\Requests\Calendar\CalendarGet;
 use JmapClient\Requests\Calendar\CalendarSet;
 use JmapClient\Requests\Calendar\CalendarQuery;
@@ -45,13 +46,28 @@ use JmapClient\Requests\Calendar\EventSet;
 use JmapClient\Requests\Calendar\EventQuery;
 use JmapClient\Requests\Calendar\EventChanges;
 use JmapClient\Requests\Calendar\EventQueryChanges;
-use JmapClient\Requests\Calendar\EventParameters;
+use JmapClient\Requests\Calendar\EventParameters as EventParametersRequest;
 
 use OCA\JMAPC\Exceptions\JmapUnknownMethod;
-use OCA\JMAPC\Objects\EventCollectionObject;
-use OCA\JMAPC\Objects\EventObject;
-use OCA\JMAPC\Objects\EventAttachmentObject;
-use OCA\JMAPC\Providers\Calendar\EventCollection;
+use OCA\JMAPC\Objects\EventCollection;
+use OCA\JMAPC\Objects\Event\EventObject;
+use OCA\JMAPC\Objects\Event\EventOccurrenceObject;
+use OCA\JMAPC\Objects\Event\EventAttachmentObject;
+use OCA\JMAPC\Objects\Event\EventAvailabilityTypes;
+use OCA\JMAPC\Objects\Event\EventLocationPhysicalObject;
+use OCA\JMAPC\Objects\Event\EventLocationVirtualObject;
+use OCA\JMAPC\Objects\Event\EventNotificationAnchorTypes;
+use OCA\JMAPC\Objects\Event\EventNotificationObject;
+use OCA\JMAPC\Objects\Event\EventNotificationPatterns;
+use OCA\JMAPC\Objects\Event\EventNotificationTypes;
+use OCA\JMAPC\Objects\Event\EventOccurrencePatternTypes;
+use OCA\JMAPC\Objects\Event\EventOccurrencePrecisionTypes;
+use OCA\JMAPC\Objects\Event\EventParticipantObject;
+use OCA\JMAPC\Objects\Event\EventParticipantRoleTypes;
+use OCA\JMAPC\Objects\Event\EventParticipantStatusTypes;
+use OCA\JMAPC\Objects\Event\EventParticipantTypes;
+use OCA\JMAPC\Objects\Event\EventSensitivityTypes;
+use OCA\JMAPC\Objects\OriginTypes;
 
 class RemoteEventsService {
 
@@ -123,9 +139,9 @@ class RemoteEventsService {
 		// convert json object to message object and return
 		if ($response->object(0)) {
 			$ro = $response->object(0);
-			return new EventCollectionObject(
+			return new EventCollection(
                 $ro->id(),
-                $ro->name(),
+                $ro->label(),
                 $ro->priority(),
                 $ro->visible(),
                 $ro->color(),
@@ -146,7 +162,6 @@ class RemoteEventsService {
 		$r0 = new CalendarSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
 		// construct object
 		$m0 = $r0->create('1');
-		$m0->in($location);
 		$m0->label($label);
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0]);
@@ -243,7 +258,7 @@ class RemoteEventsService {
 		// convert json objects to collection objects
         $list = [];
 		foreach ($response->objects() as $ro) {
-            $collection = new EventCollectionObject(
+            $collection = new EventCollection(
                 $ro->id(),
                 $ro->name(),
                 $ro->priority(),
@@ -319,17 +334,28 @@ class RemoteEventsService {
      * @since Release 1.0.0
      * 
 	 */
-	public function entityCreate(string $location, IMessage $message): string {
+	public function entityCreate(string $location, EventObject $so): EventObject|null {
+		// convert entity
+		$entity = $this->fromEventObject($so);
 		// construct set request
 		$r0 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
-		// construct object
-		$r0->create('1')->parametersRaw($message->getParameters())->in($location);
+		// add entity
+		$r0->create('1', $entity)->in($location);
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// return collection information
-		return (string) $response->created()['1']['id'];
+		// return entity
+		if (isset($response->created()['1']['id'])) {
+			$ro = clone $so;
+			$ro->Origin = OriginTypes::External;
+			$ro->ID = $response->created()['1']['id'];
+			$ro->CreatedOn = isset($response->created()['1']['updated']) ? new DateTimeImmutable($response->created()['1']['updated']) : null;
+			$ro->ModifiedOn = $ro->CreatedOn;
+			return $ro;
+		} else {
+			return null;
+		}
     }
 
     /**
@@ -338,30 +364,19 @@ class RemoteEventsService {
      * @since Release 1.0.0
      * 
 	 */
-	public function entityModify(string $location, string $id, IMessage $message): string {
-		//
-		//TODO: Replace this code with an actual property update instead of replacement
-		//
-		// construct set request
-		//$r0 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
-		// construct object
-		//$r0->create('1')->parametersRaw($message->getParameters())->in($location);
-		// construct set request
-		//$r1 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
-		// construct object
-		//$r1->delete($id);
+	public function entityModify(string $location, string $id, EventObject $event): string|null {
+		// convert entity
+		$entity = $this->fromEventObject($event);
 		// construct set request
 		$r0 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
-		// construct object
-		$messageData = $message->getParameters();
-		$messageData['id'] = $id;
-		$r0->update($id)->parametersRaw($messageData);
+		// add entity
+		$r0->update($id, $entity)->in($location);
 		// transmit request and receive response
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// return collection information
-		return array_key_exists($id, $response->updated()) ? (string) $id : '';
+		// return entity information
+		return array_key_exists($id, $response->updated()) ? (string) $id : null;
     }
     
     /**
@@ -390,7 +405,7 @@ class RemoteEventsService {
      * 
 	 */
     public function entityCopy(string $sourceLocation, string $id, string $destinationLocation): string {
-        
+		return '';
     }
 
 	/**
@@ -424,7 +439,7 @@ class RemoteEventsService {
 		$r0 = new EventQuery($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
 		// set location constraint
         if (!empty($location)) {
-        	//$r0->filter()->in($location);
+    		$r0->filter()->in($location);
         }
 		// set range constraint
 		if ($range !== null) {
@@ -699,7 +714,7 @@ class RemoteEventsService {
      * 
      * @since Release 1.0.0
      * 
-	 * @param EventParameters $so	remote entity object
+	 * @param EventParametersResponse $so	remote entity object
 	 * 
 	 * @return EventObject			local entity object
 	 */
@@ -707,7 +722,7 @@ class RemoteEventsService {
 		// create object
 		$eo = new EventObject();
 		// source origin
-		$eo->Origin = 'R';
+		$eo->Origin = OriginTypes::External;
         // id
         if ($so->id()){
             $eo->ID = $so->id();
@@ -716,217 +731,224 @@ class RemoteEventsService {
         if ($so->uid()){
             $eo->UUID = $so->uid();
         }
-		// creation date
+		// creation date time
         if ($so->created()){
             $eo->CreatedOn = $so->created();
         }
-		// modification date
+		// modification date time
 		if ($so->updated()){
             $eo->ModifiedOn = $so->updated();
+        }
+		// sequence
+        if ($so->sequence()){
+            $eo->Sequence = $so->sequence();
         }
 		// time zone
         if ($so->timezone()) {
         	$eo->TimeZone = new DateTimeZone($so->timezone());
         }
-		// Start Date/Time
+		// start date/time
 		if ($so->starts()) {
 			$eo->StartsOn = $so->starts();
 			$eo->StartsTZ = $eo->TimeZone;
 		}
-		// End Date/Time
+		// end date/time
         if ($so->ends()) {
             $eo->EndsOn = $so->ends();
 			$eo->EndsTZ = $eo->TimeZone;
         }
-		// All Day Event
-		if($so->timeless() && $so->timeless() === true) {
-			$eo->StartsOn->setTime(0,0,0,0);
-			$eo->EndsOn->setTime(0,0,0,0);
+		// duration
+		if ($so->duration()) {
+			$eo->Duration = $so->duration();
 		}
-		// Label
+		// all bay event
+		if($so->timeless()) {
+			$eo->Timeless = true;
+		}
+		// label
         if ($so->label()) {
             $eo->Label = $so->label();
         }
-		// Description
+		// description
 		if ($so->descriptionContents()) {
-			$eo->Notes = $so->descriptionContents();
+			$eo->Description = $so->descriptionContents();
 		}
-		// Location
-		/*
-		if (!empty($so->Location)) {
-			$eo->Location = $so->Location->DisplayName->getContents();
+		// physical location(s)
+		foreach ($so->physicalLocations() as $id => $entry) {
+			$location = new EventLocationPhysicalObject();
+			$location->Id  = $id;
+			$location->Name = $entry->label();
+			$location->Description = $entry->description();
+			$eo->LocationsPhysical[$id] = $location;
 		}
-		*/
-		// Availability
+		// virtual location(s)
+		foreach ($so->virtualLocations() as $id => $entry) {
+			$location = new EventLocationVirtualObject();
+			$location->Id  = $id;
+			$location->Name = $entry->label();
+			$location->Description = $entry->description();
+			$eo->LocationsVirtual[$id] = $location;
+		}
+		// availability
 		if ($so->availability()) {
-			$eo->Availability = $this->fromAvailability($so->availability());
+			$eo->Availability = match (strtolower($so->availability())) {
+				'free' => EventAvailabilityTypes::Free,
+				default => EventAvailabilityTypes::Busy,
+			};
 		}
-		// Sensitivity
+		// priority
+		if ($so->priority()) {
+			$eo->Priority = $so->priority();
+		}
+		// sensitivity
 		if ($so->privacy()) {
-			$eo->Sensitivity = $this->fromSensitivity($so->privacy());
+			$eo->Sensitivity = match (strtolower($so->privacy())) {
+				'private' => EventSensitivityTypes::Private,
+				'secret' => EventSensitivityTypes::Secret,
+				default => EventSensitivityTypes::Public,
+			};
 		}
-		// Tag(s)
-		/*
-        if ($so->categories()) {
-            if (!is_array($so->Categories->Category)) {
-                $so->Categories->Category = [$so->Categories->Category];
-            }
-			foreach($so->Categories->Category as $entry) {
-				$eo->addTag($entry->getContents());
-			}
-        }
-		*/
+		// color
+		if ($so->color()) {
+			$eo->Color = $so->color();
+		}
+		// categories(s)
+		foreach ($so->categories() as $id => $entry) {
+			$eo->Categories[] = $entry;
+		}
+		// tag(s)
+		foreach ($so->tags() as $id => $entry) {
+			$eo->Tags[] = $entry;
+		}
 		// Organizer - Address and Name
 		if ($so->sender()) {
 			$sender = $this->fromSender($so->sender());
 			$eo->Organizer->Address = $sender['address'];
 			$eo->Organizer->Name = $sender['name'];
 		}
-		/*
-		// Attendee(s)
-		if (isset($so->Attendees->Attendee)) {
-			foreach($so->Attendees->Attendee as $entry) {
-				if ($entry->Email) {
-					$a = $entry->Email->getContents();
-					// evaluate, if name exists
-					$n = (isset($entry->Name)) ? $entry->Name->getContents() : null;
-					// evaluate, if type exists
-					$t = (isset($entry->AttendeeType)) ? $this->fromAttendeeType($entry->AttendeeType->getContents()) : null;
-					// evaluate, if status exists
-					$s = (isset($entry->AttendeeStatus)) ? $this->fromAttendeeStatus($entry->AttendeeStatus->getContents()) : null;
-					// add attendee
-					$eo->addAttendee($a, $n, $t, $s);
-				}
+		// participant(s)
+		foreach ($so->participants() as $id => $entry) {
+			$participant = new EventParticipantObject();
+			$participant->id = $id;
+			$participant->address = $entry->address();
+			$participant->name = $entry->name();
+			$participant->description = $entry->description();
+			$participant->comment = $entry->comment();
+			$participant->type = match (strtolower($entry->kind())) {
+				'individual' => EventParticipantTypes::Individual,
+				'group' => EventParticipantTypes::Group,
+				'resource' => EventParticipantTypes::Resource,
+				'location' => EventParticipantTypes::Location,
+				default => EventParticipantTypes::Unknown,
+			};
+			$participant->status = match (strtolower($entry->status())) {
+				'accepted' => EventParticipantStatusTypes::Accepted,
+				'declined' => EventParticipantStatusTypes::Declined,
+				'tentative' => EventParticipantStatusTypes::Tentative,
+				'delegated' => EventParticipantStatusTypes::Delegated,
+				default => EventParticipantStatusTypes::None,
+			};
+			
+			foreach ($entry->roles() as $role => $value) {
+				$participant->roles[$role] = EventParticipantRoleTypes::from($role);
 			}
-			unset($a, $n, $t, $s);
+			$eo->Participants[$id] = $participant;
 		}
-		// Notification(s)
-		if (isset($so->Reminder)) { 
-			$w = new DateInterval('PT' . $so->Reminder->getContents() . 'M');
-			$w->invert = 1;
-			$eo->addNotification(
-				'D',
-				'R',
-				$w
-			);
+		// notification(s)
+		foreach ($so->notifications() as $id => $entry) {
+			$trigger = $entry->trigger();
+			$notification = new EventNotificationObject();
+			$notification->Type = match (strtolower($entry->type())) {
+				'email' => EventNotificationTypes::Email,
+				default => EventNotificationTypes::Visual,
+			};
+			$notification->Pattern = match (strtolower($trigger->type())) {
+				'absolute' => EventNotificationPatterns::Absolute,
+				'relative' => EventNotificationPatterns::Relative,
+				default => EventNotificationPatterns::Unknown,
+			};
+			if ($notification->Pattern === EventNotificationPatterns::Absolute) {
+				$notification->When = $trigger->when();
+			} elseif ($notification->Pattern === EventNotificationPatterns::Relative) {
+				$notification->Anchor = match (strtolower($trigger->anchor())) {
+					'end' => EventNotificationAnchorTypes::End,
+					default => EventNotificationAnchorTypes::Start,
+				};
+				$notification->Offset = $trigger->offset();
+			}
+			$eo->Notifications[$id] = $notification;
 		}
-		// Occurrence
-        if (isset($so->Recurrence)) {
+		// occurrence(s)
+		foreach ($so->recurrenceRules() as $id => $entry) {
+			$occurrence = new EventOccurrenceObject();
+			
 			// Interval
-			if (isset($so->Recurrence->Interval)) {
-				$eo->Occurrence->Interval = $so->Recurrence->Interval->getContents();
+			if ($entry->interval() !== null) {
+				$occurrence->Interval = $entry->interval();
 			}
 			// Iterations
-			if (isset($so->Recurrence->Occurrences)) {
-				$eo->Occurrence->Iterations = $so->Recurrence->Occurrences->getContents();
+			if ($entry->count() !== null) {
+				$occurrence->Iterations = $entry->count();
 			}
 			// Conclusion
-			if (isset($so->Recurrence->Until)) {
-				$eo->Occurrence->Concludes = new DateTime($so->Recurrence->Until->getContents());
+			if ($entry->until() !== null) {
+				$occurrence->Concludes = new DateTime($entry->until());
 			}
 			// Daily
-			if ($so->Recurrence->Type->getContents() == '0') {
-
-				$eo->Occurrence->Pattern = 'A';
-				$eo->Occurrence->Precision = 'D';
-
+			if ($entry->frequency() === 'daily') {
+				$occurrence->Pattern = EventOccurrencePatternTypes::Absolute;
+				$occurrence->Precision = EventOccurrencePrecisionTypes::Daily;
             }
 			// Weekly
-			if ($so->Recurrence->Type->getContents() == '1') {
-				
-				$eo->Occurrence->Pattern = 'A';
-				$eo->Occurrence->Precision = 'W';
-				
-				if (isset($so->Recurrence->DayOfWeek)) {
-					$eo->Occurrence->OnDayOfWeek = $this->fromDaysOfWeek((int) $so->Recurrence->DayOfWeek->getContents(), true);
-				}
-
+			if ($entry->frequency() === 'weekly') {
+				$occurrence->Pattern = EventOccurrencePatternTypes::Absolute;
+				$occurrence->Precision = EventOccurrencePrecisionTypes::Weekly;
+				$occurrence->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
             }
-			// Monthly Absolute
-			if ($so->Recurrence->Type->getContents() == '2') {
-				
-				$eo->Occurrence->Pattern = 'A';
-				$eo->Occurrence->Precision = 'M';
-				
-				if (isset($so->Recurrence->DayOfMonth)) {
-					$eo->Occurrence->OnDayOfMonth = $this->fromDaysOfMonth($so->Recurrence->DayOfMonth->getContents());
+			// Monthly 
+			if ($entry->frequency() === 'monthly') {
+				$occurrence->Precision = EventOccurrencePrecisionTypes::Monthly;
+				// Absolute
+				if (count($entry->byDayOfMonth())) {
+					$occurrence->Pattern = EventOccurrencePatternTypes::Absolute;
+					$occurrence->OnDayOfMonth = $entry->byDayOfMonth();
 				}
-
+				// Relative
+				else {
+					$occurrence->Pattern = EventOccurrencePatternTypes::Relative;
+					$occurrence->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
+				}
             }
-			// Monthly Relative
-			if ($so->Recurrence->Type->getContents() == '3') {
-				
-				$eo->Occurrence->Pattern = 'R';
-				$eo->Occurrence->Precision = 'M';
-				
-				if (isset($so->Recurrence->DayOfWeek)) {
-					$eo->Occurrence->OnDayOfWeek = $this->fromDaysOfWeek((int) $so->Recurrence->DayOfWeek->getContents(), true);
+			// Yearly
+			if ($entry->frequency() === 'yearly') {
+				$occurrence->Precision = EventOccurrencePrecisionTypes::Yearly;
+				// nth day of year
+				if (count($entry->byDayOfYear())) {
+					$occurrence->Pattern = EventOccurrencePatternTypes::Absolute;
+					$occurrence->OnDayOfYear = $entry->byDayOfYear();
+					$occurrence->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
 				}
-				if (isset($so->Recurrence->WeekOfMonth)) {
-					$eo->Occurrence->OnWeekOfMonth = $this->fromWeekOfMonth($so->Recurrence->WeekOfMonth->getContents());
+				// nth week of year
+				elseif (count($entry->byWeekOfYear())) {
+					$occurrence->Pattern = EventOccurrencePatternTypes::Relative;
+					$occurrence->OnWeekOfYear = $entry->byWeekOfYear();
+					$occurrence->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
 				}
-
-            }
-			// Yearly Absolute
-			if ($so->Recurrence->Type->getContents() == '5') {
-				
-				$eo->Occurrence->Pattern = 'A';
-				$eo->Occurrence->Precision = 'Y';
-				
-				if (isset($so->Recurrence->DayOfMonth)) {
-					$eo->Occurrence->OnDayOfMonth = $this->fromDaysOfMonth($so->Recurrence->DayOfMonth->getContents());
-				}
-				if (isset($so->Recurrence->MonthOfYear)) {
-					$eo->Occurrence->OnMonthOfYear = $this->fromMonthOfYear($so->Recurrence->MonthOfYear->getContents());
-				}
-
-            }
-			// Yearly Relative
-			if ($so->Recurrence->Type->getContents() == '6') {
-				
-				$eo->Occurrence->Pattern = 'R';
-				$eo->Occurrence->Precision = 'Y';
-				
-				if (isset($so->Recurrence->DayOfWeek)) {
-					$eo->Occurrence->OnDayOfWeek = $this->fromDaysOfWeek($so->Recurrence->DayOfWeek->getContents(), true);
-				}
-				if (isset($so->Recurrence->WeekOfMonth)) {
-					$eo->Occurrence->OnWeekOfMonth = $this->fromWeekOfMonth($so->Recurrence->WeekOfMonth->getContents());
-				}
-				if (isset($so->Recurrence->MonthOfYear)) {
-					$eo->Occurrence->OnMonthOfYear = $this->fromMonthOfYear($so->Recurrence->MonthOfYear->getContents());
-				}
-
-            }
-			// Excludes
-			if (isset($so->DeletedOccurrences)) {
-				foreach($so->DeletedOccurrences->DeletedOccurrence as $entry) {
-					if (isset($entry->Start)) {
-						$o->Occurrence->Excludes[] = new DateTime($entry->Start);
+				// nth month of year
+				elseif (count($entry->byMonthOfYear())) {
+					if (count($entry->byDayOfMonth())) {
+						$occurrence->Pattern = EventOccurrencePatternTypes::Absolute;
+						$occurrence->OnDayOfMonth = $entry->byDayOfMonth();
+					} else {
+						$occurrence->Pattern = EventOccurrencePatternTypes::Relative;
+						$occurrence->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
 					}
 				}
 			}
-        }
-        // Attachment(s)
-		if (isset($so->Attachments)) {
-			// evaluate if property is a collection
-			if (!is_array($so->Attachments->Attachment)) {
-				$so->Attachments->Attachment = [$so->Attachments->Attachment];
-			}
-			foreach($so->Attachments->Attachment as $entry) {
-				$type = \OCA\JMAPC\Utile\MIME::fromFileName($entry->DisplayName->getContents());
-				$eo->addAttachment(
-					'D',
-					$entry->FileReference->getContents(), 
-					$entry->DisplayName->getContents(),
-					$type,
-					'B',
-					$entry->EstimatedDataSize->getContents()
-				);
-			}
+			// add to collection
+			$eo->OccurrencePatterns[] = $occurrence;
 		}
-		*/
-
+		
 		return $eo;
 
     }
@@ -936,151 +958,229 @@ class RemoteEventsService {
      * 
      * @since Release 1.0.0
      * 
-	 * @param EventObject $so		entity as EventObject
+	 * @param EventObject $so
 	 * 
-	 * @return EasObject            entity as EasObject
+	 * @return EventParametersRequest
 	 */
-	public function fromEventObject(EventObject $so): EasObject {
+	public function fromEventObject(EventObject $eo): EventParametersRequest {
 
 		// create object
-		$eo = new EasObject('AirSync');
-		// Time Zone
-        if (!empty($so->TimeZone)) {
-        	$eo->Timezone = new EasProperty('Calendar', $this->toTimeZone($so->TimeZone, $so->StartsOn));
-			//$eo->Timezone = new EasProperty('Calendar', 'LAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAsAAAABAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAACAAIAAAAAAAAAxP///w==');
+		$to = new EventParametersRequest();
+		// universal id
+        if ($eo->UUID){
+            $to->uid($eo->UUID);
         }
-		elseif (!empty($so->StartsTZ)) {
-			$eo->Timezone = new EasProperty('Calendar', $this->toTimeZone($so->StartsTZ, $so->StartsOn));
-			//$eo->Timezone = new EasProperty('Calendar', 'LAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAsAAAABAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAACAAIAAAAAAAAAxP///w==');
-		}
-		// Start Date/Time
-		if (!empty($so->StartsOn)) {
-			$dt = (clone $so->StartsOn)->setTimezone(new DateTimeZone('UTC'));
-			$eo->StartTime = new EasProperty('Calendar', $dt->format('Ymd\\THisp')); // YYYYMMDDTHHMMSSZ
-		}
-		// End Date/Time
-		if (!empty($so->EndsOn)) {
-			$dt = (clone $so->EndsOn)->setTimezone(new DateTimeZone('UTC'));
-			$eo->EndTime = new EasProperty('Calendar', $dt->format('Ymd\\THisp')); // YYYYMMDDTHHMMSSZ
-		}
-		// All Day Event
-		if((fmod(($so->EndsOn->getTimestamp() - $so->StartsOn->getTimestamp()), 86400) == 0)) {
-			$eo->AllDayEvent = new EasProperty('Calendar', 1);
-		}
-		else {
-			$eo->AllDayEvent = new EasProperty('Calendar', 0);
-		}
-		// Label
-        if (!empty($so->Label)) {
-            $eo->Subject = new EasProperty('Calendar', $so->Label);
+		// creation date time
+        if ($eo->CreatedOn){
+        	$to->created($eo->CreatedOn);
         }
-		// Sensitivity
-        if (!empty($so->Sensitivity)) {
-            $eo->Sensitivity = new EasProperty('Calendar', $this->toSensitivity($so->Sensitivity));
+		// modification date time
+		if ($eo->ModifiedOn){
+    		$to->updated($eo->ModifiedOn);
         }
-		else {
-			$eo->Sensitivity = new EasProperty('Calendar', '2');
+		// sequence
+		if ($eo->Sequence){
+    		$to->sequence($eo->Sequence);
+        }
+		// time zone
+		if ($eo->TimeZone){
+    		$to->timezone($eo->TimeZone->getName());
+        }
+		// start date/time
+		if ($eo->StartsOn){
+    		$to->starts($eo->StartsOn);
+        }
+		// duration
+		if ($eo->Duration){
+    		$to->duration($eo->Duration);
+        } else {
+			$to->duration($eo->StartsOn->diff($eo->EndsOn));
 		}
-
-		// Notes
-        if (!empty($so->Notes)) {
-            $eo->Body = new EasObject('AirSyncBase');
-            $eo->Body->Type = new EasProperty('AirSyncBase', EasTypes::BODY_TYPE_TEXT);
-            //$eo->Body->EstimatedDataSize = new EasProperty('AirSyncBase', strlen($so->Notes));
-            $eo->Body->Data = new EasProperty('AirSyncBase', $so->Notes);
+		// all day Event
+		if ($eo->Timeless){
+    		$to->timeless($eo->Timeless);
         }
-		else {
-			$eo->Body = new EasObject('AirSyncBase');
-            $eo->Body->Type = new EasProperty('AirSyncBase', EasTypes::BODY_TYPE_TEXT);
-            $eo->Body->Data = new EasProperty('AirSyncBase', ' ');
-		}
-		
-		// Location
-        if (!empty($so->Location)) {
-            $eo->Location = new EasProperty('AirSyncBase', $so->Location);
+		// label
+        if ($eo->Label){
+    		$to->label($eo->Label);
         }
-		// Availability
-        if (!empty($so->Availability)) {
-            $eo->BusyStatus = new EasProperty('Calendar', $this->toAvailability($so->Availability));
+		// description
+        if ($eo->Description){
+    		$to->descriptionContents($eo->Description);
         }
-		else {
-			$eo->BusyStatus = new EasProperty('Calendar', 2);
-		}
-		// Notifications
-        if (count($so->Notifications) > 0) {
-			$eo->Reminder = new \OCA\JMAPC\Utile\Eas\EasProperty('Calendar', 10);
-        }
-		else {
-			$eo->Reminder = new \OCA\JMAPC\Utile\Eas\EasProperty('Calendar', 0);
-		}
-		// MeetingStatus
-		$eo->MeetingStatus = new \OCA\JMAPC\Utile\Eas\EasProperty('Calendar', 0);
-
-		// Tag(s)
-        if (count($so->Tags) > 0) {
-            $eo->Categories = new EasObject('Calendar');
-            $eo->Categories->Category = new EasCollection('Calendar');
-            foreach($so->Tags as $entry) {
-                $eo->Categories->Category[] = new EasProperty('Calendar', $entry);
-            }
-        }
-		
-
-		
-		// Occurrence
-		if (isset($so->Occurrence) && !empty($so->Occurrence->Precision)) {
-			$eo->Recurrence = new EasObject('Calendar');
-			// Occurrence Interval
-			if (isset($so->Occurrence->Interval)) {
-				$eo->Recurrence->Interval = new EasProperty('Calendar', $so->Occurrence->Interval);
+		// physical location(s)
+        foreach ($eo->LocationsPhysical as $entry) {
+			$location = $to->physicalLocations($entry->id);
+			if ($entry->name) {
+				$location->label($entry->name);
 			}
-			// Occurrence Iterations
-			if (!empty($so->Occurrence->Iterations)) {
-				$eo->Recurrence->Occurrences = new EasProperty('Calendar', $so->Occurrence->Iterations);
+			if ($entry->description) {
+				$location->description($entry->description);
 			}
-			// Occurrence Conclusion
-			if (!empty($so->Occurrence->Concludes)) {
-				$eo->Recurrence->Until = new EasProperty('Calendar', $so->Occurrence->Concludes->format('Ymd\\THis')); // YYYY-MM-DDTHH:MM:SS.MSSZ);
+		}
+		// virtual location(s)
+        foreach ($eo->LocationsVirtual as $entry) {
+			$location = $to->virtualLocations($entry->id);
+			if ($entry->name) {
+				$location->label($entry->name);
 			}
-			// Based on Precision
-			// Occurrence Daily
-			if ($so->Occurrence->Precision == 'D') {
-				$eo->Recurrence->Type = new EasProperty('Calendar', 0);
+			if ($entry->description) {
+				$location->description($entry->description);
 			}
-			// Occurrence Weekly
-			elseif ($so->Occurrence->Precision == 'W') {
-				$eo->Recurrence->Type = new EasProperty('Calendar', 1);
-				$eo->Recurrence->DayOfWeek = new EasProperty('Calendar', $this->toDaysOfWeek($so->Occurrence->OnDayOfWeek));
+		}
+		// availability
+        if ($eo->Availability){
+    		$to->availability(match ($eo->Availability) {
+				EventAvailabilityTypes::Free => 'free',
+				default => 'busy',
+			});
+        }
+		// priority
+        if ($eo->Priority){
+    		$to->priority($eo->Priority);
+        }
+		// sensitivity
+        if ($eo->Sensitivity){
+    		$to->privacy(match ($eo->Sensitivity) {
+				EventSensitivityTypes::Private => 'private',
+				EventSensitivityTypes::Secret => 'secret',
+				default => 'public',
+			});
+        }
+		// color
+        if ($eo->Color){
+    		$to->color($eo->Color);
+        }
+		// categories(s)
+        if (!empty($eo->Categories)){
+    		$to->categories(...$eo->Categories);
+        }
+		// tag(s)
+        if (!empty($eo->Tags)){
+    		$to->tags(...$eo->Tags);
+        }
+		// participant(s)
+        foreach ($eo->Participants as $entry) {
+			$participant = $to->participants($entry->id);
+			if ($entry->address) {
+				$participant->address($entry->address);
+				$participant->send('imip', 'mailto:' . $entry->address);
 			}
-			// Occurrence Monthly
-			elseif ($so->Occurrence->Precision == 'M') {
-				if ($so->Occurrence->Pattern == 'A') {
-					$eo->Recurrence->Type = new EasProperty('Calendar', 2);
-					$eo->Recurrence->DayOfMonth = new EasProperty('Calendar', $this->toDaysOfMonth($so->Occurrence->OnDayOfMonth));
+			if ($entry->name) {
+				$participant->name($entry->name);
+			}
+			if ($entry->description) {
+				$participant->description($entry->description);
+			}
+			if ($entry->comment) {
+				$participant->comment($entry->comment);
+			}
+			if ($entry->type) {
+				$participant->kind(match ($entry->type) {
+					EventParticipantTypes::Individual => 'group',
+					EventParticipantTypes::Individual => 'resource',
+					EventParticipantTypes::Individual => 'location',
+					default => 'individual',
+				});
+			}
+			if ($entry->status) {
+				$participant->kind(match ($entry->status) {
+					EventParticipantStatusTypes::Accepted => 'accepted',
+					EventParticipantStatusTypes::Declined => 'declined',
+					EventParticipantStatusTypes::Tentative => 'tentative',
+					EventParticipantStatusTypes::Delegated => 'delegated',
+					default => 'needs-action',
+				});
+			}
+			if (!empty($entry->roles)) {
+				$roles = [];
+				foreach ($entry->roles as $role) {
+					$roles[] = $role->value;
 				}
-				elseif ($so->Occurrence->Pattern == 'R') {
-					$eo->Recurrence->Type = new EasProperty('Calendar', 3);
-					$eo->Recurrence->DayOfWeek = new EasProperty('Calendar', $this->toDaysOfWeek($so->Occurrence->OnDayOfWeek));
-					$eo->Recurrence->DayOfMonth = new EasProperty('Calendar', $this->toDaysOfMonth($so->Occurrence->OnDayOfMonth));
-				}
+				$participant->roles(...$roles);
 			}
-			// Occurrence Yearly
-			elseif ($so->Occurrence->Precision == 'Y') {
-				if ($so->Occurrence->Pattern == 'A') {
-					$eo->Recurrence->Type = new EasProperty('Calendar', 5);
-					$eo->Recurrence->DayOfMonth = new EasProperty('Calendar', $this->toDaysOfMonth($so->Occurrence->OnDayOfMonth));
-					$eo->Recurrence->MonthOfYear = new EasProperty('Calendar', $this->toMonthOfYear($so->Occurrence->OnMonthOfYear));
+		}
+		// notification(s)
+        foreach ($eo->Notifications as $entry) {
+			$notification = $to->notifications($entry->id);
+			if ($entry->Type) {
+				$notification->type(match ($entry->type) {
+					EventNotificationTypes::Email => 'email',
+					default => 'display',
+				});
+			}
+			if ($entry->Pattern === EventNotificationPatterns::Absolute) {
+				$notification->trigger('absolute')->when($entry->When);
+			} elseif ($entry->Pattern === EventNotificationPatterns::Relative) {
+				if ($entry->Anchor === EventNotificationAnchorTypes::End) {
+					$notification->trigger('offset')->anchor('end')->offset($entry->Offset);
+				} else {
+					$notification->trigger('offset')->anchor('start')->offset($entry->Offset);
 				}
-				elseif ($so->Occurrence->Pattern == 'R') {
-					$eo->Recurrence->Type = new EasProperty('Calendar', 6);
-					$eo->Recurrence->DayOfWeek = new EasProperty('Calendar', $this->toDaysOfWeek($so->Occurrence->OnDayOfWeek));
-					$eo->Recurrence->WeekOfMonth = new EasProperty('Calendar', $this->toDaysOfMonth($so->Occurrence->OnWeekOfMonth));
-					$eo->Recurrence->MonthOfYear = new EasProperty('Calendar', $this->toMonthOfYear($so->Occurrence->OnMonthOfYear));
-				}
+			} else {
+				$notification->trigger('unknown');
+			}
+		}
+		// occurrence(s)
+        foreach ($eo->OccurrencePatterns as $id => $entry) {
+			$pattern = $to->recurrenceRules($id);
+			if ($entry->Precision) {
+				$pattern->frequency(match ($entry->Precision) {
+					EventOccurrencePrecisionTypes::Yearly => 'yearly',
+					EventOccurrencePrecisionTypes::Monthly => 'monthly',
+					EventOccurrencePrecisionTypes::Weekly => 'weekly',
+					EventOccurrencePrecisionTypes::Daily => 'daily',
+					EventOccurrencePrecisionTypes::Hourly => 'hourly',
+					EventOccurrencePrecisionTypes::Minutely => 'minutely',
+					EventOccurrencePrecisionTypes::Secondly => 'secondly',
+					default => 'daily',
+				});
+			}
+			if ($entry->Interval) {
+				$pattern->interval($entry->Interval);
+			}
+			if ($entry->Iterations) {
+				$pattern->count($entry->Iterations);
+			}
+			if ($entry->Concludes) {
+				$pattern->until($entry->Concludes);
+			}
+			if ($entry->OnDayOfWeek !== []){
+				foreach ($entry->OnDayOfWeek as $id => $day) {
+					$nDay = $pattern->byDayOfWeek($id);
+					$nDay->day($day);
+				}	
+			}
+			if (!empty($entry->OnDayOfMonth)){
+				$pattern->byDayOfMonth(...$entry->OnDayOfMonth);
+			}
+			if (!empty($entry->OnDayOfYear)){
+				$pattern->byDayOfYear(...$entry->OnDayOfYear);
+			}
+			if (!empty($entry->OnWeekOfMonth)){
+				$pattern->byWeekOfYear(...$entry->OnWeekOfMonth);
+			}
+			if (!empty($entry->OnWeekOfYear)){
+				$pattern->byWeekOfYear(...$entry->OnWeekOfYear);
+			}
+			if (!empty($entry->OnMonthOfYear)){
+				$pattern->byMonthOfYear(...$entry->OnMonthOfYear);
+			}
+			if (!empty($entry->OnHour)){
+				$pattern->byHour(...$entry->OnHour);
+			}
+			if (!empty($entry->OnMinute)){
+				$pattern->byMinute(...$entry->OnMinute);
+			}
+			if (!empty($entry->OnSecond)){
+				$pattern->bySecond(...$entry->OnSecond);
+			}
+			if (!empty($entry->OnPosition)){
+				$pattern->byPosition(...$entry->OnPosition);
 			}
 		}
         
-		return $eo;
+		return $to;
 
     }
 
@@ -1090,107 +1190,11 @@ class RemoteEventsService {
         // clone self
         $o = clone $eo;
         // remove non needed values
-        unset($o->Origin, $o->ID, $o->CID, $o->UUID, $o->Signature, $o->CCID, $o->CEID, $o->CESN, $o->CreatedOn, $o->ModifiedOn);
+        unset($o->Origin, $o->ID, $o->UUID, $o->Signature, $o->CCID, $o->CEID, $o->CESN, $o->CreatedOn, $o->ModifiedOn);
         // generate signature
         return md5(json_encode($o));
 
     }
-	
-	/**
-     * Converts EAS (Microsoft/Windows) time zone to DateTimeZone object
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param string $zone			eas time zone name
-     * 
-     * @return DateTimeZone			valid DateTimeZone object on success, or null on failure
-     */
-	public function fromTimeZone(string $zone): ?DateTimeZone {
-
-		// decode zone from bae64 format
-		$zone = base64_decode($zone);
-		// convert byte string to array
-		$zone = unpack('lbias/a64stdname/vstdyear/vstdmonth/vstdday/vstdweek/vstdhour/vstdminute/vstdsecond/vstdmillis/lstdbias/'
-					       . 'a64dstname/vdstyear/vdstmonth/vdstday/vdstweek/vdsthour/vdstminute/vdstsecond/vdstmillis/ldstbias', $zone);
-		// extract zone name from array and convert to UTF8
-		$name = trim(@iconv('UTF-16', 'UTF-8', $zone['stdname']));
-		// convert JMAP time zone name to DateTimeZone object
-			return \OCA\JMAPC\Utile\TimeZoneEAS::toDateTimeZone($name);
-		
-	}
-
-	/**
-     * Converts DateTimeZone object to JMAP (Microsoft/Windows) time zone name
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param DateTimeZone $zone
-     * 
-     * @return string valid JMAP time zone name on success, or null on failure
-     */ 
-	public function toTimeZone(DateTimeZone $zone, DateTime $date = null): string {
-
-		// convert IANA time zone name to EAS time zone name
-		$zone = \OCA\JMAPC\Utile\TimeZoneEAS::fromIANA($zone->getName());
-		// retrieve time mutation
-		$mutation = \OCA\JMAPC\Utile\TimeZoneEAS::findZoneMutation($zone, $date, true);
-
-		if (isset($mutation)) {
-			if ($mutation->Type == 'Static') {
-				$stdName = $zone;
-				$stdBias = $mutation->Alterations[0]->Bias;
-				$stdMonth = 0;
-				$stdWeek = 0;
-				$stdDay = 0;
-				$stdHour = 0;
-				$stdMinute = 0;
-				$dstName = $zone;
-				$dstBias = 0;
-				$dstMonth = 0;
-				$dstWeek = 0;
-				$dstDay = 0;
-				$dstHour = 0;
-				$dstMinute = 0;
-			}
-			else {
-				foreach ($mutation->Alterations as $entry) {
-					switch ($entry->Class) {
-						case 'Daylight':
-							$dstName = $zone;
-							$dstBias = $entry->Bias;
-							$dstMonth = $entry->Month;
-							$dstWeek = $entry->Week;
-							$dstDay = $entry->Day;
-							$dstHour = $entry->Hour;
-							$dstMinute = $entry->Minute;
-							break;
-						default:
-							$stdName = $zone;
-							$stdBias = $entry->Bias;
-							$stdMonth = $entry->Month;
-							$stdWeek = $entry->Week;
-							$stdDay = $entry->Day;
-							$stdHour = $entry->Hour;
-							$stdMinute = $entry->Minute;
-							break;
-					}
-				}
-				// convert DST bias to reletive from standard
-				$dstBias = ($dstBias - $stdBias) * -1;
-			}
-
-			return base64_encode(pack('la64vvvvvvvvla64vvvvvvvvl', $stdBias, $stdName, 0, $stdMonth, $stdDay, $stdWeek, $stdHour, $stdMinute, 0, 0, 0, $dstName, 0, $dstMonth, $dstDay, $dstWeek, $dstHour, $dstMinute, 0, 0, $dstBias));
-		}
-		else {
-			return base64_encode(pack('la64vvvvvvvvla64vvvvvvvvl', 0, 'UTC', 0, 0, 0, 0, 0, 0, 0, 0, 0, 'UTC', 0, 0, 0, 0, 0, 0, 0, 0, 0));
-		}
-
-	}
-
-	function email_split( $str ){
-		
-		}
-
 
 	/**
      * convert remote availability status to event object availability status
@@ -1249,169 +1253,22 @@ class RemoteEventsService {
 	}
 
 	/**
-     * convert remote availability status to event object availability status
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $value		remote availability status value
-	 * 
-	 * @return string			event object availability status value
-	 */
-	private function fromAvailability(?string $value): string {
-		
-		// transposition matrix
-		$_tm = array(
-			'free' => 'F',
-			'busy' => 'B',
-		);
-		// evaluate if value exists
-		if (isset($_tm[$value])) {
-			// return transposed value
-			return $_tm[$value];
-		} else {
-			// return default value
-			return 'B';
-		}
-		
-	}
-
-	/**
-     * convert event object availability status to remote availability status
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $value		event object availability status value
-	 * 
-	 * @return string	 		remote availability status value
-	 */
-	private function toAvailability(?string $value): string {
-		
-		// transposition matrix
-		$_tm = array(
-			'F' => 'free',
-			'B' => 'busy',
-		);
-		// evaluate if value exists
-		if (isset($_tm[$value])) {
-			// return transposed value
-			return $_tm[$value];
-		} else {
-			// return default value
-			return 'busy';
-		}
-
-	}
-
-	/**
-     * convert remote sensitivity status to event object sensitivity status
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $value		remote sensitivity status value
-	 * 
-	 * @return string			event object sensitivity status value
-	 */
-	private function fromSensitivity(?string $value): string {
-		
-		// transposition matrix
-		$_tm = array(
-			'public' => 'N',
-			'private' => 'P',
-			'secret' => 'S',
-		);
-		// evaluate if value exists
-		if (isset($_tm[$value])) {
-			// return transposed value
-			return $_tm[$value];
-		} else {
-			// return default value
-			return 'N';
-		}
-		
-	}
-
-	/**
-     * convert event object sensitivity status to remote sensitivity status
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $value		event object sensitivity status value
-	 * 
-	 * @return string	 		remote sensitivity status value
-	 */
-	private function toSensitivity(?string $value): string {
-		
-		// transposition matrix
-		$_tm = array(
-			'N' => 'public',
-			'P' => 'private',
-			'S' => 'secret',
-		);
-		// evaluate if value exists
-		if (isset($_tm[$value])) {
-			// return transposed value
-			return $_tm[$value];
-		} else {
-			// return default value
-			return 'public';
-		}
-
-	}
-
-	/**
      * convert remote days of the week to event object days of the week
 	 * 
      * @since Release 1.0.0
      * 
-	 * @param int $days - remote days of the week values(s)
-	 * @param bool $group - flag to check if days are grouped
+	 * @param array $days - remote days of the week values(s)
 	 * 
 	 * @return array event object days of the week values(s)
 	 */
-	private function fromDaysOfWeek(int $days, bool $group = false): array {
+	private function fromDaysOfWeek(array $days): array {
 
-		// evaluate if days match any group patterns
-		if ($group) {
-			if ($days == 65) {
-				return [6,7];		// Weekend Days
-			}
-			elseif ($days == 62) {
-				return [1,2,3,4,5];	// Week Days
-			}
-		}
-		// convert day values
 		$dow = [];
-		if ($days >= 64) {
-			$dow[] = 6;		// Saturday
-			$days -= 64;
+		foreach ($days as $entry) {
+			if (isset($entry['day'])) {
+				$dow[] = $entry['day'];
+			}
 		}
-		if ($days >= 32) {
-			$dow[] = 5;		// Friday
-			$days -= 32;
-		}
-		if ($days >= 16) {
-			$dow[] = 4;		// Thursday
-			$days -= 16;
-		}
-		if ($days >= 8) {
-			$dow[] = 3;		// Wednesday
-			$days -= 8;
-		}
-		if ($days >= 4) {
-			$dow[] = 2;		// Tuesday
-			$days -= 4;
-		}
-		if ($days >= 2) {
-			$dow[] = 1;		// Monday
-			$days -= 2;
-		}
-		if ($days >= 1) {
-			$dow[] = 7;		// Sunday
-			$days -= 1;
-		}
-		// sort days
-		asort($dow);
-		// return converted days
 		return $dow;
 
 	}
@@ -1421,295 +1278,18 @@ class RemoteEventsService {
 	 * 
      * @since Release 1.0.0
      * 
-	 * @param array $days - event object days of the week values(s)
-	 * @param bool $group - flag to check if days can be grouped 
+	 * @param array $days - internal days of the week values(s)
 	 * 
-	 * @return string remote days of the week values(s)
+	 * @return array event object days of the week values(s)
 	 */
-	private function toDaysOfWeek(array $days, bool $group = false): int {
-		
-		// evaluate if days match any group patterns
-		if ($group) {
-			sort($days);
-			if ($days == [1,2,3,4,5]) {
-				return 62;		// Week	Days
-			}
-			elseif ($days == [6,7]) {
-				return 65;		// Weekend Days
-			}
-		}
-        // convert day values
-		$dow = 0;
-        foreach ($days as $key => $entry) {
-			switch ($entry) {
-				case 1:
-					$dow += 2;	// Monday
-					break;
-				case 2:
-					$dow += 4;	// Tuesday
-					break;
-				case 3:
-					$dow += 8;	// Wednesday
-					break;
-				case 4:
-					$dow += 16;	// Thursday
-					break;
-				case 5:
-					$dow += 32;	// Friday
-					break;
-				case 6:
-					$dow += 64;	// Saturday
-					break;
-				case 7:
-					$dow += 1;	// Sunday
-					break;
-			}
-        }
-        // return converted days
-        return $dow;
+	private function toDaysOfWeek(array $days): array {
 
-	}
-
-	/**
-     * convert remote days of the month to event object days of the month
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param sting $days - remote days of the month values(s)
-	 * 
-	 * @return array event object days of the month values(s)
-	 */
-	private function fromDaysOfMonth(string $days): array {
-
-		// return converted days
-		return [$days];
-
-	}
-
-	/**
-     * convert event object days of the month to remote days of the month
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param array $days - event object days of the month values(s)
-	 * 
-	 * @return string remote days of the month values(s)
-	 */
-	private function toDaysOfMonth(array $days): string {
-
-        // return converted days
-        return $days[0];
-
-	}
-
-	/**
-     * convert remote week of the month to event object week of the month
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param sting $weeks - remote week of the month values(s)
-	 * 
-	 * @return array event object week of the month values(s)
-	 */
-	private function fromWeekOfMonth(string $weeks): array {
-
-		// weeks conversion reference
-		$_tm = array(
-			'1' => 1,
-			'2' => 2,
-			'3' => 3,
-			'4' => 4,
-			'5' => -1
-		);
-		// convert week values
-		foreach ($weeks as $key => $entry) {
-			if (isset($_tm[$entry])) {
-				$weeks[$key] = $_tm[$entry];
-			}
-		}
-		// return converted weeks
-		return $weeks;
-
-	}
-
-	/**
-     * convert event object week of the month to remote week of the month
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param array $weeks - event object week of the month values(s)
-	 * 
-	 * @return string remote week of the month values(s)
-	 */
-	private function toWeekOfMonth(array $weeks): string {
-
-		// weeks conversion reference
-		$_tm = array(
-			1 => '1',
-			2 => '2',
-			3 => '3',
-			4 => '4',
-			-1 => '5',
-			-2 => '4'
-		);
-		// convert week values
-        foreach ($weeks as $key => $entry) {
-            if (isset($_tm[$entry])) {
-                $weeks[$key] = $_tm[$entry];
-            }
-        }
-        // convert weeks to string
-        $weeks = implode(',', $weeks);
-        // return converted weeks
-        return $weeks;
-
-	}
-
-	/**
-     * convert remote month of the year to event object month of the year
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param sting $months - remote month of the year values(s)
-	 * 
-	 * @return array event object month of the year values(s)
-	 */
-	private function fromMonthOfYear(string $months): array {
-
-		// return converted months
-		return [$months];
-
-	}
-
-	/**
-     * convert event object month of the year to remote month of the year
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param array $weeks - event object month of the year values(s)
-	 * 
-	 * @return string remote month of the year values(s)
-	 */
-	private function toMonthOfYear(array $months): string {
-
-        // return converted months
-        return $months[0];
-
-	}
-
-	/**
-     * convert remote attendee type to event object type
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param int $value		remote attendee type value
-	 * 
-	 * @return string			event object attendee type value
-	 */
-	private function fromAttendeeType(?int $value): string {
-		
-		// type conversion reference
-		$_type = array(
-			1 => 'R', 	// Required
-			2 => 'O',	// Optional
-			3 => 'A'	// Asset / Resource
-		);
-		// evaluate if type value exists
-		if (isset($_type[$value])) {
-			// return converted type value
-			return $_type[$value];
-		} else {
-			// return default type value
-			return 'R';
-		}
-		
-	}
-
-	/**
-     * convert event object attendee type to remote attendee type
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $value		event object attendee type value
-	 * 
-	 * @return int	 			remote attendee type value
-	 */
-	private function toAttendeeType(?string $value): int {
-		
-		// type conversion reference
-		$_type = array(
-			'R' => 1, 	// Required
-			'O' => 2,	// Optional
-			'A' => 3	// Asset / Resource
-		);
-		// evaluate if type value exists
-		if (isset($_type[$value])) {
-			// return converted type value
-			return $_type[$value];
-		} else {
-			// return default type value
-			return 1;
+		$dow = [];
+		foreach ($days as $key => $value) {
+			# code...
 		}
 
-	}
-
-	/**
-     * convert remote attendee status to event object status
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param int $value		remote attendee status value
-	 * 
-	 * @return string			event object attendee status value
-	 */
-	private function fromAttendeeStatus(?int $value): string {
-		
-		// status conversion reference
-		$_status = array(
-			0 => 'U', 	// Unknown
-			2 => 'T',	// Tentative
-			3 => 'A',	// Accepted
-			4 => 'D',	// Declined
-			5 => 'N'	// Not responded
-		);
-		// evaluate if status value exists
-		if (isset($_status[$value])) {
-			// return converted status value
-			return $_status[$value];
-		} else {
-			// return default status value
-			return 'N';
-		}
-		
-	}
-
-	/**
-     * convert event object attendee status to remote attendee status
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $value		event object attendee status value
-	 * 
-	 * @return int	 			remote attendee status value
-	 */
-	private function toAttendeeStatus(?string $value): int {
-		
-		// status conversion reference
-		$_status = array(
-			'U' => 0,
-			'T' => 2,
-			'A' => 3,
-			'D' => 4,
-			'N' => 5
-		);
-		// evaluate if status value exists
-		if (isset($_status[$value])) {
-			// return converted status value
-			return $_status[$value];
-		} else {
-			// return default status value
-			return 5;
-		}
+		return $dow;
 
 	}
 

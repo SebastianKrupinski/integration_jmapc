@@ -23,7 +23,7 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Objects\Contact;
 
 class ContactNameObject {
 

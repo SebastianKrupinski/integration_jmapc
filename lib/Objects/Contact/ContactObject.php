@@ -23,21 +23,27 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Objects\Contact;
 
 use DateTime;
+use DateTimeImmutable;
+use OCA\JMAPC\Objects\Event\ContactMembersCollection;
+use OCA\JMAPC\Objects\OriginTypes;
 
 class ContactObject {
 
-    public ?string $Origin = null;                  // Source System / L - Local / R - Remote
-    public ?string $ID = null;                      // Source System Id
-    public ?string $UUID = null;                    // Object UUID
-    public ?string $CID = null;                     // Source System Collection Id
-    public ?string $Signature = null;               // Source System Object Signature
-    public ?DateTime $CreatedOn = null;             // Source System Creation Date/Time
-    public ?DateTime $ModifiedOn = null;            // Source System Modification Date/Time
+    public ?OriginTypes $Origin = null;             // System
+    public ?string $ID = null;                      // System Entity Id
+    public ?string $CID = null;                     // System Collection Id
+    public ?string $Signature = null;               // System Entity Signature
+    public ?string $CCID = null;                    // Correlation Collection Id
+    public ?string $CEID = null;                    // Correlation Entity Id
+    public ?string $CESN = null;                    // Correlation Signature
+    public ?string $UUID = null;                    // Event UUID
+    public DateTime|DateTimeImmutable|null $CreatedOn = null;    // Event Creation Date/Time
+    public DateTime|DateTimeImmutable|null $ModifiedOn = null;   // Event Modification Date/Time
     public ?string $Label = null;                   // Contact Display Label
-    public ?string $Notes = null;                   // Contact Notes
+    public ?string $Description = null;             // Contact Notes
 	public ?ContactNameObject $Name = null;         // Contact Name(s)
     public ?ContactPhotoObject $Photo = null;       // Contact Photo
     public ?DateTime $BirthDay = null;              // Contact Birth Day
@@ -58,6 +64,8 @@ class ContactObject {
     public ?string $Sound = null;
     public ?string $URI = null;
     public array $Attachments = [];
+    public ?string $Language = null;
+    public ContactMembersCollection $Members;
     public ?array $Other = [];
 	
 	public function __construct() {

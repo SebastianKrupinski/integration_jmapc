@@ -57,7 +57,7 @@ use OCP\AppFramework\Db\Entity;
  * @method getEndsOn(): string
  * @method setEndsOn(int $endson): void
  */
-class EventEntity extends Entity implements JsonSerializable {
+class EventEntity extends Entity{
 	protected ?string $uid = null;
 	protected ?int $sid = null;
 	protected ?int $cid = null;
@@ -71,23 +71,4 @@ class EventEntity extends Entity implements JsonSerializable {
 	protected ?string $description = null;
 	protected ?int $startson = null;
 	protected ?int $endson = null;
-
-	public function jsonSerialize(): array {
-		return [
-			'id' => $this->id,
-			'uid' => $this->uid,
-			'sid' => $this->sid,
-			'cid' => $this->cid,
-			'uuid' => $this->uuid,
-			'signature' => $this->signature,
-			'ccid' => $this->ccid,
-			'ceid' => $this->ceid,
-			'cesn' => $this->cesn,
-			'data' => $this->data,
-			'label' => $this->label,
-			'description' => $this->description,
-			'startson' => $this->startson,
-			'endson' => $this->endson,
-		];
-	}
 }

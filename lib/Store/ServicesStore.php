@@ -79,10 +79,11 @@ class ServicesStore {
 	 * @since Release 1.0.0
 	 * 
 	 * @param string $uid		user id
+	 * @param string $sid		service id
 	 * 
-	 * @return array 			of services
+	 * @return ServiceEntity|null
 	 */
-	public function fetchByUserIdAndServiceId(string $uid, int $sid): array {
+	public function fetchByUserIdAndServiceId(string $uid, int $sid): ServiceEntity|null {
 		
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -90,16 +91,17 @@ class ServicesStore {
 			->from($this->_EntityTable)
 			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
 			->andWhere($cmd->expr()->eq('id', $cmd->createNamedParameter($sid)));
-
 		// execute command
-		$rs = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// return result or null
-		if (is_array($rs) && count($rs) > 0) {
-			return $rs;
-		}
-		else {
-			return [];
+		$rsl = $cmd->executeQuery();
+		try {
+			$entity = $rsl->fetch();
+			if (is_array($entity)) {
+				return $this->toEntity($entity);
+			} else {
+				return null;
+			}
+		} finally {
+			$rsl->closeCursor();
 		}
 
 	}

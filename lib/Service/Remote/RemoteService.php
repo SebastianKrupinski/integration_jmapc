@@ -31,6 +31,7 @@ use JmapClient\Authentication\Bearer;
 use JmapClient\Authentication\JsonBasic;
 use OCA\JMAPC\Providers\IServiceIdentity;
 use OCA\JMAPC\Providers\IServiceLocation;
+use OCA\JMAPC\Store\ServiceEntity;
 
 class RemoteService {
 
@@ -46,39 +47,37 @@ class RemoteService {
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param array $service
+	 * @param ServiceEntity $service
 	 * 
 	 * @return JmapClient
 	 */
-	public static function initializeStoreFromCollection(array $service): JmapClient {
+	public static function initializeStoreFromEntity(ServiceEntity $service): JmapClient {
 		
 		// construct client and set defaults
 		$client = new JmapClient();
 		$client->setTransportAgent(self::$clientTransportAgent);
 		// set location parameters from service
-		$client->configureTransportMode($service['location_protocol']);
-		$client->setHost($service['location_host'] . ':' . $service['location_port']);
-		if (!empty($service['location_path'])) {
-			$client->setDiscoveryPath($service['location_path']);
+		$client->configureTransportMode($service->getLocationProtocol());
+		$client->setHost($service->getLocationHost() . ':' . $service->getLocationPort());
+		if (!empty($service->getLocationPath())) {
+			$client->setDiscoveryPath($service->getLocationPath());
 		}
-		if (isset($service['location_security'])) {
-			$client->configureTransportVerification((bool)$service['location_security']);
-		}
+		$client->configureTransportVerification($service->getLocationSecurity());
 		// set authentication parameters from service
-		if ($service['auth'] == 'OA') {
-			$client->setAuthentication(new Bearer($service['oauth_id'], $service['oauth_access_token'], 0));
+		if ($service->getAuth() == 'OA') {
+			$client->setAuthentication(new Bearer($service->getOauthId(), $service->getOauthAccessToken(), 0));
 		}
-		if ($service['auth'] == 'BA') {
-			$client->setAuthentication(new Basic($service['bauth_id'], $service['bauth_secret']));
+		if ($service->getAuth() == 'BA') {
+			$client->setAuthentication(new Basic($service->getBauthId(), $service->getBauthSecret()));
 		}
-		if ($service['auth'] == 'JB') {
-			$client->setAuthentication(new JsonBasic($service['bauth_id'], $service['bauth_secret']));
+		if ($service->getAuth() == 'JB') {
+			$client->setAuthentication(new JsonBasic($service->getBauthId(), $service->getBauthSecret()));
 		}
 		//
-		if ((bool)$service['debug']) {
+		if ($service->getDebug()) {
 			$client->configureTransportLogState(true);
 			$client->configureTransportLogLocation(
-				'/tmp/' . $service['location_host'] . '-' . $service['address_primary']
+				'/tmp/' . $service->getLocationHost() . '-' . $service->getAddressPrimary()
 			);
 		}
 		// return configured client

@@ -336,6 +336,11 @@ class BaseStore {
 	 */
 	public function collectionDelete(CollectionEntity $entity): CollectionEntity {
 
+		// remove entities
+		$this->entityDeleteByCollection($entity->getId());
+		// remove chronicle 
+		$this->chronicleExpungeByCollection($entity->getId());
+		// remove collection
 		// construct command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->delete($this->_CollectionTable)
@@ -352,12 +357,17 @@ class BaseStore {
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $cid		collection id
+	 * @param int $id		collection id
 	 * 
 	 * @return mixed
 	 */
-	public function collectionDeleteById(string $id): mixed {
+	public function collectionDeleteById(int $id): mixed {
 
+		// remove entities
+		$this->entityDeleteByCollection($id);
+		// remove chronicle 
+		$this->chronicleExpungeByCollection($id);
+		// remove collection
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->delete($this->_CollectionTable)
@@ -372,16 +382,21 @@ class BaseStore {
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $uid		user id
+	 * @param string $id		user id
 	 * 
 	 * @return mixed
 	 */
-	public function collectionDeleteByUser(string $uid): mixed {
+	public function collectionDeleteByUser(string $id): mixed {
 
+		// remove entities
+		$this->entityDeleteByUser($id);
+		// remove chronicle 
+		$this->chronicleExpungeByUser($id);
+		// remove collection
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->delete($this->_CollectionTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
+			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($id)))
 			->andWhere($cmd->expr()->eq('type', $cmd->createNamedParameter($this->_CollectionIdentifier)));
 		// execute command and return result
 		return $cmd->executeStatement();
@@ -393,16 +408,21 @@ class BaseStore {
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @param string $sid		service id
+	 * @param int $id			service id
 	 * 
 	 * @return mixed
 	 */
-	public function collectionDeleteByService(int $sid): mixed {
+	public function collectionDeleteByService(int $id): mixed {
 
+		// remove entities
+		$this->entityDeleteByService($id);
+		// remove chronicle 
+		$this->chronicleExpungeByService($id);
+		// remove collection
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->delete($this->_CollectionTable)
-			->where($cmd->expr()->eq('sid', $cmd->createNamedParameter($sid)))
+			->where($cmd->expr()->eq('sid', $cmd->createNamedParameter($id)))
 			->andWhere($cmd->expr()->eq('type', $cmd->createNamedParameter($this->_CollectionIdentifier)));
 		// execute command and return result
 		return $cmd->executeStatement();
@@ -718,7 +738,7 @@ class BaseStore {
 			$entity->setId($cmd->getLastInsertId());
 		}
 		// chronicle operation
-		$this->chronicle($entity->getUid(), $entity->getSid(), $entity->getCid(), $entity->getId(), $entity->getUuid(), 1);
+		$this->chronicleDocument($entity->getUid(), $entity->getSid(), $entity->getCid(), $entity->getId(), $entity->getUuid(), 1);
 
 		$entity->resetUpdatedFields();
 
@@ -757,7 +777,7 @@ class BaseStore {
 			}
 		}
 		// chronicle operation
-		$this->chronicle($entity->getUid(), $entity->getSid(), $entity->getCid(), $entity->getId(), $entity->getUuid(), 2);
+		$this->chronicleDocument($entity->getUid(), $entity->getSid(), $entity->getCid(), $entity->getId(), $entity->getUuid(), 2);
 		
 		$entity->resetUpdatedFields();
 		
@@ -783,10 +803,30 @@ class BaseStore {
 		// execute command
 		$cmd->executeStatement();
 		// chronicle operation
-		$this->chronicle($entity->getUid(), $entity->getSid(), $entity->getCid(), $entity->getId(), $entity->getUuid(), 3);
+		$this->chronicleDocument($entity->getUid(), $entity->getSid(), $entity->getCid(), $entity->getId(), $entity->getUuid(), 3);
 		// return result
 		return $entity;
 		
+	}
+
+	/**
+	 * delete entity by id
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param string $id		entity id
+	 * 
+	 * @return mixed
+	 */
+	public function entityDeleteById(int $id): mixed {
+
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->delete($this->_EntityTable)
+			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
+		// execute command and return result
+		return $cmd->executeStatement();
+
 	}
 
 	/**
@@ -863,7 +903,7 @@ class BaseStore {
 	 * 
 	 * @return string
 	 */
-	public function chronicle(string $uid, int $sid, int $cid, int $eid, string $euuid, int $operation): string {
+	public function chronicleDocument(string $uid, int $sid, int $cid, int $eid, string $euuid, int $operation): string {
 
 		// capture current microtime
 		$stamp = microtime(true);
@@ -897,7 +937,7 @@ class BaseStore {
 	 * 
 	 * @return array
 	 */
-	public function reminisce(int $cid, string $stamp, ?int $limit = null, ?int $offset = null): array {
+	public function chronicleReminisce(int $cid, string $stamp, ?int $limit = null, ?int $offset = null): array {
 
 		// retrieve apex stamp
 		$cmd = $this->_Store->getQueryBuilder();
@@ -907,8 +947,10 @@ class BaseStore {
 			->andWhere($cmd->expr()->eq('tag', $cmd->createNamedParameter($this->_EntityIdentifier)));
 		$stampApex = $cmd->executeQuery()->fetchOne();
 		$cmd->executeQuery()->closeCursor();
-		// decode nadir stamp
-		$stampNadir = base64_decode($stamp);
+		// determine nadir stamp
+		if (!empty($stamp)) {
+			$stampNadir = base64_decode($stamp);
+		}
 		$initial = !is_numeric($stampNadir);
 
 		// retrieve additions
@@ -962,6 +1004,60 @@ class BaseStore {
 		// return stamp
 		return $chronicle;
 		
+	}
+
+	/**
+	 * delete chronicle entries for a specific user from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param int $id		user id
+	 * 
+	 * @return mixed
+	 */
+	public function chronicleExpungeByUser(string $id) {
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->delete($this->_ChronicleTable)
+			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($id)));
+		// execute command and return result
+		return $cmd->executeStatement();
+	}
+
+	/**
+	 * delete chronicle entries for a specific service from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param int $id		service id
+	 * 
+	 * @return mixed
+	 */
+	public function chronicleExpungeByService(int $id) {
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->delete($this->_ChronicleTable)
+			->where($cmd->expr()->eq('sid', $cmd->createNamedParameter($id)));
+		// execute command and return result
+		return $cmd->executeStatement();
+	}
+
+	/**
+	 * delete chronicle entries for a specific collection from data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param int $id		collection id
+	 * 
+	 * @return mixed
+	 */
+	public function chronicleExpungeByCollection(int $id) {
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->delete($this->_ChronicleTable)
+			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($id)));
+		// execute command and return result
+		return $cmd->executeStatement();
 	}
 
 }

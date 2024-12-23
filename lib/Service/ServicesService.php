@@ -57,7 +57,7 @@ class ServicesService {
 
 	}
 
-	public function fetchByUserIdAndServiceId(string $uid, int $sid): array {
+	public function fetchByUserIdAndServiceId(string $uid, int $sid): ServiceEntity {
 
 		// return collection of services/accounts
 		return $this->_Store->fetchByUserIdAndServiceId($uid, $sid);

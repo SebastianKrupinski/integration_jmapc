@@ -26,8 +26,6 @@
 namespace OCA\JMAPC\Service\Remote;
 
 use Datetime;
-use DateTimeZone;
-use DateTimeInterface;
 use finfo;
 use Psr\Log\LoggerInterface;
 
@@ -1193,7 +1191,7 @@ class RemoteContactsService {
         // clone self
         $o = clone $eo;
         // remove non needed values
-        unset($o->ID, $o->CID, $o->UUID, $o->RCID, $o->REID, $o->Origin, $o->Signature, $o->CreatedOn, $o->ModifiedOn);
+        unset($o->ID, $o->UUID, $o->RCID, $o->REID, $o->Origin, $o->Signature, $o->CreatedOn, $o->ModifiedOn);
         // generate signature
         return md5(json_encode($o));
 

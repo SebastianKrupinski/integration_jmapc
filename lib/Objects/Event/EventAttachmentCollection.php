@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -23,17 +23,12 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Objects\Event;
 
-class ContactPhoneObject {
+use OCA\JMAPC\Objects\BaseCollection;
 
-    public ?string $Type;
-    public ?string $SubType;
-	public ?string $Number;
-	
-	public function __construct(?string $type = null, ?string $subtype = null, ?string $number = null) {
-        $this->Type = $type;
-        $this->SubType = $subtype;
-        $this->Number = $number;
-	}
+class EventAttachmentCollection extends BaseCollection {
+    public function __construct($data = []) {
+        parent::__construct(EventAttachmentObject::class, $data);
+    }
 }

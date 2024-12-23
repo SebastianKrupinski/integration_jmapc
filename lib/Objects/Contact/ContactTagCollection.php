@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -23,26 +23,12 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Objects\Event;
 
-class TaskCollectionObject {
-    public string $Id;
-    public ?string $Name = null;
-    public ?string $Signature = null;
-    public ?int $Count = null;
-    public ?string $AffiliationId = null;
+use OCA\JMAPC\Objects\BaseCollection;
 
-    public function __construct(
-        string $id,
-        string $name = null,
-        string $signature = null,
-        int $count = null,
-        string $aid = null
-    ) {
-        $this->Id = $id;
-        $this->Name = $name;
-        $this->Signature = $signature;
-        $this->Count = $count;
-        $this->AffiliationId = $aid;
-	}
+class ContactTagCollection extends BaseCollection {
+    public function __construct($data = []) {
+        parent::__construct('string', $data);
+    }
 }

@@ -25,18 +25,14 @@
 
 namespace OCA\JMAPC\Objects;
 
-class ContactOccupationObject {
+class EventCollection {
 
-    public ?string $Organization;
-	public ?string $Title;
-    public ?string $Role;
-    public ?string $Department = null;
-    public ?string $Location = null;
-    public ?string $Logo = null;
+    public function __construct(
+        public string $Id,
+        public ?string $Name = null,
+        public ?int $Priority = null,
+        public ?bool $Visibility = null,
+        public ?string $Color = null,    
+    ) {}
     
-    public function __construct(?string $organization = null, ?string $title = null, ?string $role = null) {
-        $this->Organization = $organization;
-        $this->Title = $title;
-        $this->Role = $role;
-	}
 }

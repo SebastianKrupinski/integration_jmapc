@@ -23,23 +23,16 @@
 *
 */
 
-namespace OCA\JMAPC\Service\Remote;
+namespace OCA\JMAPC\Objects\Event;
 
-use Psr\Log\LoggerInterface;
-use OCA\JMAPC\AppInfo\Application;
+use DateInterval;
+use DateTime;
+use DateTimeImmutable;
 
-class RemoteCommonService {
-
-	private LoggerInterface $logger;
-
-	/**
-	 * Service to construct basic commands
-	 */
-	public function __construct (LoggerInterface $logger) {
-
-		$this->logger = $logger;
-
-	}
-	
-	
+class EventNotificationObject {
+    public ?EventNotificationTypes $Type = null;
+    public ?EventNotificationPatterns $Pattern = null;
+    public DateTime|DateTimeImmutable|null $When = null;
+    public ?EventNotificationAnchorTypes $Anchor = null;
+    public ?DateInterval $Offset = null;
 }

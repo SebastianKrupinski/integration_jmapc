@@ -23,33 +23,15 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Objects\Contact;
 
-class ContactAttachmentObject {
+class ContactIMPPObject {
 
-    public string $Id;
-    public ?string $Name;
-	public ?string $Type;
-    public ?string $Encoding;
-    public ?string $Flag;
-    public ?string $Size;
-    public ?string $Data;
-    
-    public function __construct(
-        string $id = null,
-        string $name = null,
-        string $type = null,
-        string $encoding = null,
-        string $flag = null,
-        string $size = null,
-        string $data = null
-    ) {
-        $this->Id = $id;
-        $this->Name = $name;
+    public ?string $Type;
+	public ?string $Address;
+	
+	public function __construct(?string $type = null, ?string $address = null) {
         $this->Type = $type;
-        $this->Encoding = $encoding;
-        $this->Flag = $flag;
-        $this->Size = $size;
-        $this->Data = $data;
+        $this->Address = $address;
 	}
 }

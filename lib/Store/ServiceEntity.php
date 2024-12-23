@@ -82,28 +82,28 @@ use OCP\AppFramework\Db\Entity;
 class ServiceEntity extends Entity implements JsonSerializable {
 	protected ?string $uid = null;
 	protected ?string $label = null;
-	protected string $location_protocol = 'https://';
-	protected string $location_host = 'localhost';
-	protected int $location_port = 443;
-	protected ?string $location_part = null;
-	protected int $location_security = 1;
+	protected string $locationProtocol = 'https://';
+	protected string $locationHost = 'localhost';
+	protected int $locationPort = 443;
+	protected ?string $locationPath = null;
+	protected int $locationSecurity = 1;
 	protected ?string $auth = null;
-	protected ?string $bauth_id = null;
-	protected ?string $bauth_secret = null;
-	protected ?string $oauth_id = null;
-	protected ?string $oauth_access_token = null;
-	protected ?string $oauth_access_location = null;
-	protected ?int $oauth_access_expiry = null;
-	protected ?string $oauth_refresh_token = null;
-	protected ?string $oauth_refresh_location = null;
-	protected ?string $address_primary = null;
-	protected ?string $address_alternate = null;
+	protected ?string $bauthId = null;
+	protected ?string $bauthSecret = null;
+	protected ?string $oauthId = null;
+	protected ?string $oauthAccessToken = null;
+	protected ?string $oauthAccessLocation = null;
+	protected ?int $oauthAccessExpiry = null;
+	protected ?string $oauthRefreshToken = null;
+	protected ?string $oauthRefreshLocation = null;
+	protected ?string $addressPrimary = null;
+	protected ?string $addressAlternate = null;
 	protected bool $connected = false;
 	protected bool $enabled = true;
 	protected bool $debug = false;
-	protected int $harmonization_state = 0;
-	protected int $harmonization_start = 0;
-	protected int $harmonization_end = 0;
+	protected int $harmonizationState = 0;
+	protected int $harmonizationStart = 0;
+	protected int $harmonizationEnd = 0;
 	
 	public function jsonSerialize(): array {
 		return [

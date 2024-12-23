@@ -106,18 +106,20 @@ class UserConfigurationController extends Controller {
 	/**
 	 * handles disconnect click event
 	 *
+	 * @param int $sid			Service id
+	 * 
 	 * @return DataResponse
 	 */
 	#[NoAdminRequired]
 	#[FrontpageRoute(verb: 'GET', url: '/disconnect')]
-	public function Disconnect(): DataResponse {
+	public function Disconnect(int $sid): DataResponse {
 
 		// evaluate if user id is present
 		if ($this->userId === null) {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 		// execute command
-		$this->CoreService->disconnectAccount($this->userId);
+		$this->CoreService->disconnectAccount($this->userId, $sid);
 		// return response
 		return new DataResponse('success');
 

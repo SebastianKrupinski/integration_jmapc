@@ -23,23 +23,16 @@
 *
 */
 
-namespace OCA\JMAPC\Service\Remote;
+namespace OCA\JMAPC\Objects;
 
-use Psr\Log\LoggerInterface;
-use OCA\JMAPC\AppInfo\Application;
-
-class RemoteCommonService {
-
-	private LoggerInterface $logger;
-
-	/**
-	 * Service to construct basic commands
-	 */
-	public function __construct (LoggerInterface $logger) {
-
-		$this->logger = $logger;
-
-	}
-	
-	
+class ContactCollection {
+        
+    public function __construct(
+        public string $id,
+        public ?string $name = null,
+        public ?string $signature = null,
+        public ?int $count = null,
+        public ?string $aid = null
+    ) {}
+    
 }

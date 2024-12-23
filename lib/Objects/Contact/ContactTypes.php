@@ -23,20 +23,14 @@
 *
 */
 
-namespace OCA\JMAPC\Objects;
+namespace OCA\JMAPC\Objects\Event;
 
-class EventNotificationObject {
-    public ?string $Type = null;
-    public ?string $Pattern = null;
-    public $When = null;
-
-    public function __construct(
-        string $Type = null,
-        string $Pattern = null,
-        mixed $When = null
-    ) {
-        $this->Type = $Type;
-        $this->Pattern = $Pattern;
-        $this->When = $When;
-	}
+enum ContactTypes {
+    case Individual;
+    case Group;
+    case Organization;
+    case Location;
+    case Device;
+    case Application;
 }
+
