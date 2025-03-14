@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -23,14 +23,14 @@
 *
 */
 
-namespace OCA\JMAPC\Objects\Event;
+namespace OCA\JMAPC\Objects\Contact;
 
-enum ContactTypes {
-    case Individual;
-    case Group;
-    case Organization;
-    case Location;
-    case Device;
-    case Application;
+enum ContactTypes: string {
+    case Individual = "i";
+    case Group = "g";
+    case Organization = "o";
+    case Location = "l";
+    case Device = "d";
+    case Application = "a";
 }
 

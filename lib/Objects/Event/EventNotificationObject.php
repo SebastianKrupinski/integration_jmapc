@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -30,6 +30,7 @@ use DateTime;
 use DateTimeImmutable;
 
 class EventNotificationObject {
+    public ?string $Id = null;
     public ?EventNotificationTypes $Type = null;
     public ?EventNotificationPatterns $Pattern = null;
     public DateTime|DateTimeImmutable|null $When = null;

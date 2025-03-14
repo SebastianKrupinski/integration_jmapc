@@ -30,31 +30,31 @@ use OCP\AppFramework\Db\Entity;
 
 /**
  * @method getId(): int
- * @method getUID(): string
+ * @method getUID(): ?string
  * @method setUID(string $uid): void
- * @method getSID(): string
+ * @method getSID(): ?string
  * @method setSID(string $sid): void
- * @method getType(): string
+ * @method getType(): ?string
  * @method setType(string $type): void
- * @method getCCID(): string
+ * @method getCCID(): ?string
  * @method setCCID(string $ccid): void
- * @method getUUID(): string
+ * @method getUUID(): ?string
  * @method setUUID(string $uuid): void
- * @method getLabel(): string
+ * @method getLabel(): ?string
  * @method setLabel(string $label): void
- * @method getColor(): string
+ * @method getColor(): ?string
  * @method setColor(string $color): void
- * @method getVisible(): string
+ * @method getVisible(): ?string
  * @method setVisible(string $visible): void
- * @method getHISN(): string
+ * @method getHISN(): ?string
  * @method setHISN(string $hisn): void
- * @method getHESN(): string
+ * @method getHESN(): ?string
  * @method setHESN(string $hesn): void
- * @method getHLock(): int
+ * @method getHLock(): ?int
  * @method setHLock(int $status): void
- * @method getHLockHD(): int
+ * @method getHLockHD(): ?int
  * @method setHLockHD(int $id): void
- * @method getHLockHB(): int
+ * @method getHLockHB(): ?int
  * @method setHLockHB(int $timestamp): void
  */
 class CollectionEntity extends Entity implements JsonSerializable {
@@ -68,9 +68,9 @@ class CollectionEntity extends Entity implements JsonSerializable {
 	protected ?int $visible = 1;
 	protected ?string $hisn = null;
 	protected ?string $hesn = null;
-	protected int $hlock = 0;
-	protected int $hlockhd = 0;
-	protected int $hlockhb = 0;
+	protected ?int $hlock = 0;
+	protected ?int $hlockhd = 0;
+	protected ?int $hlockhb = 0;
 		
 	public function jsonSerialize(): array {
 		return [

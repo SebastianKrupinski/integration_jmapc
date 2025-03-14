@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -31,6 +31,9 @@ use JmapClient\Authentication\Bearer;
 use JmapClient\Authentication\JsonBasic;
 use OCA\JMAPC\Providers\IServiceIdentity;
 use OCA\JMAPC\Providers\IServiceLocation;
+use OCA\JMAPC\Service\Remote\FM\RemoteContactsServiceFM;
+use OCA\JMAPC\Service\Remote\FM\RemoteEventsServiceFM;
+use OCA\JMAPC\Service\Remote\RemoteContactsService;
 use OCA\JMAPC\Store\ServiceEntity;
 
 class RemoteService {
@@ -53,17 +56,17 @@ class RemoteService {
 	 */
 	public static function initializeStoreFromEntity(ServiceEntity $service): JmapClient {
 		
-		// construct client and set defaults
+		// defaults
 		$client = new JmapClient();
 		$client->setTransportAgent(self::$clientTransportAgent);
-		// set location parameters from service
+		// location
 		$client->configureTransportMode($service->getLocationProtocol());
 		$client->setHost($service->getLocationHost() . ':' . $service->getLocationPort());
 		if (!empty($service->getLocationPath())) {
 			$client->setDiscoveryPath($service->getLocationPath());
 		}
-		$client->configureTransportVerification($service->getLocationSecurity());
-		// set authentication parameters from service
+		$client->configureTransportVerification((bool)$service->getLocationSecurity());
+		// authentication
 		if ($service->getAuth() == 'OA') {
 			$client->setAuthentication(new Bearer($service->getOauthId(), $service->getOauthAccessToken(), 0));
 		}
@@ -71,16 +74,22 @@ class RemoteService {
 			$client->setAuthentication(new Basic($service->getBauthId(), $service->getBauthSecret()));
 		}
 		if ($service->getAuth() == 'JB') {
-			$client->setAuthentication(new JsonBasic($service->getBauthId(), $service->getBauthSecret()));
+			$client->setAuthentication(new JsonBasic(
+				$service->getBauthId(),
+				$service->getBauthSecret(),
+				$service->getLocationProtocol() . $service->getLocationHost() . ':' . $service->getLocationPort() . '/auth/sessions',
+				true
+			));
+			$client->configureTransportCookieJar(sys_get_temp_dir() . '/' . $service->getLocationHost() . '-' . $service->getAddressPrimary() . '.jmapc');
 		}
-		//
+		// debugging
 		if ($service->getDebug()) {
 			$client->configureTransportLogState(true);
 			$client->configureTransportLogLocation(
-				'/tmp/' . $service->getLocationHost() . '-' . $service->getAddressPrimary()
+				sys_get_temp_dir() . '/' . $service->getLocationHost() . '-' . $service->getAddressPrimary() . '.log'
 			);
 		}
-		// return configured client
+		// return
 		return $client;
 
 	}
@@ -124,6 +133,69 @@ class RemoteService {
 		
 		// destroy remote data store client
 		$Client = null;
+
+	}
+
+	/**
+	 * Appropriate Contacts Service for Connection
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param JmapClient $Client
+	 * 
+	 * @return void
+	 */
+	public static function contactsService(JmapClient $Client): RemoteContactsService {
+
+		// evaluate if client is connected 
+		if (!$Client->sessionStatus()) {
+			$Client->connect();
+		}
+        // determine capabilities
+        if ($Client->sessionCapable('https://www.fastmail.com/dev/contacts', false)) {
+			return new RemoteContactsServiceFM();
+        }
+
+		return new RemoteContactsService();
+
+	}
+
+	/**
+	 * Appropriate Events Service for Connection
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param JmapClient $Client
+	 * 
+	 * @return void
+	 */
+	public static function eventsService(JmapClient $Client): RemoteEventsService {
+
+		// evaluate if client is connected 
+		if (!$Client->sessionStatus()) {
+			$Client->connect();
+		}
+        // determine capabilities
+        if ($Client->sessionCapable('https://www.fastmail.com/dev/calendars', false)) {
+			return new RemoteEventsServiceFM();
+        }
+
+		return new RemoteEventsService();
+
+	}
+
+	/**
+	 * Appropriate Tasks Service for Connection
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param JmapClient $Client
+	 * 
+	 * @return void
+	 */
+	public static function tasksService(JmapClient $Client): RemoteTasksService {
+
+		return new RemoteTasksService();
 
 	}
 

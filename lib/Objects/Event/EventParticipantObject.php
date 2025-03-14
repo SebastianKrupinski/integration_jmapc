@@ -27,17 +27,17 @@ namespace OCA\JMAPC\Objects\Event;
 
 class EventParticipantObject {
 
-    public ?string $id = null;
-    public ?string $name = null;
-    public ?string $description = null;
-    public ?string $address = null;
-    public ?EventParticipantTypes $type = null;
-    public ?EventParticipantStatusTypes $status = null;
-    public ?string $comment = null;
-    public EventParticipantRoleCollection $roles;
+    public ?string $Id = null;
+    public ?string $Name = null;
+    public ?string $Description = null;
+    public ?string $Address = null;
+    public ?EventParticipantTypes $Type = null;
+    public ?EventParticipantStatusTypes $Status = null;
+    public ?string $Comment = null;
+    public EventParticipantRoleCollection $Roles;
 
     public function __construct() {
-        $this->roles = new EventParticipantRoleCollection();
+        $this->Roles = new EventParticipantRoleCollection();
     }
 
 }

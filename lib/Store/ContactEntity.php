@@ -25,7 +25,6 @@ declare(strict_types=1);
 */
 namespace OCA\JMAPC\Store;
 
-use JsonSerializable;
 use OCP\AppFramework\Db\Entity;
 
 /**
@@ -35,59 +34,31 @@ use OCP\AppFramework\Db\Entity;
  * @method getSID(): string
  * @method setSID(int $sid): void
  * @method getCID(): string
- * @method setCID(int $sid): void
+ * @method setCID(int $cid): void
  * @method getUUID(): string
  * @method setUUID(string $uuid): void
  * @method getSignature(): string
  * @method setSignature(string $uuid): void
- * @method getRCID(): string
- * @method setRCID(string $rcid): void
- * @method getREID(): string
- * @method setREID(string $reid): void
- * @method getRESN(): string
- * @method setRESN(string $resn): void
+ * @method getCCID(): string
+ * @method setCCID(string $ccid): void
+ * @method getCEID(): string
+ * @method setCEID(string $ceid): void
+ * @method getCESN(): string
+ * @method setCESN(string $cesn): void
  * @method getData(): string
  * @method setData(string $data): void
  * @method getLabel(): string
  * @method setLabel(string $label): void
- * @method getDescription(): string
- * @method setDescription(string $description): void
- * @method getStartsOn(): string
- * @method setStartsOn(int $startson): void
- * @method getEndsOn(): string
- * @method setEndsOn(int $endson): void
  */
-class ContactEntity extends Entity implements JsonSerializable {
+class ContactEntity extends Entity{
 	protected ?string $uid = null;
 	protected ?int $sid = null;
 	protected ?int $cid = null;
     protected ?string $uuid = null;
 	protected ?string $signature = null;
-	protected ?string $rcid = null;
-	protected ?string $reid = null;
-	protected ?string $resn = null;
+	protected ?string $ccid = null;
+	protected ?string $ceid = null;
+	protected ?string $cesn = null;
 	protected ?string $data = null;
 	protected ?string $label = null;
-	protected ?string $description = null;
-	protected ?int $startson = null;
-	protected ?int $endson = null;
-
-	public function jsonSerialize(): array {
-		return [
-			'id' => $this->id,
-			'uid' => $this->uid,
-			'sid' => $this->sid,
-			'cid' => $this->cid,
-			'uuid' => $this->uuid,
-			'signature' => $this->signature,
-			'rcid' => $this->rcid,
-			'reid' => $this->reid,
-			'resn' => $this->resn,
-			'data' => $this->data,
-			'label' => $this->label,
-			'description' => $this->description,
-			'startson' => $this->startson,
-			'endson' => $this->endson,
-		];
-	}
 }

@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -25,10 +25,9 @@
 
 namespace OCA\JMAPC\Objects\Event;
 
-use DateTime;
 use DateTimeZone;
 use DateInterval;
-use DateTimeImmutable;
+use DateTimeInterface;
 use OCA\JMAPC\Objects\OriginTypes;
 
 class EventObject {
@@ -40,34 +39,34 @@ class EventObject {
     public ?string $CCID = null;                    // Correlation Collection Id
     public ?string $CEID = null;                    // Correlation Entity Id
     public ?string $CESN = null;                    // Correlation Signature
-    public ?string $UUID = null;                    // Event UUID
-    public DateTime|DateTimeImmutable|null $CreatedOn = null;    // Event Creation Date/Time
-    public DateTime|DateTimeImmutable|null $ModifiedOn = null;   // Event Modification Date/Time
-    public ?int $Sequence = null;                   // Event Sequence
-    public ?DateTimeZone $TimeZone = null;          // Event Time Zone
-    public DateTime|DateTimeImmutable|null $StartsOn = null;     // Event Start Date/Time
-    public ?DateTimeZone $StartsTZ = null;          // Event Start Time Zone
-    public DateTime|DateTimeImmutable|null $EndsOn = null;       // Event End Date/Time
-    public ?DateTimeZone $EndsTZ = null;            // Event End Time Zone
-    public ?DateInterval $Duration = null;          // Event Duration
-    public ?bool $Timeless = false;                 // Event Without time
-    public ?string $Label = null;                   // Event Title/Summary
-    public ?string $Description = null;             // Event Description
-    public EventLocationPhysicalCollection $LocationsPhysical;      // Event Location(s)
-    public EventLocationVirtualCollection $LocationsVirtual;        // Event Location(s)
-    public ?EventAvailabilityTypes $Availability = null;            // Event Free Busy Status
-    public ?int $Priority = null;                   // Event Priority / 0 - Low / 1 - Normal / 2 - High
-    public ?EventSensitivityTypes $Sensitivity = null;             // Event Sensitivity
-    public ?string $Color = null;                   // Event Display Color
+    public ?string $UUID = null;
+    public DateTimeInterface|null $CreatedOn = null;
+    public DateTimeInterface|null $ModifiedOn = null;
+    public ?int $Sequence = null;
+    public ?DateTimeZone $TimeZone = null;
+    public DateTimeInterface|null $StartsOn = null;
+    public ?DateTimeZone $StartsTZ = null;
+    public DateTimeInterface|null $EndsOn = null;
+    public ?DateTimeZone $EndsTZ = null;
+    public ?DateInterval $Duration = null;
+    public ?bool $Timeless = false;
+    public ?string $Label = null;
+    public ?string $Description = null;
+    public EventLocationPhysicalCollection $LocationsPhysical;
+    public EventLocationVirtualCollection $LocationsVirtual;
+    public ?EventAvailabilityTypes $Availability = null;
+    public ?int $Priority = null;
+    public ?EventSensitivityTypes $Sensitivity = null;
+    public ?string $Color = null;
     public EventTagCollection $Categories;
     public EventTagCollection $Tags;
-    public EventOrganizerObject $Organizer;         // Event Organizer
-    public EventParticipantCollection $Participants;// Event Attendee(s)
+    public EventOrganizerObject $Organizer;
+    public EventParticipantCollection $Participants;
     public EventOccurrenceCollection $OccurrencePatterns;
     public EventOccurrenceCollection $OccurrenceExceptions;
     public array $OccurrenceMutations;
-    public EventNotificationCollection $Notifications; // Event Reminder(s)
-    public EventAttachmentCollection $Attachments;  // Event Attachment(s)
+    public EventNotificationCollection $Notifications;
+    public EventAttachmentCollection $Attachments;
     public ?array $Other = [];
 	
 	public function __construct() {

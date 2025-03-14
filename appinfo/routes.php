@@ -26,12 +26,5 @@ declare(strict_types=1);
 return [
 	'routes' => [
 		['name' => 'AdminConfiguration#depositConfiguration', 'url' => '/admin-configuration', 'verb' => 'PUT'],
-		//['name' => 'UserConfiguration#Connect', 'url' => '/connect', 'verb' => 'GET'],
-		//['name' => 'UserConfiguration#Disconnect', 'url' => '/disconnect', 'verb' => 'GET'],
-		//['name' => 'UserConfiguration#Harmonize', 'url' => '/harmonize', 'verb' => 'GET'],
-		//['name' => 'UserConfiguration#serviceList', 'url' => '/service-list', 'verb' => 'GET'],
-		//['name' => 'UserConfiguration#remoteCollectionsFetch', 'url' => '/remote-collections-fetch', 'verb' => 'GET'],
-		//['name' => 'UserConfiguration#localCollectionsFetch', 'url' => '/local-collections-fetch', 'verb' => 'GET'],
-		//['name' => 'UserConfiguration#localCollectionsDeposit', 'url' => '/local-collections-deposit', 'verb' => 'PUT'],
 	]
 ];

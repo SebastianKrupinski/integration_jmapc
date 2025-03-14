@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -29,6 +29,7 @@ use Datetime;
 use DateTimeZone;
 use DateInterval;
 use OC\Files\Node\LazyUserFolder;
+use OCA\DAV\CalDAV\EventReader;
 use OCA\JMAPC\Objects\Event\EventAvailabilityTypes;
 use OCA\JMAPC\Objects\Event\EventLocationPhysicalObject;
 use OCA\JMAPC\Objects\Event\EventNotificationAnchorTypes;
@@ -45,8 +46,9 @@ use OCA\JMAPC\Objects\Event\EventParticipantStatusTypes;
 use OCA\JMAPC\Objects\Event\EventParticipantTypes;
 use OCA\JMAPC\Objects\Event\EventSensitivityTypes;
 use OCA\JMAPC\Objects\Event\EventTagCollection;
-use OCA\JMAPC\Objects\EventCollection;
+use OCA\JMAPC\Objects\Event\EventCollectionObject;
 use OCA\JMAPC\Objects\OriginTypes;
+use OCA\JMAPC\Store\CollectionEntity;
 use OCA\JMAPC\Store\EventEntity;
 use OCA\JMAPC\Utile\UUID;
 use Sabre\VObject\Reader;
@@ -75,23 +77,24 @@ class LocalEventsService {
 	/**
      * retrieve collection from local storage
      * 
-	 * @param string $cid            Collection ID
+	 * @param int $cid            Collection ID
 	 * 
-	 * @return EventCollection  EventCollection on success / null on fail
+	 * @return EventCollectionObject|null
 	 */
-	public function collectionFetch(int $cid): ?EventCollection {
+	public function collectionFetch(int $cid): ?EventCollectionObject {
 
-        // retrieve object properties
-        $ce = $this->_Store->collectionFetch($cid);
-        // evaluate if object properties where retrieve
-        if (is_array($ce) && count($ce) > 0) {
+        // retrieve collection properties
+        $co = $this->_Store->collectionFetch($cid);
+        // evaluate if properties where retrieve
+        if ($co instanceof CollectionEntity) {
             // construct object and return
-            return new EventCollection(
-                $ce->getId(),
-                $ce->getLabel(),
+            return new EventCollectionObject(
+                (string)$co->getId(),
+                $co->getLabel(),
                 null,
-                $ce->getVisible(),
-                $ce->getColor()
+                null,
+                $co->getVisible(),
+                $co->getColor()
             );
         }
         else {
@@ -315,9 +318,9 @@ class LocalEventsService {
         // prase vData
         $vObject = Reader::read($so->getData());
         // convert entity
-        $to = $this->fromVEvent($vObject->VEVENT);
-        $to->ID = $so->getId();
-        $to->CID = $so->getCid();
+        $to = $this->fromVObject($vObject->VEVENT);
+        $to->ID = (string)$so->getId();
+        $to->CID = (string)$so->getCid();
         $to->Signature = $so->getSignature();
         $to->CCID = $so->getCcid();
         $to->CEID = $so->getCeid();
@@ -347,17 +350,28 @@ class LocalEventsService {
 
         // construct entity
         $to = new EventEntity();
+        $vo = $this->toVObject($so);
         // convert source object to entity
-        $to->setData("BEGIN:VCALENDAR\nVERSION:2.0\n" . $this->fromEventObject($so)->serialize() . "\nEND:VCALENDAR");
+        $to->setData("BEGIN:VCALENDAR\nVERSION:2.0\n" . $vo->serialize() . "\nEND:VCALENDAR");
         $to->setUuid($so->UUID);
-        $to->setSignature(md5($to->getData()));
+        $to->setSignature($this->generateSignature($so));
         $to->setCcid($so->CCID);
         $to->setCeid($so->CEID);
         $to->setCesn($so->CESN);
         $to->setLabel($so->Label);
         $to->setDescription($so->Description);
         $to->setStartson($so->StartsOn->setTimezone(new DateTimeZone('UTC'))->format('U'));
-        $to->setEndson($so->EndsOn->setTimezone(new DateTimeZone('UTC'))->format('U'));
+        if ($so->OccurrencePatterns > 0) {
+            $eventReader = new EventReader($vo, $so->UUID);
+            if ($eventReader->recurringConcludes()) {
+                $to->setEndson($eventReader->recurringConcludesOn()->setTimezone(new DateTimeZone('UTC'))->format('U'));
+            } else {
+                $to->setEndson(2147483647);
+            }
+        } else {
+            $to->setEndson($so->EndsOn->setTimezone(new DateTimeZone('UTC'))->format('U'));
+        }
+        
         // override / assign additional values
         foreach ($additional as $key => $value) {
 			$method = 'set' . ucfirst($key);
@@ -376,7 +390,7 @@ class LocalEventsService {
 	 * 
 	 * @return EventObject
 	 */
-	public function fromVEvent(VEvent $so): EventObject {
+	public function fromVObject(VEvent $so): EventObject {
 		
         // construct target object
 		$to = new EventObject();
@@ -388,11 +402,11 @@ class LocalEventsService {
         }
         // creation date time
         if (isset($so->CREATED)) {
-            $to->CreatedOn = new DateTime($so->CREATED->getValue());
+            $to->CreatedOn = $so->CREATED->getDateTime();
         }
         // modification date time
         if (isset($so->{'LAST-MODIFIED'})) {
-            $to->ModifiedOn = new DateTime($so->{'LAST-MODIFIED'}->getValue());
+            $to->ModifiedOn = $so->{'LAST-MODIFIED'}->getDateTime();
         }
         // sequence
         if (isset($so->SEQUENCE)) {
@@ -405,73 +419,52 @@ class LocalEventsService {
         // Starts Date/Time
         // Starts Time Zone
         if (isset($so->DTSTART)) {
-            if (isset($so->DTSTART->parameters['TZID'])) {
-                $to->StartsTZ = new DateTimeZone($so->DTSTART->parameters['TZID']->getValue());
-            }
-            elseif (str_contains($so->DTSTART, 'Z')) {
-                $to->StartsTZ = new DateTimeZone('UTC');
-            }
-            elseif ($this->UserTimeZone instanceof \DateTimeZone) {
-                $to->StartsTZ = $this->UserTimeZone;
-            }
-            else {
-                $to->StartsTZ = $this->SystemTimeZone;
-            }
-            $to->StartsOn = new DateTime($so->DTSTART->getValue(), $to->StartsTZ);
+            $to->StartsOn = $so->DTSTART->getDateTime();
+            $to->StartsTZ = $to->StartsOn->getTimezone();
         }
         // Ends Date/Time
         // Ends Time Zone
         if (isset($so->DTEND)) {
-            if (isset($so->DTEND->parameters['TZID'])) {
-                $to->EndsTZ = new DateTimeZone($so->DTEND->parameters['TZID']->getValue());
-            }
-            elseif (str_contains($so->DTSTART, 'Z')) {
-                $to->EndsTZ = new DateTimeZone('UTC');
-            }
-            elseif ($this->UserTimeZone instanceof \DateTimeZone) {
-                $to->EndsTZ = $this->UserTimeZone;
-            }
-            else {
-                $to->EndsTZ = $this->SystemTimeZone;
-            }
-            $to->EndsOn = new DateTime($so->DTEND->getValue(), $to->EndsTZ);
+            $to->EndsOn = $so->DTEND->getDateTime();
+            $to->EndsTZ = $to->EndsOn->getTimezone();
         }
         // duration
         if (isset($so->DURATION)) {
-            $to->Duration = new DateInterval($so->DURATION->getValue());
+            $to->Duration = $so->DURATION->getDateInterval();
         }
-        // Label
+        // label
         if (isset($so->SUMMARY)) {
             $to->Label = trim($so->SUMMARY->getValue());
         }
-        // Description
+        // description
         if (isset($so->DESCRIPTION)) {
             if (!empty(trim($so->DESCRIPTION->getValue()))) {
                 $to->Description = trim($so->DESCRIPTION->getValue());
             }
         }
-        // Location
+        // location
         if (isset($so->LOCATION)) {
             foreach ($so->LOCATION as $id => $entry) {
-                $location = new EventLocationPhysicalObject();
-                $location->Id  = $id;
-                $location->Name = trim($entry->getValue());
+                $parameters = $entry->parameters();
+                $entity = new EventLocationPhysicalObject();
+                $entity->Id = $parameters['X-ID']?->getValue();
+                $entity->Name = trim($entry->getValue());
                 //$location->Description = $entry->description();
-                $to->LocationsPhysical[$id] = $location;
+                $to->LocationsPhysical[$entity->Id] = $entity;
             }
         }
-        // Availability
+        // availability
         if (isset($so->TRANSP)) {
             $to->Availability = match (strtoupper($so->TRANSP->getValue())) {
                 'FREE' => EventAvailabilityTypes::Free,
                 default => EventAvailabilityTypes::Busy,
             };
         }
-        // Priority
+        // priority
         if (isset($so->PRIORITY)) {
             $to->Priority = (int)trim($so->PRIORITY->getValue());
         }
-        // Sensitivity
+        // sensitivity
         if (isset($so->CLASS)) {
             $to->Sensitivity = match (strtoupper($so->CLASS->getValue())) {
                 'PRIVATE' => EventSensitivityTypes::Private,
@@ -479,76 +472,77 @@ class LocalEventsService {
                 default => EventSensitivityTypes::Public,
             };
         }
-        // Color
+        // color
         if (isset($so->COLOR)) {
             $to->Color = trim($so->COLOR->getValue());
         }
-        // Tag(s)
+        // tag(s)
         if (isset($so->CATEGORIES)) {
             $to->Tags = new EventTagCollection($so->CATEGORIES->getParts());
         }
-        // Participant(s)
+        // participant(s)
         foreach (['ORGANIZER', 'ATTENDEE'] as $name) {
             if (isset($so->$name)) {
                 foreach ($so->$name as $entry) {
-                    $participant = new EventParticipantObject();
-                    $participant->id = isset($entry->parameters['X-ID']) ? $entry->parameters['X-ID']->getValue() : UUID::v4();
-                    $participant->address = !empty($entry->getValue()) ? trim(str_replace('mailto:', '', $entry->getValue())) : null;
-                    $participant->name = isset($entry->parameters['CN']) ? $entry->parameters['CN']->getValue() : null;
-                    $participant->type = match ($entry->parameters['CUTYPE']?->getValue()) {
+                    $parameters = $entry->parameters();
+                    $entity = new EventParticipantObject();
+                    $entity->Address = !empty($entry->getValue()) ? trim(str_replace('mailto:', '', $entry->getValue())) : null;
+                    $entity->Id = $parameters['X-ID']?->getValue();
+                    $entity->Name = $parameters['CN']?->getValue() ?? null;
+                    $entity->Type = match ($parameters['CUTYPE']?->getValue()) {
                         'GROUP' => EventParticipantTypes::Group,
                         'RESOURCE' => EventParticipantTypes::Resource,
                         'ROOM' => EventParticipantTypes::Location,
                         default => EventParticipantTypes::Individual,
                     };
-                    $participant->status = match ($entry->parameters['PARTSTAT']?->getValue()) {
+                    $entity->Status = match ($parameters['PARTSTAT']?->getValue()) {
                         'ACCEPTED' => EventParticipantStatusTypes::Accepted,
                         'DECLINED' => EventParticipantStatusTypes::Declined,
                         'TENTATIVE' => EventParticipantStatusTypes::Tentative,
                         default => ($name === 'ORGANIZER') ? EventParticipantStatusTypes::Accepted : EventParticipantStatusTypes::None,
                     };
-                    $participant->roles[] = match ($entry->parameters['ROLE']?->getValue()) {
+                    $entity->Roles[] = match ($parameters['ROLE']?->getValue()) {
                         'CHAIR' => EventParticipantRoleTypes::Chair,
                         'OPT-PARTICIPANT' => EventParticipantRoleTypes::Optional,
                         'NON-PARTICIPANT' => EventParticipantRoleTypes::Informational,
                         default => ($name === 'ORGANIZER') ? EventParticipantRoleTypes::Owner : EventParticipantRoleTypes::Attendee,
                     };
-                    $to->Participants[$participant->id] = $participant;
+                    $to->Participants[$entity->Id] = $entity;
                 }
             }
         }
-        // Notifications
+        // notifications
         if (isset($so->VALARM)) {
             foreach($so->VALARM as $entry) {
-                $notification = new EventNotificationObject();
-                $notification->Type = match ($entry->ACTION?->getValue()) {
+                $entity = new EventNotificationObject();
+                $entity->Id = $entry->{'X-ID'}->getValue();
+                $entity->Type = match ($entry->ACTION?->getValue()) {
                     'EMAIL' => EventNotificationTypes::Email,
                     'AUDIO' => EventNotificationTypes::Audible,
                     default => EventNotificationTypes::Visual,
                 };
-                if (isset($entry->TRIGGER->parameters['VALUE'])) {
-                    $notification->Pattern = EventNotificationPatterns::Absolute;
-                    $notification->When = new DateTime($entry->TRIGGER->parameters['VALUE']->getValue());
-                
+                if (isset($entry->TRIGGER?->parameters()['VALUE'])) {
+                    $entity->Pattern = EventNotificationPatterns::Absolute;
+                    $entity->When = new DateTime($entry->TRIGGER->parameters()['VALUE']->getValue());
                 }
-                if (isset($entry->TRIGGER->parameters['RELATED'])) {
-                    $notification->Pattern = EventNotificationPatterns::Relative;
-                    $notification->Anchor = match ($entry->TRIGGER->parameters['RELATED']->getValue()) {
+                if (isset($entry->TRIGGER?->parameters()['RELATED'])) {
+                    $entity->Pattern = EventNotificationPatterns::Relative;
+                    $entity->Anchor = match ($entry->TRIGGER->parameters()['RELATED']->getValue()) {
                         'END' => EventNotificationAnchorTypes::End,
                         default => EventNotificationAnchorTypes::Start,
                     };
-                    $notification->Offset = $this->fromDurationPeriod($entry->TRIGGER->getValue());
+                    $entity->Offset = $entry->TRIGGER->getDateInterval();
                 }
-                
+                $to->Notifications[$entity->Id] = $entity;
             }
         }
-        // Occurrence
+        // occurrence
         if (isset($so->RRULE)) {
             foreach($so->RRULE as $entry) {
-                $pattern = new EventOccurrenceObject();
+                $entity = new EventOccurrenceObject();
                 $parts = $so->RRULE->getParts();
                 if (isset($parts['FREQ'])) {
-                    $pattern->Precision = match ($parts['FREQ']) {
+                    $entity->Precision = match ($parts['FREQ']) {
                         'YEARLY' => EventOccurrencePrecisionTypes::Yearly,
                         'MONTHLY' => EventOccurrencePrecisionTypes::Monthly,
                         'WEEKLY' => EventOccurrencePrecisionTypes::Weekly,
@@ -559,67 +553,67 @@ class LocalEventsService {
                     };
                 }
                 if (isset($parts['INTERVAL'])) {
-                    $pattern->Interval = (int)$parts['INTERVAL'];
+                    $entity->Interval = (int)$parts['INTERVAL'];
                 }
                 if (isset($parts['COUNT'])) {
-                    $pattern->Iterations = (int)$parts['COUNT'];
+                    $entity->Iterations = (int)$parts['COUNT'];
                 }
                 if (isset($parts['UNTIL'])) {
-                    $pattern->Concludes = new DateTime($parts['UNTIL']);
+                    $entity->Concludes = new DateTime($parts['UNTIL']);
                 }
                 if (isset($parts['BYDAY'])) {
                     if (is_array($parts['BYDAY'])) {
-                        $pattern->OnDayOfWeek = $parts['BYDAY'];
+                        $entity->OnDayOfWeek = $parts['BYDAY'];
                     }
                     else {
-                        $pattern->OnDayOfWeek = [$parts['BYDAY']];
+                        $entity->OnDayOfWeek = [$parts['BYDAY']];
                     }
                 }
                 if (isset($parts['BYMONTH'])) {
                     if (is_array($parts['BYMONTH'])) {
-                        $pattern->OnMonthOfYear = $parts['BYMONTH'];
+                        $entity->OnMonthOfYear = $this->convertToInt($parts['BYMONTH']);
                     }
                     else {
-                        $pattern->OnMonthOfYear = [$parts['BYMONTH']];
+                        $entity->OnMonthOfYear = $this->convertToInt([$parts['BYMONTH']]);
                     }
                 }
                 if (isset($parts['BYMONTHDAY'])) {
                     if (is_array($parts['BYMONTHDAY'])) {
-                        $pattern->OnDayOfMonth = $parts['BYMONTHDAY'];
+                        $entity->OnDayOfMonth = $this->convertToInt($parts['BYMONTHDAY']);
                     }
                     else {
-                        $pattern->OnDayOfMonth = [$parts['BYMONTHDAY']];
+                        $entity->OnDayOfMonth = $this->convertToInt([$parts['BYMONTHDAY']]);
                     }
                 }
                 if (isset($parts['BYYEARDAY'])) {
                     if (is_array($parts['BYYEARDAY'])) {
-                        $pattern->OnDayOfYear = $parts['BYYEARDAY'];
+                        $entity->OnDayOfYear = $this->convertToInt($parts['BYYEARDAY']);
                     }
                     else {
-                        $pattern->OnDayOfYear = [$parts['BYYEARDAY']];
+                        $entity->OnDayOfYear = $this->convertToInt([$parts['BYYEARDAY']]);
                     }
                 }
                 if (isset($parts['BYSETPOS'])) {
                     if (is_array($parts['BYSETPOS'])) {
-                        $pattern->OnPosition = $parts['BYSETPOS'];
+                        $entity->OnPosition = $this->convertToInt($parts['BYSETPOS']);
                     }
                     else {
-                        $pattern->OnPosition = [$parts['BYSETPOS']];
+                        $entity->OnPosition = $this->convertToInt([$parts['BYSETPOS']]);
                     }
                 }
-                $to->OccurrencePatterns[] = $pattern;
+                $to->OccurrencePatterns[] = $entity;
             }
         }
         // Attachment(s)
         /*
         if (isset($so->ATTACH)) {
             foreach($so->ATTACH as $entry) {
-                if (isset($entry->parameters['X-NC-FILE-ID'])) {
+                if (isset($parameters['X-NC-FILE-ID'])) {
                     $fs = 'D';
-                    $fi = $entry->parameters['X-NC-FILE-ID']->getValue();
-                    $fn = $entry->parameters['FILENAME']->getValue();
-                    $ft = $entry->parameters['FMTTYPE']->getValue();
-                    $fd = $entry->parameters['FILENAME']->getValue();
+                    $fi = $parameters['X-NC-FILE-ID']->getValue();
+                    $fn = $parameters['FILENAME']->getValue();
+                    $ft = $parameters['FMTTYPE']->getValue();
+                    $fd = $parameters['FILENAME']->getValue();
 
                     $to->addAttachment(
                         $fs,
@@ -648,7 +642,7 @@ class LocalEventsService {
 	 * 
 	 * @return VEvent
 	 */
-    public function fromEventObject(EventObject $so): VEvent{
+    public function toVObject(EventObject $so): VEvent{
 
         // construct target object
         $to = (new \Sabre\VObject\Component\VCalendar())->createComponent('VEVENT');
@@ -660,8 +654,12 @@ class LocalEventsService {
         }
         // creation date
         if ($so->CreatedOn) {
-            $to->add('DTSTAMP',$so->CreatedOn->format($this->DateFormatUTC));
             $to->add('CREATED',$so->CreatedOn->format($this->DateFormatUTC));
+            if ($to->DTSTAMP) {
+                $to->DTSTAMP->setValue($so->CreatedOn->format($this->DateFormatUTC));
+            } else {
+                $to->add('DTSTAMP',$so->CreatedOn->format($this->DateFormatUTC));
+            }
         }
         // modification date
         if ($so->ModifiedOn) {
@@ -716,9 +714,9 @@ class LocalEventsService {
             $to->add('DESCRIPTION', $so->Description);
         }
         // Physical Location(s)
-		foreach ($so->LocationsPhysical as $id => $entry) {
-            $location = $to->add('LOCATION', trim($entry->Name));
-            $location->add('X-ID', $id);
+		foreach ($so->LocationsPhysical as $entry) {
+            $entity = $to->add('LOCATION', trim($entry->Name));
+            $entity->add('X-ID', $entry->Id);
 		}
         // Availability
         if ($so->Availability) {
@@ -747,21 +745,17 @@ class LocalEventsService {
         if (count($so->Tags) > 0) {
             $to->add('CATEGORIES', implode(', ', (array)$so->Tags));
         }
-        // Organizer
-        /*
-        if (isset($to->Organizer) && isset($to->Organizer->Address)) {
-            $to->add(
-                'ORGANIZER', 
-                'mailto:' . $to->Organizer->Address,
-                array('CN' => $to->Organizer->Name)
-            );
-        }
-        */
         // Participant(s)
-        foreach($so->Participants as $id => $entry) {
-            $participant = $to->add('ATTENDEE', 'mailto:' . $entry->address);
+        foreach($so->Participants as $entry) {
+            if (in_array(EventParticipantRoleTypes::Owner, $entry->Roles, true)) {
+                $entity = $to->add('ORGANIZER', 'mailto:' . $entry->Address);
+            } else {
+                $entity = $to->add('ATTENDEE', 'mailto:' . $entry->address);
+            }
+            /** @var Property $entity */
+            $entity->add('X-ID', $entry->Id);
             // Participant Type
-            $participant->add('CUTYPE',  match ($entry->Type) {
+            $entity->add('CUTYPE',  match ($entry->Type) {
                 EventParticipantTypes::Individual => 'INDIVIDUAL',
                 EventParticipantTypes::Group => 'GROUP',
                 EventParticipantTypes::Resource => 'RESOURCE',
@@ -769,7 +763,7 @@ class LocalEventsService {
                 default => 'UNKNOWN',
             });
             // Participant Status
-            $participant->add('PARTSTAT',  match ($entry->Type) {
+            $entity->add('PARTSTAT',  match ($entry->Type) {
                 EventParticipantStatusTypes::Accepted => 'ACCEPTED',
                 EventParticipantStatusTypes::Declined => 'DECLINED',
                 EventParticipantStatusTypes::Tentative => 'TENTATIVE',
@@ -778,24 +772,26 @@ class LocalEventsService {
             });
             // Participant Name
             if ($entry->Name) {
-                $participant->add('CN', $entry->Name);
+                $entity->add('CN', $entry->Name);
             }
         }
         // Notifications
         foreach($so->Notifications as $entry) {
-            $notification = $to->add('VALARM');
+            $entity = $to->add('VALARM');
+            /** @var Property $entity */
+            $entity->add('X-ID', $entry->Id);
             // Notifications Type
-            $notification->add('ACTION', match ($entry->Type) {
+            $entity->add('ACTION', match ($entry->Type) {
                 EventNotificationTypes::Email => 'EMAIL',
                 default => 'DISPLAY',
             });
             // Notifications Pattern
             switch ($entry->Pattern) {
                 case EventNotificationPatterns::Absolute:
-                    $notification->add('VALUE', $entry->When, array());
+                    $entity->add('VALUE', $entry->When, array());
                     break;
                 case EventNotificationPatterns::Relative:
-                    $notification->add(
+                    $entity->add(
                         'TRIGGER',
                         $this->toDurationPeriod($entry->Offset),
                         ['RELATED' => ($entry->Anchor === EventNotificationAnchorTypes::End) ? 'END' : 'START']
@@ -803,9 +799,8 @@ class LocalEventsService {
                     break;
             }
         }
-
         // Occurrence
-        foreach ($so->OccurrencePatterns as $id => $entry) {
+        foreach ($so->OccurrencePatterns as $entry) {
             $pattern = [];
             // Occurrence Precision
             $pattern['FREQ'] = match ($entry->Precision) {
@@ -854,7 +849,7 @@ class LocalEventsService {
                 $pattern['BYSETPOS'] = implode(',', $entry->OnPosition);
             }
 
-            $to->add('RRULE', $pattern)->add('X-ID', $id);
+            $to->add('RRULE', $pattern)->add('X-ID', $entry->Id);
         }
 
                 // Attachment(s)
@@ -908,31 +903,28 @@ class LocalEventsService {
 
     }
 
-    /**
-     * convert local duration period to event object date interval
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param sting $period
-	 * 
-	 * @return DateInterval
-	 */
-    private function fromDurationPeriod(string $period): DateInterval {
-		
-        // evaluate if period is negative
-		if (str_contains($period, '-P')) {
-            $period = trim($period, '-');
-            $period = new DateInterval($period);
-            $period->invert = 1;
-            // return date interval object
-            return $period;
-        }
-        else {
-            // return date interval object
-            return new DateInterval($period);
-        }
-		
-	}
+    public function generateSignature(EventObject $eo): string {
+        
+        // clone self
+        $o = clone $eo;
+        // remove non needed values
+        unset(
+			$o->Origin,
+			$o->ID,
+			$o->CID,
+			$o->Signature,
+			$o->CCID,
+			$o->CEID,
+			$o->CESN,
+			$o->UUID,
+			$o->CreatedOn,
+			$o->ModifiedOn
+		);
+
+        // generate signature
+        return md5(json_encode($o, JSON_PARTIAL_OUTPUT_ON_ERROR));
+
+    }
 
     /**
      * convert event object date interval to local duration period
@@ -954,5 +946,15 @@ class LocalEventsService {
         };
 
 	}
+
+    private function convertToInt(array $values): array {
+       
+        foreach ($values as $key => $value) {
+            $values[$key] = (int)$value;
+        }
+
+        return $values;
+
+    }
 
 }

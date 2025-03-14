@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -26,10 +26,8 @@
 namespace OCA\JMAPC\Service;
 
 use DateTime;
-use Exception;
 use Throwable;
 use Psr\Log\LoggerInterface;
-use JmapClient\Client as JmapClient;
 
 use OCP\Notification\IManager as INotificationManager;
 use OCP\BackgroundJob\IJobList;
@@ -40,15 +38,7 @@ use OCA\JMAPC\Service\ConfigurationService;
 use OCA\JMAPC\Service\ServicesService;
 use OCA\JMAPC\Service\HarmonizationThreadService;
 use OCA\JMAPC\Service\Local\LocalService;
-use OCA\JMAPC\Service\Local\LocalContactsService;
-use OCA\JMAPC\Service\Local\LocalEventsService;
-use OCA\JMAPC\Service\Local\LocalTasksService;
 use OCA\JMAPC\Service\Remote\RemoteService;
-use OCA\JMAPC\Service\Remote\RemoteContactsService;
-use OCA\JMAPC\Service\Remote\RemoteEventsService;
-/*
-use OCA\JMAPC\Service\Remote\RemoteTasksService;
-*/
 use OCA\JMAPC\Service\Remote\RemoteCommonService;
 use OCA\JMAPC\Store\ServiceEntity;
 
@@ -67,15 +57,7 @@ class CoreService {
 		private ServicesService $ServicesService,
 		private HarmonizationThreadService $HarmonizationThreadService,
 		private LocalService $localService,
-		private LocalContactsService $localContactsService,
-		private LocalEventsService $localEventsService,
-		private LocalTasksService $localTasksService,
 		private RemoteService $remoteService,
-		private RemoteContactsService $remoteContactsService,
-		private RemoteEventsService $remoteEventsService,
-		/*
-		private RemoteTasksService $remoteTasksService,
-		*/
 		private RemoteCommonService $remoteCommonService,
 	) {}
 
@@ -267,7 +249,7 @@ class CoreService {
 			return;
 		}
 		// deregister task
-		$this->TaskService->remove(\OCA\JMAPC\Tasks\HarmonizationLauncher::class, ['uid' => $uid, 'uid' => $sid]);
+		$this->TaskService->remove(\OCA\JMAPC\Tasks\HarmonizationLauncher::class, ['uid' => $uid, 'sid' => $sid]);
 		// terminate harmonization thread
 		$this->HarmonizationThreadService->terminate($uid);
 		// initialize contacts data store
@@ -288,6 +270,8 @@ class CoreService {
 		$localStore->entityDeleteByService($sid);
 		// delete local collection
 		$localStore->collectionDeleteByService($sid);
+		// delete service
+		$this->ServicesService->delete($uid, $service);
 
 	}
 
@@ -307,53 +291,58 @@ class CoreService {
 		$data = ['ContactCollections' => [], 'EventCollections' => [], 'TaskCollections' => []];
 		// retrieve service information
 		$service = $this->ServicesService->fetch($sid);
-		// determine if user if the service owner
+		// determine if user is the service owner
 		if ($service->getUid() !== $uid) {
 			return $data;
 		}
 		// create remote store client
 		$remoteStore = $this->remoteService->initializeStoreFromEntity($service);
 		// retrieve collections for contacts module
-		$this->remoteContactsService->initialize($remoteStore);
-		try {
-			$collections = $this->remoteContactsService->collectionList();
-			$data['ContactCollections'] = array_map(function($collection) {
-				return ['id' => $collection->Id, 'name' => 'Personal - ' . $collection->Name];
-			}, $collections);
-		} catch (JmapUnknownMethod $e) {
-			// AddressBook name space is not supported fail silently
-		}
-		// if AddressBook name space is not supported see if Contacts name space works
-		if (count($data['ContactCollections']) === 0) {
+		if ($this->ConfigurationService->isContactsAppAvailable()) {
+			$remoteContactsService = $this->remoteService->contactsService($remoteStore);
+			$remoteContactsService->initialize($remoteStore);
 			try {
-				$list = $this->remoteContactsService->entityList('', null, null, 'B');
-				$data['ContactCollections'][] = ['id' => '', 'name' => 'Personal - Contacts', 'count' => $list['total']];
-			} catch (\Throwable $e) {
-				// ContactCard name space is not supported fail silently
+				$collections = $remoteContactsService->collectionList();
+				$data['ContactCollections'] = array_map(function($collection) {
+					return ['id' => $collection->Id, 'label' => 'Personal - ' . $collection->Label];
+				}, $collections);
+			} catch (JmapUnknownMethod $e) {
+				// AddressBook name space is not supported fail silently
 			}
-			
+			// if AddressBook name space is not supported see if Contacts name space works
+			if (count($data['ContactCollections']) === 0) {
+				try {
+					$list = $remoteContactsService->entityList('', 'B');
+					$data['ContactCollections'][] = ['id' => 'Default', 'label' => 'Personal - Contacts', 'count' => $list['total']];
+				} catch (\Throwable $e) {
+					// ContactCard name space is not supported fail silently
+				}
+				
+			}
 		}
 		// retrieve collections for events module
-		$this->remoteEventsService->initialize($remoteStore);
-		try {
-			$collections = $this->remoteEventsService->collectionList();
-			$data['EventCollections'] = array_map(function($collection) {
-				return ['id' => $collection->Id, 'name' => 'Personal - ' . $collection->Name];
-			}, $collections);
-		} catch (JmapUnknownMethod $e) {
-			// AddressBook name space is not supported fail silently
-		}
-		// if AddressBook name space is not supported see if Contacts name space works
-		if (count($data['EventCollections']) === 0) {
+		if ($this->ConfigurationService->isContactsAppAvailable()) {
+			$remoteEventsService = $this->remoteService->eventsService($remoteStore);
+			$remoteEventsService->initialize($remoteStore);
 			try {
-				$list = $this->remoteEventsService->entityList('', null, null, 'B');
-				$data['EventCollections'][] = ['id' => '', 'name' => 'Personal - Calendar', 'count' => $list['total']];
-			} catch (\Throwable $e) {
-				// ContactCard name space is not supported fail silently
+				$collections = $remoteEventsService->collectionList();
+				$data['EventCollections'] = array_map(function($collection) {
+					return ['id' => $collection->Id, 'label' => 'Personal - ' . $collection->Label];
+				}, $collections);
+			} catch (JmapUnknownMethod $e) {
+				// AddressBook name space is not supported fail silently
 			}
-			
+			// if AddressBook name space is not supported see if Contacts name space works
+			if (count($data['EventCollections']) === 0) {
+				try {
+					$list = $remoteEventsService->entityList('', null, null, 'B');
+					$data['EventCollections'][] = ['id' => 'Default', 'label' => 'Personal - Calendar', 'count' => $list['total']];
+				} catch (\Throwable $e) {
+					// ContactCard name space is not supported fail silently
+				}
+				
+			}
 		}
-		
 		// return response
 		return $data;
 
@@ -404,178 +393,124 @@ class CoreService {
 	 * 
 	 * @param string $uid		user id
 	 * @param int $sid			service id
-	 * @param array $cc		contacts collection(s) correlations
-	 * @param array $ec		events collection(s) correlations
-	 * @param array $tc		tasks collection(s) correlations
+	 * @param array $cc			contacts collection(s) correlations
+	 * @param array $ec			events collection(s) correlations
+	 * @param array $tc			tasks collection(s) correlations
 	 * 
 	 * @return array of collection correlation(s) and attributes
 	 */
-	public function depositCorrelations(string $uid, int $sid, array $cc, array $ec, array $tc): void {
+	public function localCollectionsDeposit(string $uid, int $sid, array $cc, array $ec, array $tc): void {
 		
 		// terminate harmonization thread, in case the user changed any correlations
 		//$this->HarmonizationThreadService->terminate($uid);
+		// retrieve service information
+		$service = $this->ServicesService->fetch($sid);
+		// determine if user is the service owner
+		if ($service->getUid() !== $uid) {
+			return;
+		}
 		// deposit contacts correlations
 		if ($this->ConfigurationService->isContactsAppAvailable()) {
 			// initialize data store
-			$DataStore = \OC::$server->get(\OCA\JMAPC\Store\ContactStore::class);
+			$localStore = $this->localService->initializeContactStore();
 			// process entries
 			foreach ($cc as $entry) {
-				if (isset($entry['enabled'])) {
-					try {
-						switch ((bool) $entry['enabled']) {
-							case false:
-								if (!empty($entry['id'])) {
-									// retrieve correlation entry
-									$cr = $this->CorrelationsService->fetch($entry['id']);
-									// evaluate if user id matches
-									if ($uid == $cr->getuid()) {
-										// delete local entities
-										$DataStore->entityDeleteByCollection($uid, $cr->getloid());
-										// delete local collection
-										$DataStore->collectionDelete($cr->getloid());
-										// delete correlations
-										$this->CorrelationsService->deleteByCollectionId($cr->getuid(), $cr->getloid(), $cr->getroid());
-										$this->CorrelationsService->delete($cr);
-									}
-								}
-								break;
-							case true:
-								if (empty($entry['id'])) {
-									// create local collection
-									$cl = [];
-									$cl['uid'] = $uid; // user id
-									$cl['sid'] = $sid; // service id
-									$cl['uuid'] = \OCA\JMAPC\Utile\UUID::v4(); // universal id
-									$cl['label'] = 'JMAP: ' . $entry['label']; // collection Label
-									$cl['color'] = $entry['color']; // collection Color
-									$cl['rcid'] = $entry['roid']; // remote collection id
-									$cl['rcsn'] = ''; // remote collection signature
-									$cid = $DataStore->collectionCreate($cl);
-									// create correlation
-									$cr = new \OCA\JMAPC\Store\Correlation();
-									$cr->settype('CC'); // Correlation Type
-									$cr->setuid($uid); // User ID
-									$cr->setsid($sid); // Service ID
-									$cr->setloid($cid); // Local Collection ID
-									$cr->setroid($entry['roid']); // Remote Collection ID
-									$this->CorrelationsService->create($cr);
-								}
-								break;
+				if (!isset($entry['enabled']) || !is_bool($entry['enabled'])) {
+					continue;
+				}
+				switch ((bool)$entry['enabled']) {
+					case false:
+						if (is_numeric($entry['id'])) {
+							$collection = $localStore->collectionFetch($entry['id']);
+							if ($collection->getUid() === $uid) {
+								$localStore->collectionDelete($collection);
+							}
 						}
-					}
-					catch (Exception $e) {
-						
-					}
+						break;
+					case true:
+						if (empty($entry['id'])) {
+							// create local collection
+							$collection = $localStore->collectionFresh();
+							$collection->setUid($uid);
+							$collection->setSid($sid);
+							$collection->setCcid($entry['ccid']);
+							$collection->setUuid(\OCA\JMAPC\Utile\UUID::v4());
+							$collection->setLabel('JMAP: ' . ($entry['label'] ?? 'Unknown'));
+							$collection->setColor($entry['color'] ?? '#0055aa');
+							$collection->setVisible(true);
+							$id = $localStore->collectionCreate($collection);
+						}
+						break;
 				}
 			}
 		}
 		// deposit events correlations
 		if ($this->ConfigurationService->isCalendarAppAvailable()) {
 			// initialize data store
-			$DataStore = \OC::$server->get(\OCA\JMAPC\Store\EventStore::class);
+			$localStore = $this->localService->initializeEventStore();
 			// process entries
 			foreach ($ec as $entry) {
-				if (isset($entry['enabled'])) {
-					try {
-						switch ((bool) $entry['enabled']) {
-							case false:
-								if (!empty($entry['id'])) {
-									// retrieve correlation entry
-									$cr = $this->CorrelationsService->fetch($entry['id']);
-									// evaluate if user id matches
-									if ($uid == $cr->getuid()) {
-										// delete local entities
-										$DataStore->entityDeleteByCollection($uid, $cr->getloid());
-										// delete local collection
-										$DataStore->collectionDelete($cr->getloid());
-										// delete correlations
-										$this->CorrelationsService->deleteByCollectionId($cr->getuid(), $cr->getloid(), $cr->getroid());
-										$this->CorrelationsService->delete($cr);
-									}
-								}
-								break;
-							case true:
-								if (empty($entry['id'])) {
-									// create local collection
-									$cl = [];
-									$cl['uid'] = $uid; // user id
-									$cl['sid'] = $sid; // service id
-									$cl['uuid'] = \OCA\JMAPC\Utile\UUID::v4(); // universal id
-									$cl['label'] = 'JMAP: ' . $entry['label']; // collection Label
-									$cl['color'] = $entry['color']; // collection Color
-									$cl['rcid'] = $entry['roid']; // remote collection id
-									$cl['rcsn'] = ''; // remote collection signature
-									$cid = $DataStore->collectionCreate($cl);
-									// create correlation
-									$cr = new \OCA\JMAPC\Store\Correlation();
-									$cr->settype('EC'); // Correlation Type
-									$cr->setuid($uid); // User ID
-									$cr->setsid($sid); // Service ID
-									$cr->setloid($cid); // Local Collection ID
-									$cr->setroid($entry['roid']); // Remote Collection ID
-									$this->CorrelationsService->create($cr);
-								}
-								break;
+				if (!isset($entry['enabled']) || !is_bool($entry['enabled'])) {
+					continue;
+				}
+				switch ((bool)$entry['enabled']) {
+					case false:
+						if (is_numeric($entry['id'])) {
+							$collection = $localStore->collectionFetch($entry['id']);
+							if ($collection->getUid() === $uid) {
+								$localStore->collectionDelete($collection);
+							}
 						}
-					}
-					catch (Exception $e) {
-						
-					}
+						break;
+					case true:
+						if (empty($entry['id'])) {
+							// create local collection
+							$collection = $localStore->collectionFresh();
+							$collection->setUid($uid);
+							$collection->setSid($sid);
+							$collection->setCcid($entry['ccid']);
+							$collection->setUuid(\OCA\JMAPC\Utile\UUID::v4());
+							$collection->setLabel('JMAP: ' . ($entry['label'] ?? 'Unknown'));
+							$collection->setColor($entry['color'] ?? '#0055aa');
+							$collection->setVisible(true);
+							$id = $localStore->collectionCreate($collection);
+						}
+						break;
 				}
 			}
 		}
 		// deposit tasks correlations
 		if ($this->ConfigurationService->isTasksAppAvailable()) {
 			// initialize data store
-			$DataStore = \OC::$server->get(\OCA\JMAPC\Store\TaskStore::class);
+			$localStore = $this->localService->initializeTaskStore();
 			// process entries
 			foreach ($tc as $entry) {
-				if (isset($entry['enabled'])) {
-					try {
-						switch ((bool) $entry['enabled']) {
-							case false:
-								if (!empty($entry['id'])) {
-									// retrieve correlation entry
-									$cr = $this->CorrelationsService->fetch($entry['id']);
-									// evaluate if user id matches
-									if ($uid == $cr->getuid()) {
-										// delete local entities
-										$DataStore->entityDeleteByCollection($uid, $cr->getloid());
-										// delete local collection
-										$DataStore->collectionDelete($cr->getloid());
-										// delete correlations
-										$this->CorrelationsService->deleteByCollectionId($cr->getuid(), $cr->getloid(), $cr->getroid());
-										$this->CorrelationsService->delete($cr);
-									}
-								}
-								break;
-							case true:
-								if (empty($entry['id'])) {
-									// create local collection
-									$cl = [];
-									$cl['uid'] = $uid; // user id
-									$cl['sid'] = $sid; // service id
-									$cl['uuid'] = \OCA\JMAPC\Utile\UUID::v4(); // universal id
-									$cl['label'] = 'JMAP: ' . $entry['label']; // collection Label
-									$cl['color'] = $entry['color']; // collection Color
-									$cl['rcid'] = $entry['roid']; // remote collection id
-									$cl['rcsn'] = ''; // remote collection signature
-									$cid = $DataStore->collectionCreate($cl);
-									// create correlation
-									$cr = new \OCA\JMAPC\Store\Correlation();
-									$cr->settype('TC'); // Correlation Type
-									$cr->setuid($uid); // User ID
-									$cr->setsid($sid); // Service ID
-									$cr->setloid($cid); // Local Collection ID
-									$cr->setroid($entry['roid']); // Remote Collection ID
-									$this->CorrelationsService->create($cr);
-								}
-								break;
+				if (!isset($entry['enabled']) || !is_bool($entry['enabled'])) {
+					continue;
+				}
+				switch ((bool)$entry['enabled']) {
+					case false:
+						if (is_numeric($entry['id'])) {
+							$collection = $localStore->collectionFetch($entry['id']);
+							if ($collection->getUid() === $uid) {
+								$localStore->collectionDelete($collection);
+							}
 						}
-					}
-					catch (Exception $e) {
-						
-					}
+						break;
+					case true:
+						if (empty($entry['id'])) {
+							// create local collection
+							$collection = $localStore->collectionFresh();
+							$collection->setUid($uid);
+							$collection->setSid($sid);
+							$collection->setCcid($entry['ccid']);
+							$collection->setUuid(\OCA\JMAPC\Utile\UUID::v4());
+							$collection->setLabel('JMAP: ' . ($entry['label'] ?? 'Unknown'));
+							$collection->setColor($entry['color'] ?? '#0055aa');
+							$collection->setVisible(true);
+							$id = $localStore->collectionCreate($collection);
+						}
+						break;
 				}
 			}
 		}

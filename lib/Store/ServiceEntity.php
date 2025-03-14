@@ -30,9 +30,9 @@ use OCP\AppFramework\Db\Entity;
 
 /**
  * @method getId(): int
- * @method getUid(): string
+ * @method getUid(): ?string
  * @method setUid(string $uid): void
- * @method getLabel(): string
+ * @method getLabel(): ?string
  * @method setLabel(string $label): void
  * @method getLocationProtocol(): string
  * @method setLocationProtocol(string $value): void
@@ -40,31 +40,31 @@ use OCP\AppFramework\Db\Entity;
  * @method setLocationHost(string $value): void
  * @method getLocationPort(): int
  * @method setLocationPort(int $value): void
- * @method getLocationPath(): string
+ * @method getLocationPath(): ?string
  * @method setLocationPath(string $value): void
  * @method getLocationSecurity(): bool
  * @method setLocationSecurity(bool $value): void
- * @method getAuth(): string
+ * @method getAuth(): ?string
  * @method setAuth(string $value): void
- * @method getBauthId(): string
+ * @method getBauthId(): ?string
  * @method setBauthId(string $value): void
- * @method getBauthSecret(): string
+ * @method getBauthSecret(): ?string
  * @method setBauthSecret(string $value): void
- * @method getOauthId(): string
+ * @method getOauthId(): ?string
  * @method setOauthId(string $value): void
- * @method getOauthAccessToken(): string
+ * @method getOauthAccessToken(): ?string
  * @method setOauthAccessToken(string $value): void
- * @method getOauthAccessLocation(): string
+ * @method getOauthAccessLocation(): ?string
  * @method setOauthAccessLocation(string $value): void
- * @method getOauthAccessExpiry(): int
+ * @method getOauthAccessExpiry(): ?int
  * @method setOauthAccessExpiry(int $value): void
- * @method getOauthRefreshToken(): string
+ * @method getOauthRefreshToken(): ?string
  * @method setOauthRefreshToken(string $value): void
- * @method getOauthRefreshLocation(): string
+ * @method getOauthRefreshLocation(): ?string
  * @method setOauthRefreshLocation(string $value): void
- * @method getAddressPrimary(): string
+ * @method getAddressPrimary(): ?string
  * @method setAddressPrimary(string $value): void
- * @method getAddressAlternate(): string
+ * @method getAddressAlternate(): ?string
  * @method setAddressAlternate(string $value): void
  * @method getEnabled(): bool
  * @method setEnabled(bool $value): void
@@ -72,12 +72,20 @@ use OCP\AppFramework\Db\Entity;
  * @method setConnected(bool $value): void
  * @method getDebug(): bool
  * @method setDebug(bool $value): void
- * @method getHarmonizationState(): int
+ * @method getHarmonizationState(): ?int
  * @method setHarmonizationState(int $value): void
- * @method getHarmonizationStart(): int
+ * @method getHarmonizationStart(): ?int
  * @method setHarmonizationStart(int $value): void
- * @method getHarmonizationEnd(): int
+ * @method getHarmonizationEnd(): ?int
  * @method setHarmonizationEnd(int $value): void
+ * @method getMailMode(): string
+ * @method setMailMode(?string $value): void
+ * @method getContactsMode(): ?string
+ * @method setContactsMode(?string $value): void
+ * @method getCalendarsMode(): ?string
+ * @method setCalendarsMode(string $value): void
+ * @method getTasksMode(): ?string
+ * @method setTasksMode(string $value): void
  */
 class ServiceEntity extends Entity implements JsonSerializable {
 	protected ?string $uid = null;
@@ -101,9 +109,13 @@ class ServiceEntity extends Entity implements JsonSerializable {
 	protected bool $connected = false;
 	protected bool $enabled = true;
 	protected bool $debug = false;
-	protected int $harmonizationState = 0;
-	protected int $harmonizationStart = 0;
-	protected int $harmonizationEnd = 0;
+	protected ?int $harmonizationState = 0;
+	protected ?int $harmonizationStart = 0;
+	protected ?int $harmonizationEnd = 0;
+	protected ?string $mailMode = null;
+	protected ?string $contactsMode = null;
+	protected ?string $calendarsMode = null;
+	protected ?string $tasksMode = null;
 	
 	public function jsonSerialize(): array {
 		return [

@@ -255,6 +255,19 @@ class BaseStore {
 	}
 
 	/**
+	 * fresh instance of a collection entity
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @return CollectionEntity
+	 */
+	public function collectionFresh(): CollectionEntity {
+
+		return new $this->_CollectionClass;
+		
+	}
+
+	/**
 	 * create a collection entry in the data store
 	 * 
 	 * @since Release 1.0.0
@@ -266,7 +279,7 @@ class BaseStore {
 	public function collectionCreate(CollectionEntity $entity): CollectionEntity {
 
 		// force type
-		$data['type'] = $this->_CollectionIdentifier;
+		$entity->setType($this->_CollectionIdentifier);
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->insert($this->_CollectionTable);
@@ -275,7 +288,7 @@ class BaseStore {
 			$column = $entity->propertyToColumn($property);
 			$getter = 'get' . ucfirst($property);
 			$value = $entity->$getter();
-			$cmd->set($column, $cmd->createNamedParameter($value));
+			$cmd->setValue($column, $cmd->createNamedParameter($value));
 		}
 		// execute command
 		$cmd->executeStatement();
@@ -317,6 +330,10 @@ class BaseStore {
 			}
 			// execute command
 			$cmd->executeStatement();
+			// determine if id needs to be assigned
+			if ($entity->id === null) {
+				$entity->setId($cmd->getLastInsertId());
+			}
 		}
 
 		$entity->resetUpdatedFields();
@@ -711,6 +728,19 @@ class BaseStore {
 	}
 
 	/**
+	 * fresh instance of a entity
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @return Entity
+	 */
+	public function entityFresh(): Entity {
+
+		return new $this->_EntityClass;
+		
+	}
+
+	/**
 	 * create a entity entry in the data store
 	 * 
 	 * @since Release 1.0.0
@@ -924,7 +954,35 @@ class BaseStore {
 		return base64_encode((string) $stamp);
 		
 	}
-	
+
+	/**
+	 * reminisce operations to entities in data store
+	 * 
+	 * @since Release 1.0.0
+	 * 
+	 * @param int $cid			collection id
+	 * @param int $encode		weather to encode the result
+	 * 
+	 * @return int|float|string
+	 */
+	public function chronicleApex(int $cid, bool $encode = true): int|float|string {
+
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select($cmd->func()->max('stamp'))
+			->from($this->_ChronicleTable)
+			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)))
+			->andWhere($cmd->expr()->eq('tag', $cmd->createNamedParameter($this->_EntityIdentifier)));
+		$stampApex = $cmd->executeQuery()->fetchOne();
+		$cmd->executeQuery()->closeCursor();
+
+		if ($encode) {
+			return base64_encode((string)max(0, $stampApex));
+		} else {
+			return max(0, $stampApex);
+		}
+		
+	}
+
 	/**
 	 * reminisce operations to entities in data store
 	 * 
@@ -940,17 +998,9 @@ class BaseStore {
 	public function chronicleReminisce(int $cid, string $stamp, ?int $limit = null, ?int $offset = null): array {
 
 		// retrieve apex stamp
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select($cmd->func()->max('stamp'))
-			->from($this->_ChronicleTable)
-			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)))
-			->andWhere($cmd->expr()->eq('tag', $cmd->createNamedParameter($this->_EntityIdentifier)));
-		$stampApex = $cmd->executeQuery()->fetchOne();
-		$cmd->executeQuery()->closeCursor();
+		$stampApex = $this->chronicleApex($cid, false);
 		// determine nadir stamp
-		if (!empty($stamp)) {
-			$stampNadir = base64_decode($stamp);
-		}
+		$stampNadir = !empty($stamp) ? base64_decode($stamp) : '';
 		$initial = !is_numeric($stampNadir);
 
 		// retrieve additions

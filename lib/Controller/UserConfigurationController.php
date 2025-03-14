@@ -57,7 +57,7 @@ class UserConfigurationController extends Controller {
 	 * @return DataResponse
 	 */
 	#[NoAdminRequired]
-	#[FrontpageRoute(verb: 'GET', url: '/service-list')]
+	#[FrontpageRoute(verb: 'GET', url: '/service/list')]
 	public function serviceList(): DataResponse {
 		
 		// evaluate if user id is present
@@ -65,12 +65,11 @@ class UserConfigurationController extends Controller {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 		// retrieve services
-		$rs = $this->ServicesService->fetchByUserId($this->userId);
-		// return response
-		if (isset($rs)) {
+		try {
+			$rs = $this->ServicesService->fetchByUserId($this->userId);
 			return new DataResponse($rs);
-		} else {
-			return new DataResponse($rs['error'], 401);
+		} catch (\Throwable $th) {
+			return new DataResponse($th->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 
 	}
@@ -83,7 +82,7 @@ class UserConfigurationController extends Controller {
 	 * @return DataResponse
 	 */
 	#[NoAdminRequired]
-	#[FrontpageRoute(verb: 'GET', url: '/connect')]
+	#[FrontpageRoute(verb: 'POST', url: '/service/connect')]
 	public function Connect(array $service): DataResponse {
 		
 		// evaluate if user id is present
@@ -93,14 +92,13 @@ class UserConfigurationController extends Controller {
 		// assign options
 		$options = ['VALIDATE'];
 		// execute command
-		$rs = $this->CoreService->connectAccount($this->userId, $service, $options);
-		// return response
-		if (isset($rs)) {
+		try {
+			$rs = $this->CoreService->connectAccount($this->userId, $service, $options);
 			return new DataResponse('success');
-		} else {
-			return new DataResponse($rs['error'], 401);
+		} catch (\Throwable $th) {
+			return new DataResponse($th->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
-
+		
 	}
 
 	/**
@@ -111,7 +109,7 @@ class UserConfigurationController extends Controller {
 	 * @return DataResponse
 	 */
 	#[NoAdminRequired]
-	#[FrontpageRoute(verb: 'GET', url: '/disconnect')]
+	#[FrontpageRoute(verb: 'POST', url: '/service/disconnect')]
 	public function Disconnect(int $sid): DataResponse {
 
 		// evaluate if user id is present
@@ -119,9 +117,12 @@ class UserConfigurationController extends Controller {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 		// execute command
-		$this->CoreService->disconnectAccount($this->userId, $sid);
-		// return response
-		return new DataResponse('success');
+		try {
+			$this->CoreService->disconnectAccount($this->userId, $sid);
+			return new DataResponse('success');
+		} catch (\Throwable $th) {
+			return new DataResponse($th->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
+		}
 
 	}
 
@@ -133,7 +134,7 @@ class UserConfigurationController extends Controller {
 	 * @return DataResponse
 	 */
 	#[NoAdminRequired]
-	#[FrontpageRoute(verb: 'GET', url: '/harmonize')]
+	#[FrontpageRoute(verb: 'POST', url: '/service/harmonize')]
 	public function Harmonize(int $sid): DataResponse {
 
 		// evaluate if user id is present
@@ -141,9 +142,12 @@ class UserConfigurationController extends Controller {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 		// execute command
-		$this->HarmonizationService->performHarmonization($this->userId, $sid, 'M');
-		// return response
-		return new DataResponse('success');
+		try {
+			$this->HarmonizationService->performHarmonization($this->userId, $sid, 'M');
+			return new DataResponse('success');
+		} catch (\Throwable $th) {
+			return new DataResponse($th->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
+		}
 
 	}
 
@@ -155,7 +159,7 @@ class UserConfigurationController extends Controller {
 	 * @return DataResponse
 	 */
 	#[NoAdminRequired]
-	#[FrontpageRoute(verb: 'GET', url: '/remote-collections-fetch')]
+	#[FrontpageRoute(verb: 'GET', url: '/remote/collections/fetch')]
 	public function remoteCollectionsFetch(int $sid): DataResponse {
 		
 		// evaluate if user id is present
@@ -163,15 +167,12 @@ class UserConfigurationController extends Controller {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 		// retrieve collections
-		$rs = $this->CoreService->remoteCollectionsFetch($this->userId, $sid);
-		// return response
-		if (isset($rs)) {
+		try {
+			$rs = $this->CoreService->remoteCollectionsFetch($this->userId, $sid);
 			return new DataResponse($rs);
-		} else {
-			
-			return new DataResponse($rs['error'], 401);
+		} catch (\Throwable $th) {
+			return new DataResponse($th->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
-
 	}
 
 	/**
@@ -182,7 +183,7 @@ class UserConfigurationController extends Controller {
 	 * @return DataResponse
 	 */
 	#[NoAdminRequired]
-	#[FrontpageRoute(verb: 'GET', url: '/local-collections-fetch')]
+	#[FrontpageRoute(verb: 'GET', url: '/local/collections/fetch')]
 	public function localCollectionsFetch(int $sid): DataResponse {
 		
 		// evaluate if user id is present
@@ -190,13 +191,11 @@ class UserConfigurationController extends Controller {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 		// retrieve collections
-		$rs = $this->CoreService->localCollectionsFetch($this->userId, $sid);
-		// return response
-		if (isset($rs)) {
+		try {
+			$rs = $this->CoreService->localCollectionsFetch($this->userId, $sid);
 			return new DataResponse($rs);
-		} else {
-			
-			return new DataResponse($rs['error'], 401);
+		} catch (\Throwable $th) {
+			return new DataResponse($th->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 
 	}
@@ -209,7 +208,7 @@ class UserConfigurationController extends Controller {
 	 * @return DataResponse
 	 */
 	#[NoAdminRequired]
-	#[FrontpageRoute(verb: 'PUT', url: '/local-collections-deposit')]
+	#[FrontpageRoute(verb: 'POST', url: '/local/collections/deposit')]
 	public function localCollectionsDeposit(int $sid, array $ContactCorrelations, array $EventCorrelations, array $TaskCorrelations): DataResponse {
 		
 		// evaluate if user id is present
@@ -217,9 +216,12 @@ class UserConfigurationController extends Controller {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 		// execute command
-		$rs = $this->CoreService->depositCorrelations($this->userId, $sid, $ContactCorrelations, $EventCorrelations, $TaskCorrelations);
-		// return response
-		return $this->localCollectionsFetch($sid);
+		try {
+			$rs = $this->CoreService->localCollectionsDeposit($this->userId, $sid, $ContactCorrelations, $EventCorrelations, $TaskCorrelations);
+			return $this->localCollectionsFetch($sid);
+		} catch (\Throwable $th) {
+			return new DataResponse($th->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
+		}
 
 	}
 

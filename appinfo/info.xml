@@ -44,10 +44,10 @@
     </settings>
     <sabre>
         <address-book-plugins>
-			<plugin>OCA\JMAPC\Providers\Contacts\Provider</plugin>
+			<plugin>OCA\JMAPC\Providers\DAV\Contacts\Provider</plugin>
 		</address-book-plugins>
 		<calendar-plugins>
-			<plugin>OCA\JMAPC\Providers\Calendar\Provider</plugin>
+			<plugin>OCA\JMAPC\Providers\DAV\Calendar\Provider</plugin>
 		</calendar-plugins>
 	</sabre>
 </info>

@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -25,21 +25,61 @@
 
 namespace OCA\JMAPC\Service\Remote;
 
-use Psr\Log\LoggerInterface;
-use OCA\JMAPC\AppInfo\Application;
+use JmapClient\Client;
+use JmapClient\Requests\Blob\BlobGet;
 
 class RemoteCommonService {
 
-	private LoggerInterface $logger;
+	protected Client $dataStore;
+    protected string $dataAccount;
 
-	/**
-	 * Service to construct basic commands
-	 */
-	public function __construct (LoggerInterface $logger) {
+	protected ?string $resourceNamespace = null;
+    protected ?string $resourceCollectionLabel = null;
+    protected ?string $resourceEntityLabel = null;
 
-		$this->logger = $logger;
+	public function __construct () {
+	}
+
+	public function initialize(Client $dataStore, ?string $dataAccount = null) {
+
+		$this->dataStore = $dataStore;
+        // evaluate if client is connected 
+		if (!$this->dataStore->sessionStatus()) {
+			$this->dataStore->connect();
+		}
+        // determine account
+        if ($dataAccount === null) {
+            if ($this->resourceNamespace !== null) {
+                $this->dataAccount = $dataStore->sessionAccountDefault($this->resourceNamespace, false);
+            } else {
+                $this->dataAccount = $dataStore->sessionAccountDefault('blob');
+            }
+        }
+        else {
+            $this->dataAccount = $dataAccount;
+        }
 
 	}
-	
+
+	/**
+     * retrieve blob from remote storage
+     * 
+     * @since Release 1.0.0
+     * 
+	 */
+	public function blobFetch(string $account, string $id): ContactObject {
+		// construct request
+		$r0 = new BlobGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0->target($id);
+		// transceive
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// convert jmap object to event object
+		$eo = $this->toContactObject($response->object(0));
+		$eo->Signature = $this->generateSignature($eo);
+
+		return $eo;
+    }
 	
 }

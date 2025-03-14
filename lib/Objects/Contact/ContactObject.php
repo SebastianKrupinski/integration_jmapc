@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -25,9 +25,8 @@
 
 namespace OCA\JMAPC\Objects\Contact;
 
-use DateTime;
-use DateTimeImmutable;
-use OCA\JMAPC\Objects\Event\ContactMembersCollection;
+use DateTimeInterface;
+use DateTimeZone;
 use OCA\JMAPC\Objects\OriginTypes;
 
 class ContactObject {
@@ -39,67 +38,42 @@ class ContactObject {
     public ?string $CCID = null;                    // Correlation Collection Id
     public ?string $CEID = null;                    // Correlation Entity Id
     public ?string $CESN = null;                    // Correlation Signature
-    public ?string $UUID = null;                    // Event UUID
-    public DateTime|DateTimeImmutable|null $CreatedOn = null;    // Event Creation Date/Time
-    public DateTime|DateTimeImmutable|null $ModifiedOn = null;   // Event Modification Date/Time
-    public ?string $Label = null;                   // Contact Display Label
-    public ?string $Description = null;             // Contact Notes
-	public ?ContactNameObject $Name = null;         // Contact Name(s)
-    public ?ContactPhotoObject $Photo = null;       // Contact Photo
-    public ?DateTime $BirthDay = null;              // Contact Birth Day
-    public ?string $Gender = null;                  // Contact Gender
-    public ?string $Partner = null;                 // Contact Partner/Spouse
-	public ?DateTime $NuptialDay = null;            // Contact Matrimonial Day
-	public array $Address = [];
-	public array $Phone = [];
-    public array $Email = [];
-    public array $IMPP = [];
-    public ?string $TimeZone = null;
-    public ?string $Geolocation = null;
-    public ?string $Manager = null;
-    public ?string $Assistant = null;
-    public ?ContactOccupationObject $Occupation = null;
-    public ?array $Relation = [];
-    public array $Tags = [];                       // Contact Categories
-    public ?string $Sound = null;
-    public ?string $URI = null;
-    public array $Attachments = [];
+    public ?string $UUID = null;
+    public DateTimeInterface|null $CreatedOn = null;
+    public DateTimeInterface|null $ModifiedOn = null;
+    public ?string $Kind = null;
+    public ?string $Label = null;
+	public ContactNameObject $Name;
+    public ContactAnniversaryCollection $Anniversaries;
+    public ContactPronounCollection $Pronouns;
+    public ContactPhoneCollection $Phone;
+    public ContactEmailCollection $Email;
+	public ContactPhysicalLocationCollection $PhysicalLocations;
+    public ContactOrganizationCollection $Organizations;
+    public ContactTitleCollection $Titles;
+    public ContactTagCollection $Tags;
+    public ContactNoteCollection $Notes;
+    public ?string $Partner = null;
     public ?string $Language = null;
-    public ContactMembersCollection $Members;
+    public ContactLanguageCollection $Languages;
+    public ?DateTimeZone $TimeZone = null;
+    public ContactCryptoCollection $Crypto;
+    public ContactVirtualLocationCollection $VirtualLocations;
     public ?array $Other = [];
 	
 	public function __construct() {
         $this->Name = new ContactNameObject();
-        $this->Photo = new ContactPhotoObject();
-        $this->Occupation = new ContactOccupationObject();
+        $this->Anniversaries = new ContactAnniversaryCollection();
+        $this->Pronouns = new ContactPronounCollection();
+        $this->Phone = new ContactPhoneCollection();
+        $this->Email = new ContactEmailCollection();
+        $this->PhysicalLocations = new ContactPhysicalLocationCollection();
+        $this->Organizations = new ContactOrganizationCollection();
+        $this->Titles = new ContactTitleCollection();
+        $this->Tags = new ContactTagCollection();
+        $this->Notes = new ContactNoteCollection();
+        $this->Crypto = new ContactCryptoCollection();
+        $this->VirtualLocations = new ContactVirtualLocationCollection();
 	}
-
-    public function addEmail(string $type, string $address) {
-        $this->Email[] = new ContactEmailObject($type, $address);
-    }
-
-    public function addPhone(string $type, ?string $subtype, ?string $number) {
-        $this->Phone[] = new ContactPhoneObject($type, $subtype, $number);
-    }
-
-    public function addAddress($type, ?string $street = null, ?string $locality = null, ?string $region = null, ?string $code = null, ?string $country = null) {
-        $this->Address[] = new ContactAddressObject($type, $street, $locality, $region, $code, $country);
-    }
-
-    public function addIMPP(string $type, string $address) {
-        $this->IMPP[] = new ContactIMPPObject($type, $address);
-    }
-
-    public function addTag(string $tag) {
-        $this->Tags[] = $tag;
-    }
-
-    public function addRelation(string $type, string $value) {
-        $this->Phone[] = new ContactRelationObject($type, $value);
-    }
-    
-    public function addAttachment(string $id, ?string $name = null, ?string $type = null, ?string $encoding = null, ?string $flag = null, ?string $size = null,  ?string $data = null) {
-        $this->Attachments[] = new ContactAttachmentObject($id, $name, $type, $encoding, $flag, $size, $data);
-    }
 
 }

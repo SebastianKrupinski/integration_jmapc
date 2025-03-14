@@ -77,10 +77,10 @@ class HarmonizationService {
 		$remoteStore = RemoteService::initializeStoreFromEntity($service);
 
 		// contacts
-		if ($this->ConfigurationService->isCalendarAppAvailable()) {
+		if ($this->ConfigurationService->isContactsAppAvailable()) {
 			$this->logger->info('Started Harmonization of Contacts for ' . $uid);
 			// assign configuration, data stores and harmonize
-			//$this->ContactsService->harmonize($uid, $service, $remoteStore);
+			$this->ContactsService->harmonize($uid, $service, $remoteStore);
 			
 			$this->logger->info('Finished Harmonization of Contacts for ' . $uid);
 		}
@@ -95,7 +95,7 @@ class HarmonizationService {
 		}
 
 		// tasks
-		if ($this->ConfigurationService->isCalendarAppAvailable()) {
+		if ($this->ConfigurationService->isTasksAppAvailable()) {
 			$this->logger->info('Started Harmonization of Tasks for ' . $uid);
 			// assign configuration, data stores and harmonize
 			//$this->TasksService->harmonize($uid, $service, $remoteStore);

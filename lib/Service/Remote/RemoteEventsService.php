@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -47,9 +47,15 @@ use JmapClient\Requests\Calendar\EventQuery;
 use JmapClient\Requests\Calendar\EventChanges;
 use JmapClient\Requests\Calendar\EventQueryChanges;
 use JmapClient\Requests\Calendar\EventParameters as EventParametersRequest;
-
+use JmapClient\Requests\Contacts\ContactQuery;
+use JmapClient\Responses\Calendar\CalendarParameters as CalendarParametersResponse;
 use OCA\JMAPC\Exceptions\JmapUnknownMethod;
-use OCA\JMAPC\Objects\EventCollection;
+use OCA\JMAPC\Objects\BaseStringCollection;
+use OCA\JMAPC\Objects\Common\Filters\IFilter;
+use OCA\JMAPC\Objects\Common\Range\IRange;
+use OCA\JMAPC\Objects\Common\Sort\ISort;
+use OCA\JMAPC\Objects\DeltaObject;
+use OCA\JMAPC\Objects\Event\EventCollectionObject;
 use OCA\JMAPC\Objects\Event\EventObject;
 use OCA\JMAPC\Objects\Event\EventOccurrenceObject;
 use OCA\JMAPC\Objects\Event\EventAttachmentObject;
@@ -88,9 +94,7 @@ class RemoteEventsService {
 		'id', 'calendarIds', 'uid', 'created', 'updated'
 	];
 
-	public function __construct () {
-
-	}
+	public function __construct () {}
 
 	public function initialize(Client $dataStore, ?string $dataAccount = null) {
 
@@ -99,15 +103,6 @@ class RemoteEventsService {
 		if (!$this->dataStore->sessionStatus()) {
 			$this->dataStore->connect();
 		}
-        // determine capabilities
-		// FastMail Calendar uses standard capabilities name space and resource name
-		/*
-        if ($this->dataStore->sessionCapable('https://www.fastmail.com/dev/calendars', false)) {
-            $this->resourceNamespace = 'https://www.fastmail.com/dev/calendars';
-            $this->resourceCollectionLabel = 'Calendar';
-            $this->resourceEntityLabel = 'CalendarEvent';
-        }
-		*/
         // determine account
         if ($dataAccount === null) {
             if ($this->resourceNamespace !== null) {
@@ -128,24 +123,27 @@ class RemoteEventsService {
      * @since Release 1.0.0
      * 
 	 */
-	public function collectionFetch(string $location, string $id): ?object {
-		// construct get request
+	public function collectionFetch(string $id): ?EventCollectionObject {
+		// construct request
 		$r0 = new CalendarGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
-		$r0->target($id);
-		// transmit request and receive response
+		if (!empty($id)) {
+            $r0->target($id);
+        }
+		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// convert json object to message object and return
-		if ($response->object(0)) {
-			$ro = $response->object(0);
-			return new EventCollection(
-                $ro->id(),
-                $ro->label(),
-                $ro->priority(),
-                $ro->visible(),
-                $ro->color(),
-            );
+		// convert jmap object to collection object
+		if ($response->object(0) instanceof CalendarParametersResponse) {
+			$co = $response->object(0);
+			$collection = new EventCollectionObject();
+			$collection->Id = $co->id();
+			$collection->Label = $co->label();
+			$collection->Description = $co->description();
+			$collection->Priority = $co->priority();
+			$collection->Visibility = $co->visible();
+			$collection->Color = $co->color();
+			return $collection;
 		} else {
 			return null;
 		}
@@ -157,17 +155,30 @@ class RemoteEventsService {
      * @since Release 1.0.0
 	 * 
 	 */
-	public function collectionCreate(string $location, string $label): string {
-		// construct set request
+	public function collectionCreate(EventCollectionObject $collection): string {
+		// construct request
 		$r0 = new CalendarSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
-		// construct object
 		$m0 = $r0->create('1');
-		$m0->label($label);
-		// transmit request and receive response
+		if ($collection->Label) {
+			$m0->label($collection->Label);
+		}
+		if ($collection->Description) {
+			$m0->description($collection->Description);
+		}
+		if ($collection->Priority) {
+			$m0->priority($collection->Priority);
+		}
+		if ($collection->Visibility) {
+			$m0->visible($collection->Visibility);
+		}
+		if ($collection->Color) {
+			$m0->color($collection->Color);
+		}
+		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// return collection information
+		// return collection id
 		return (string) $response->created()['1']['id'];
     }
 
@@ -177,17 +188,20 @@ class RemoteEventsService {
      * @since Release 1.0.0
      * 
 	 */
-	public function collectionUpdate(string $location, string $id, string $label): string {
-        // construct set request
+	public function collectionUpdate(string $id, EventCollectionObject $collection): string {
+        // construct request
 		$r0 = new CalendarSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
-		// construct object
 		$m0 = $r0->update($id);
-		$m0->label($label);
-		// transmit request and receive response
+		$m0->label($collection->Label);
+		$m0->description($collection->Description);
+		$m0->priority($collection->Priority);
+		$m0->visible($collection->Visibility);
+		$m0->color($collection->Color);
+		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// return collection information
+		// return collection id
 		return array_key_exists($id, $response->updated()) ? (string) $id : '';
     }
 
@@ -195,39 +209,18 @@ class RemoteEventsService {
      * delete collection in remote storage
      * 
      * @since Release 1.0.0
-     * 
+	 * 
 	 */
-    public function collectionDelete(string $location, string $id): string {
-        // construct set request
+    public function collectionDelete(string $id): string {
+        // construct request
 		$r0 = new CalendarSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
-		// construct object
 		$r0->delete($id);
-		// transmit request and receive response
+		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// return collection information
+		// return collection id
 		return (string) $response->deleted()[0];
-    }
-
-	/**
-     * move collection in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-	 */
-    public function collectionMove(string $sourceLocation, string $id, string $destinationLocation): string {
-        // construct set request
-		$r0 = new CalendarSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
-		// construct object
-		$m0 = $r0->update($id);
-		$m0->in($destinationLocation);
-		// transmit request and receive response
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// return collection information
-		return array_key_exists($id, $response->updated()) ? (string) $id : '';
     }
 
 	/**
@@ -235,15 +228,20 @@ class RemoteEventsService {
      * 
      * @since Release 1.0.0
      * 
+	 * @param string|null $location			Id of parent collection
+	 * @param string|null $granularity		Amount of detail to return		
+	 * @param int|null $depth				Depth of sub collections to return
+	 * 
+	 * @return array<string,EventCollectionObject>
 	 */
-	public function collectionList(?string $location = null, ?string $scope = null): array {
-		// construct get request
+	public function collectionList(?string $location = null, ?string $granularity = null, ?int $depth = null): array {
+		// construct request
  		$r0 = new CalendarGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
 		// set target to query request
         if ($location !== null) {
             $r0->target($location);
         }
-		// transmit request and receive response
+		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
@@ -255,16 +253,16 @@ class RemoteEventsService {
                 throw new Exception($response->type() . ': ' . $response->description(), 1);
             }
         }
-		// convert json objects to collection objects
+		// convert jmap objects to collection objects
         $list = [];
-		foreach ($response->objects() as $ro) {
-            $collection = new EventCollection(
-                $ro->id(),
-                $ro->name(),
-                $ro->priority(),
-                $ro->visible(),
-                $ro->color(),
-            );
+		foreach ($response->objects() as $co) {
+            $collection = new EventCollectionObject();
+			$collection->Id = $co->id();
+			$collection->Label = $co->label();
+			$collection->Description = $co->description();
+			$collection->Priority = $co->priority();
+			$collection->Visibility = $co->visible();
+			$collection->Color = $co->color();
 			$list[] = $collection;
 		}
 		// return collection of collections
@@ -272,58 +270,26 @@ class RemoteEventsService {
 	}
 
 	/**
-     * search for collection in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-	 */
-    public function collectionSearch(string $location, string $filter, string $scope): array {
-        // construct set request
-		$r0 = new CalendarQuery($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
-		// set location constraint
-		if (!empty($location)) {
-			$r0->filter()->in($location);
-		}
-		// set name constraint
-		if (!empty($filter)) {
-			$r0->filter()->Name($filter);
-		}
-		// construct get request
-		$r1 = new CalendarGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
-		// set target to query request
-		$r1->targetFromRequest($r0, '/ids');
-		// transmit request and receive response
-		$bundle = $this->dataStore->perform([$r0, $r1]);
-		// extract response
-		$response = $bundle->response(1);
-		// convert json objects to collection objects
-		$list = $response->objects();
-		foreach ($list as $id => $message) {
-			$list[$id] = new Collection($message->parametersRaw());
-		}
-		// return collection of collections
-		return $list;
-    }
-
-	/**
      * retrieve entity from remote storage
      * 
      * @since Release 1.0.0
-     * 
+	 * 
 	 */
-	public function entityFetch(string $location, string $id, string $particulars = 'D'): EventObject|null {
-		// construct set request
+	public function entityFetch(string $location, string $id, string $granularity = 'D'): EventObject|null {
+		// construct request
 		$r0 = new EventGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
-		// construct object
 		$r0->target($id);
 		// select properties to return
-		//$r0->property(...$this->defaultMailProperties);
-		// transmit request and receive response
+		if ($granularity === 'B') {
+			$r0->property(...$this->entityPropertiesBasic);
+		}
+		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// convert EventParameter object to EventObject object and return
+		// convert jmap object to event object
 		$eo = $this->toEventObject($response->object(0));
+		$eo->Signature = $this->generateSignature($eo);
 
 		return $eo;
     }
@@ -339,9 +305,8 @@ class RemoteEventsService {
 		$entity = $this->fromEventObject($so);
 		// construct set request
 		$r0 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
-		// add entity
 		$r0->create('1', $entity)->in($location);
-		// transmit request and receive response
+		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
@@ -352,6 +317,7 @@ class RemoteEventsService {
 			$ro->ID = $response->created()['1']['id'];
 			$ro->CreatedOn = isset($response->created()['1']['updated']) ? new DateTimeImmutable($response->created()['1']['updated']) : null;
 			$ro->ModifiedOn = $ro->CreatedOn;
+			$ro->Signature = $this->generateSignature($ro);
 			return $ro;
 		} else {
 			return null;
@@ -364,19 +330,28 @@ class RemoteEventsService {
      * @since Release 1.0.0
      * 
 	 */
-	public function entityModify(string $location, string $id, EventObject $event): string|null {
+	public function entityModify(string $location, string $id, EventObject $so): EventObject|null {
 		// convert entity
-		$entity = $this->fromEventObject($event);
+		$entity = $this->fromEventObject($so);
 		// construct set request
 		$r0 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
-		// add entity
 		$r0->update($id, $entity)->in($location);
-		// transmit request and receive response
+		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
+		// convert jmap object to event object
+		if (array_key_exists($id, $response->updated())) {
+			$ro = clone $so;
+			$ro->Origin = OriginTypes::External;
+			$ro->ID = $id;
+			$ro->ModifiedOn = isset($response->updated()[$id]['updated']) ? new DateTimeImmutable($response->updated()[$id]['updated']) : null;
+			$ro->Signature = $this->generateSignature($ro);
+		} else {
+			$ro = null;
+		}
 		// return entity information
-		return array_key_exists($id, $response->updated()) ? (string) $id : null;
+		return $ro;
     }
     
     /**
@@ -390,7 +365,7 @@ class RemoteEventsService {
 		$r0 = new EventSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
 		// construct object
 		$r0->delete($id);
-		// transmit request and receive response
+		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
@@ -420,7 +395,7 @@ class RemoteEventsService {
 		// construct object
 		$m0 = $r0->update($id);
 		$m0->in($destinationLocation);
-		// transmit request and receive response
+		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
@@ -432,127 +407,117 @@ class RemoteEventsService {
      * retrieve entities from remote storage
      * 
      * @since Release 1.0.0
-     * 
+	 * 
+	 * @param string|null $location			Id of parent collection
+	 * @param string|null $granularity		Amount of detail to return		
+	 * @param IRange|null $range			Range of collections to return
+	 * @param IFilter|null $filter			Properties to filter by
+	 * @param ISort|null $sort				Properties to sort by
 	 */
-	public function entityList(string $location, IRange $range = null, string $sort = null, string $particulars = 'D'): array {
+	public function entityList(?string $location = null, ?string $granularity = null, ?IRange $range = null, ?IFilter $filter = null, ?ISort $sort = null, ?int $depth = null): array {
 		// construct query request
 		$r0 = new EventQuery($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
 		// set location constraint
         if (!empty($location)) {
     		$r0->filter()->in($location);
         }
-		// set range constraint
+		// range constraint(s)
 		if ($range !== null) {
-			if ($range->type()->value === 'absolute') {
-				$r0->startAbsolute($range->getStart())->limitAbsolute($range->getCount());
-			}
-			if ($range->type()->value === 'relative') {
-				$r0->startRelative($range->getStart())->limitRelative($range->getCount());
-			}
-		}
-		// set sort
-		if ($sort !== null) {
-			match($sort) {
-				'received' => $r0->sort()->received(),
-				'sent' => $r0->sort()->sent(),
-				'from' => $r0->sort()->from(),
-				'to' => $r0->sort()->to(),
-				'subject' => $r0->sort()->subject(),
-				'size' => $r0->sort()->size(),
+			match($range->type()->value) {
+				'absolute' => $r0->startAbsolute($range->getStart())->limitAbsolute($range->getCount()),
+				'relative' => $r0->startRelative($range->getStart())->limitRelative($range->getCount()),
+				default => null
 			};
 		}
-
+		// filter constraint(s)
+		if ($filter !== null) {
+			foreach ($filter->conditions() as $condition) {
+				[$operator, $property, $value] = $condition;
+				match($property) {
+					'before' => $r0->filter()->before($value),
+					'after' => $r0->filter()->after($value),
+					'uid' => $r0->filter()->uid($value),
+					'text' => $r0->filter()->text($value),
+					'title' => $r0->filter()->title($value),
+					'description' => $r0->filter()->description($value),
+					'location' => $r0->filter()->location($value),
+					'owner' => $r0->filter()->owner($value),
+					'attendee' => $r0->filter()->attendee($value),
+					default => null
+				};
+			}
+		}
+		// sort constraint(s)
+		if ($sort !== null) {
+			foreach ($sort->conditions() as $condition) {
+				[$property, $direction] = $condition;
+				match($property) {
+					'created' => $r0->sort()->created($direction),
+					'modified' => $r0->sort()->updated($direction),
+					'start' => $r0->sort()->start($direction),
+					'uid' => $r0->sort()->uid($direction),
+					'recurrence' => $r0->sort()->recurrence($direction),
+					default => null
+				};
+			}
+		}
 		// construct get request
 		$r1 = new EventGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
 		// set target to query request
 		$r1->targetFromRequest($r0, '/ids');
 		// select properties to return
-        if ($particulars === 'B') {
+        if ($granularity === 'B') {
             $r1->property(...$this->entityPropertiesBasic);
         }
-		// transmit request and receive response
+		// transceive
 		$bundle = $this->dataStore->perform([$r0, $r1]);
 		// extract response
 		$response = $bundle->response(1);
 		// convert json objects to message objects
 		$state = $response->state();
 		$list = $response->objects();
+		foreach ($list as $id => $entry) {
+			$list[$id] = $this->toEventObject($entry);
+		}
 		// return message collection
 		return ['list' => $list, 'state' => $state];
 		
     }
 
 	/**
-     * search for entities from remote storage
+     * delta for entities in remote storage
      * 
      * @since Release 1.0.0
      * 
+     * @return DeltaObject
 	 */
-	public function entitySearch(string $location, array $filter = null, IRange $range = null, string $sort = null, string $particulars = 'D'): array {
-		// construct query request
-		$r0 = new EventQuery($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
-		// set location constraint
-		$r0->filter()->in($location);
-		// set filter constraints
-		if (!empty($filter)) {
-			// extract request filter
-			$rf = $r0->filter();
-			// iterate filter values
-			foreach ($filter as $key => $value) {
-				if (method_exists($rf, $key)) {
-					$rf->$key($value);
-				}
-			}
-		}
-		// set range constraint
-		if ($range !== null) {
-			if ($range->type()->value === 'absolute') {
-				$r0->startAbsolute($range->getStart())->limitAbsolute($range->getCount());
-			}
-			if ($range->type()->value === 'relative') {
-				$r0->startRelative($range->getStart())->limitRelative($range->getCount());
-			}
-		}
-		// set sort
-		if ($sort !== null) {
-			match($sort) {
-				'received' => $r0->sort()->received(),
-				'sent' => $r0->sort()->sent(),
-				'from' => $r0->sort()->from(),
-				'to' => $r0->sort()->to(),
-				'subject' => $r0->sort()->subject(),
-				'size' => $r0->sort()->size(),
-			};
-		}
-		// construct get request
-		$r1 = new EventGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
-		// set target to query request
-		$r1->targetFromRequest($r0, '/ids');
-		// select properties to return
-		$r1->property(...$this->defaultMailProperties);
-		$r1->bodyAll(true);
-		// transmit request and receive response
-		$bundle = $this->dataStore->perform([$r0, $r1]);
-		// extract response
-		$response = $bundle->response(1);
-		// convert json objects to message objects
-		$list = $response->objects();
-		foreach ($list as $id => $message) {
-			$list[$id] = new Message($message->parametersRaw());
-		}
-		// return message collection
-		return $list;
+    public function entityDelta(?string $location, string $state, string $granularity = 'D'): DeltaObject {
+
+        if (empty($state)) {
+            $results = $this->entityList($location, 'B');
+            $delta = new DeltaObject();
+            $delta->signature = $results['state'];
+            foreach ($results['list'] as $entry) {
+                $delta->additions[] = $entry->ID;
+            }
+            return $delta;
+        }
+        if (empty($location)) {
+            return $this->entityDeltaDefault($state, $granularity);
+        } else {
+            return $this->entityDeltaSpecific($location, $state, $granularity);
+        }
     }
 
-	/**
-     * delta of changes for collection in remote storage
+    /**
+     * delta of changes for specific collection in remote storage
      * 
      * @since Release 1.0.0
      * 
 	 */
-    public function entityDelta(string $location, string $state, string $particulars = 'D'): array {
+    public function entityDeltaSpecific(?string $location, string $state, string $granularity = 'D'): DeltaObject {
         // construct set request
-		$r0 = new EventQueryChanges($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		$r0 = new EventQueryChanges($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
 		// set location constraint
 		if (!empty($location)) {
 			$r0->filter()->in($location);
@@ -563,7 +528,7 @@ class RemoteEventsService {
 		} else {
 			$r0->state('0');
 		}
-		// transmit request and receive response
+		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
@@ -575,148 +540,58 @@ class RemoteEventsService {
                 throw new Exception($response->type() . ': ' . $response->description(), 1);
             }
         }
-		// convert json objects to collection objects
-		$list = $response->objects();
-		// return collection of collections
-		return $list;
-    }
+		// convert jmap object to delta object
+        $delta = new DeltaObject();
+        $delta->signature = $response->stateNew();
+        $delta->additions = new BaseStringCollection($response->created());
+        $delta->modifications = new BaseStringCollection($response->updated());
+        $delta->deletions = new BaseStringCollection($response->deleted());
 
-	/**
-     * retrieve collection entity attachment from remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param array $batch		Batch of Attachment ID's
-	 * 
-	 * @return array
-	 */
-	public function fetchAttachment(array $batch): array {
-
-		// check to for entries in batch collection
-        if (count($batch) == 0) {
-            return array();
-        }
-		// retrieve attachments
-		$rs = $this->RemoteCommonService->fetchAttachment($this->DataStore, $batch);
-		// construct response collection place holder
-		$rc = array();
-		// check for response
-		if (isset($rs)) {
-			// process collection of objects
-			foreach($rs as $entry) {
-				if (!isset($entry->ContentType) || $entry->ContentType == 'application/octet-stream') {
-					$type = \OCA\JMAPC\Utile\MIME::fromFileName($entry->Name);
-				} else {
-					$type = $entry->ContentType;
-				}
-				// insert attachment object in response collection
-				$rc[] = new EventAttachmentObject(
-					'D',
-					$entry->AttachmentId->Id, 
-					$entry->Name,
-					$type,
-					'B',
-					$entry->Size,
-					$entry->Content
-				);
-			}
-		}
-		// return response collection
-		return $rc;
-
+        return $delta;
     }
 
     /**
-     * create collection item attachment in local storage
+     * delta of changes in remote storage
      * 
      * @since Release 1.0.0
      * 
-	 * @param string $aid - Affiliation ID
-     * @param array $sc - Collection of EventAttachmentObject(S)
-	 * 
-	 * @return string
 	 */
-	public function createAttachment(string $aid, array $batch): array {
-
-		// check to for entries in batch collection
-        if (count($batch) == 0) {
-            return array();
-        }
-		// construct command collection place holder
-		$cc = array();
-		// process batch
-		foreach ($batch as $key => $entry) {
-			// construct command object
-			$eo = new \OCA\JMAPC\Utile\Eas\Type\FileAttachmentType();
-			$eo->IsInline = false;
-			$eo->IsContactPhoto = false;
-			$eo->Name = $entry->Name;
-			$eo->ContentId = $entry->Name;
-			$eo->ContentType = $entry->Type;
-			$eo->Size = $entry->Size;
-			
-			switch ($entry->Encoding) {
-				case 'B':
-					$eo->Content = $entry->Data;
-					break;
-				case 'B64':
-					$eo->Content = base64_decode($entry->Data);
-					break;
-			}
-			// insert command object in to collection
-			$cc[] = $eo;
+    public function entityDeltaDefault(string $state, string $granularity = 'D'): DeltaObject {
+        // construct set request
+		$r0 = new EventChanges($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		// set state constraint
+		if (!empty($state)) {
+			$r0->state($state);
+		} else {
+			$r0->state('');
 		}
-		// execute command(s)
-		$rs = $this->RemoteCommonService->createAttachment($this->DataStore, $aid, $cc);
-		// construct results collection place holder
-		$rc = array();
-		// check for response
-		if (isset($rs)) {
-			// process collection of objects
-			foreach($rs as $key => $entry) {
-				$ro = clone $batch[$key];
-				$ro->Id = $entry->AttachmentId->Id;
-				$ro->Data = null;
-				$ro->AffiliateId = $entry->AttachmentId->RootItemId;
-				$ro->AffiliateState = $entry->AttachmentId->RootItemChangeKey;
-				$rc[] = $ro;
-			}
-
+		// transceive
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// determine if command errored
+        if ($response instanceof ResponseException) {
+            if ($response->type() === 'unknownMethod') {
+                throw new JmapUnknownMethod($response->description(), 1);
+            } else {
+                throw new Exception($response->type() . ': ' . $response->description(), 1);
+            }
         }
-		// return response collection
-		return $rc;
-    }
-
-    /**
-     * delete collection item attachment from local storage
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param string $aid - Attachment ID
-	 * 
-	 * @return bool true - successfully delete / False - failed to delete
-	 */
-	public function deleteAttachment(array $batch): array {
-
-		// check to for entries in batch collection
-        if (count($batch) == 0) {
-            return array();
-        }
-		// execute command
-		$data = $this->RemoteCommonService->deleteAttachment($this->DataStore, $batch);
-
-		return $data;
-
+		// convert jmap object to delta object
+        $delta = new DeltaObject();
+        $delta->signature = $response->stateNew();
+        $delta->additions = new BaseStringCollection($response->created());
+        $delta->modifications = new BaseStringCollection($response->updated());
+        $delta->deletions = new BaseStringCollection($response->deleted());
+		
+		return $delta;
     }
 
 	/**
-     * convert remote object to local object
+     * convert jmap object to event object
      * 
      * @since Release 1.0.0
      * 
-	 * @param EventParametersResponse $so	remote entity object
-	 * 
-	 * @return EventObject			local entity object
 	 */
 	public function toEventObject(EventParametersResponse $so): EventObject {
 		// create object
@@ -727,6 +602,9 @@ class RemoteEventsService {
         if ($so->id()){
             $eo->ID = $so->id();
         }
+		if ($so->in()) {
+			$eo->CID = $so->in()[0];
+		}
 		// universal id
         if ($so->uid()){
             $eo->UUID = $so->uid();
@@ -775,23 +653,23 @@ class RemoteEventsService {
 		}
 		// physical location(s)
 		foreach ($so->physicalLocations() as $id => $entry) {
-			$location = new EventLocationPhysicalObject();
-			$location->Id  = $id;
-			$location->Name = $entry->label();
-			$location->Description = $entry->description();
-			$eo->LocationsPhysical[$id] = $location;
+			$entity = new EventLocationPhysicalObject();
+			$entity->Id  = (string)$id;
+			$entity->Name = $entry->label();
+			$entity->Description = $entry->description();
+			$eo->LocationsPhysical[$id] = $entity;
 		}
 		// virtual location(s)
 		foreach ($so->virtualLocations() as $id => $entry) {
-			$location = new EventLocationVirtualObject();
-			$location->Id  = $id;
-			$location->Name = $entry->label();
-			$location->Description = $entry->description();
-			$eo->LocationsVirtual[$id] = $location;
+			$entity = new EventLocationVirtualObject();
+			$entity->Id  = (string)$id;
+			$entity->Name = $entry->label();
+			$entity->Description = $entry->description();
+			$eo->LocationsVirtual[$id] = $entity;
 		}
 		// availability
 		if ($so->availability()) {
-			$eo->Availability = match (strtolower($so->availability())) {
+			$eo->Availability = match (strtolower((string)$so->availability())) {
 				'free' => EventAvailabilityTypes::Free,
 				default => EventAvailabilityTypes::Busy,
 			};
@@ -802,7 +680,7 @@ class RemoteEventsService {
 		}
 		// sensitivity
 		if ($so->privacy()) {
-			$eo->Sensitivity = match (strtolower($so->privacy())) {
+			$eo->Sensitivity = match (strtolower((string)$so->privacy())) {
 				'private' => EventSensitivityTypes::Private,
 				'secret' => EventSensitivityTypes::Secret,
 				default => EventSensitivityTypes::Public,
@@ -828,20 +706,20 @@ class RemoteEventsService {
 		}
 		// participant(s)
 		foreach ($so->participants() as $id => $entry) {
-			$participant = new EventParticipantObject();
-			$participant->id = $id;
-			$participant->address = $entry->address();
-			$participant->name = $entry->name();
-			$participant->description = $entry->description();
-			$participant->comment = $entry->comment();
-			$participant->type = match (strtolower($entry->kind())) {
+			$entity = new EventParticipantObject();
+			$entity->Id = (string)$id;
+			$entity->Address = $entry->address();
+			$entity->Name = $entry->name();
+			$entity->Description = $entry->description();
+			$entity->Comment = $entry->comment();
+			$entity->Type = match (strtolower((string)$entry->kind())) {
 				'individual' => EventParticipantTypes::Individual,
 				'group' => EventParticipantTypes::Group,
 				'resource' => EventParticipantTypes::Resource,
 				'location' => EventParticipantTypes::Location,
 				default => EventParticipantTypes::Unknown,
 			};
-			$participant->status = match (strtolower($entry->status())) {
+			$entity->Status = match (strtolower((string)$entry->status())) {
 				'accepted' => EventParticipantStatusTypes::Accepted,
 				'declined' => EventParticipantStatusTypes::Declined,
 				'tentative' => EventParticipantStatusTypes::Tentative,
@@ -850,103 +728,105 @@ class RemoteEventsService {
 			};
 			
 			foreach ($entry->roles() as $role => $value) {
-				$participant->roles[$role] = EventParticipantRoleTypes::from($role);
+				$entity->Roles[$role] = EventParticipantRoleTypes::from($role);
 			}
-			$eo->Participants[$id] = $participant;
+			$eo->Participants[$id] = $entity;
 		}
 		// notification(s)
 		foreach ($so->notifications() as $id => $entry) {
 			$trigger = $entry->trigger();
-			$notification = new EventNotificationObject();
-			$notification->Type = match (strtolower($entry->type())) {
+			$entity = new EventNotificationObject();
+			$entity->Type = match (strtolower((string)$entry->type())) {
 				'email' => EventNotificationTypes::Email,
 				default => EventNotificationTypes::Visual,
 			};
-			$notification->Pattern = match (strtolower($trigger->type())) {
+			$entity->Pattern = match (strtolower((string)$trigger->type())) {
 				'absolute' => EventNotificationPatterns::Absolute,
 				'relative' => EventNotificationPatterns::Relative,
 				default => EventNotificationPatterns::Unknown,
 			};
-			if ($notification->Pattern === EventNotificationPatterns::Absolute) {
-				$notification->When = $trigger->when();
-			} elseif ($notification->Pattern === EventNotificationPatterns::Relative) {
-				$notification->Anchor = match (strtolower($trigger->anchor())) {
+			if ($entity->Pattern === EventNotificationPatterns::Absolute) {
+				$entity->When = $trigger->when();
+			} elseif ($entity->Pattern === EventNotificationPatterns::Relative) {
+				$entity->Anchor = match (strtolower((string)$trigger->anchor())) {
 					'end' => EventNotificationAnchorTypes::End,
 					default => EventNotificationAnchorTypes::Start,
 				};
-				$notification->Offset = $trigger->offset();
+				$entity->Offset = $trigger->offset();
 			}
-			$eo->Notifications[$id] = $notification;
+			$eo->Notifications[$id] = $entity;
 		}
 		// occurrence(s)
 		foreach ($so->recurrenceRules() as $id => $entry) {
-			$occurrence = new EventOccurrenceObject();
+			$entity = new EventOccurrenceObject();
 			
 			// Interval
 			if ($entry->interval() !== null) {
-				$occurrence->Interval = $entry->interval();
+				$entity->Interval = $entry->interval();
 			}
 			// Iterations
 			if ($entry->count() !== null) {
-				$occurrence->Iterations = $entry->count();
+				$entity->Iterations = $entry->count();
 			}
 			// Conclusion
 			if ($entry->until() !== null) {
-				$occurrence->Concludes = new DateTime($entry->until());
+				$entity->Concludes = new DateTime($entry->until());
 			}
 			// Daily
 			if ($entry->frequency() === 'daily') {
-				$occurrence->Pattern = EventOccurrencePatternTypes::Absolute;
-				$occurrence->Precision = EventOccurrencePrecisionTypes::Daily;
+				$entity->Pattern = EventOccurrencePatternTypes::Absolute;
+				$entity->Precision = EventOccurrencePrecisionTypes::Daily;
             }
 			// Weekly
 			if ($entry->frequency() === 'weekly') {
-				$occurrence->Pattern = EventOccurrencePatternTypes::Absolute;
-				$occurrence->Precision = EventOccurrencePrecisionTypes::Weekly;
-				$occurrence->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
+				$entity->Pattern = EventOccurrencePatternTypes::Absolute;
+				$entity->Precision = EventOccurrencePrecisionTypes::Weekly;
+				$entity->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
             }
 			// Monthly 
 			if ($entry->frequency() === 'monthly') {
-				$occurrence->Precision = EventOccurrencePrecisionTypes::Monthly;
+				$entity->Precision = EventOccurrencePrecisionTypes::Monthly;
 				// Absolute
 				if (count($entry->byDayOfMonth())) {
-					$occurrence->Pattern = EventOccurrencePatternTypes::Absolute;
-					$occurrence->OnDayOfMonth = $entry->byDayOfMonth();
+					$entity->Pattern = EventOccurrencePatternTypes::Absolute;
+					$entity->OnDayOfMonth = $entry->byDayOfMonth();
 				}
 				// Relative
 				else {
-					$occurrence->Pattern = EventOccurrencePatternTypes::Relative;
-					$occurrence->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
+					$entity->Pattern = EventOccurrencePatternTypes::Relative;
+					$entity->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
+					$entity->OnPosition = $entry->byPosition();
 				}
             }
 			// Yearly
 			if ($entry->frequency() === 'yearly') {
-				$occurrence->Precision = EventOccurrencePrecisionTypes::Yearly;
+				$entity->Precision = EventOccurrencePrecisionTypes::Yearly;
 				// nth day of year
 				if (count($entry->byDayOfYear())) {
-					$occurrence->Pattern = EventOccurrencePatternTypes::Absolute;
-					$occurrence->OnDayOfYear = $entry->byDayOfYear();
-					$occurrence->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
+					$entity->Pattern = EventOccurrencePatternTypes::Absolute;
+					$entity->OnDayOfYear = $entry->byDayOfYear();
+					$entity->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
 				}
 				// nth week of year
 				elseif (count($entry->byWeekOfYear())) {
-					$occurrence->Pattern = EventOccurrencePatternTypes::Relative;
-					$occurrence->OnWeekOfYear = $entry->byWeekOfYear();
-					$occurrence->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
+					$entity->Pattern = EventOccurrencePatternTypes::Relative;
+					$entity->OnWeekOfYear = $entry->byWeekOfYear();
+					$entity->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
 				}
 				// nth month of year
 				elseif (count($entry->byMonthOfYear())) {
 					if (count($entry->byDayOfMonth())) {
-						$occurrence->Pattern = EventOccurrencePatternTypes::Absolute;
-						$occurrence->OnDayOfMonth = $entry->byDayOfMonth();
+						$entity->Pattern = EventOccurrencePatternTypes::Absolute;
+						$entity->OnDayOfMonth = $entry->byDayOfMonth();
 					} else {
-						$occurrence->Pattern = EventOccurrencePatternTypes::Relative;
-						$occurrence->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
+						$entity->Pattern = EventOccurrencePatternTypes::Relative;
+						$entity->OnDayOfWeek = $this->fromDaysOfWeek($entry->byDayOfWeek());
+						$entity->OnPosition = $entry->byPosition();
 					}
 				}
 			}
 			// add to collection
-			$eo->OccurrencePatterns[] = $occurrence;
+			$eo->OccurrencePatterns[] = $entity;
 		}
 		
 		return $eo;
@@ -954,13 +834,10 @@ class RemoteEventsService {
     }
 
 	/**
-     * convert remote EventObject to remote EasObject
+     * convert event object to jmap object
      * 
      * @since Release 1.0.0
      * 
-	 * @param EventObject $so
-	 * 
-	 * @return EventParametersRequest
 	 */
 	public function fromEventObject(EventObject $eo): EventParametersRequest {
 
@@ -1010,22 +887,22 @@ class RemoteEventsService {
         }
 		// physical location(s)
         foreach ($eo->LocationsPhysical as $entry) {
-			$location = $to->physicalLocations($entry->id);
-			if ($entry->name) {
-				$location->label($entry->name);
+			$entity = $to->physicalLocations($entry->Id);
+			if ($entry->Name) {
+				$entity->label($entry->Name);
 			}
-			if ($entry->description) {
-				$location->description($entry->description);
+			if ($entry->Description) {
+				$entity->description($entry->Description);
 			}
 		}
 		// virtual location(s)
         foreach ($eo->LocationsVirtual as $entry) {
-			$location = $to->virtualLocations($entry->id);
-			if ($entry->name) {
-				$location->label($entry->name);
+			$entity = $to->virtualLocations($entry->Id);
+			if ($entry->Name) {
+				$entity->label($entry->Name);
 			}
-			if ($entry->description) {
-				$location->description($entry->description);
+			if ($entry->Description) {
+				$entity->description($entry->Description);
 			}
 		}
 		// availability
@@ -1061,30 +938,30 @@ class RemoteEventsService {
         }
 		// participant(s)
         foreach ($eo->Participants as $entry) {
-			$participant = $to->participants($entry->id);
-			if ($entry->address) {
-				$participant->address($entry->address);
-				$participant->send('imip', 'mailto:' . $entry->address);
+			$entity = $to->participants($entry->Id);
+			if ($entry->Address) {
+				$entity->address($entry->Address);
+				$entity->send('imip', 'mailto:' . $entry->Address);
 			}
-			if ($entry->name) {
-				$participant->name($entry->name);
+			if ($entry->Name) {
+				$entity->name($entry->Name);
 			}
-			if ($entry->description) {
-				$participant->description($entry->description);
+			if ($entry->Description) {
+				$entity->description($entry->Description);
 			}
-			if ($entry->comment) {
-				$participant->comment($entry->comment);
+			if ($entry->Comment) {
+				$entity->comment($entry->Comment);
 			}
-			if ($entry->type) {
-				$participant->kind(match ($entry->type) {
+			if ($entry->Type) {
+				$entity->kind(match ($entry->Type) {
 					EventParticipantTypes::Individual => 'group',
 					EventParticipantTypes::Individual => 'resource',
 					EventParticipantTypes::Individual => 'location',
 					default => 'individual',
 				});
 			}
-			if ($entry->status) {
-				$participant->kind(match ($entry->status) {
+			if ($entry->Status) {
+				$entity->kind(match ($entry->Status) {
 					EventParticipantStatusTypes::Accepted => 'accepted',
 					EventParticipantStatusTypes::Declined => 'declined',
 					EventParticipantStatusTypes::Tentative => 'tentative',
@@ -1092,40 +969,40 @@ class RemoteEventsService {
 					default => 'needs-action',
 				});
 			}
-			if (!empty($entry->roles)) {
+			if (!empty($entry->Roles)) {
 				$roles = [];
-				foreach ($entry->roles as $role) {
+				foreach ($entry->Roles as $role) {
 					$roles[] = $role->value;
 				}
-				$participant->roles(...$roles);
+				$entity->roles(...$roles);
 			}
 		}
 		// notification(s)
         foreach ($eo->Notifications as $entry) {
-			$notification = $to->notifications($entry->id);
+			$entity = $to->notifications($entry->Id);
 			if ($entry->Type) {
-				$notification->type(match ($entry->type) {
+				$entity->type(match ($entry->type) {
 					EventNotificationTypes::Email => 'email',
 					default => 'display',
 				});
 			}
 			if ($entry->Pattern === EventNotificationPatterns::Absolute) {
-				$notification->trigger('absolute')->when($entry->When);
+				$entity->trigger('absolute')->when($entry->When);
 			} elseif ($entry->Pattern === EventNotificationPatterns::Relative) {
 				if ($entry->Anchor === EventNotificationAnchorTypes::End) {
-					$notification->trigger('offset')->anchor('end')->offset($entry->Offset);
+					$entity->trigger('offset')->anchor('end')->offset($entry->Offset);
 				} else {
-					$notification->trigger('offset')->anchor('start')->offset($entry->Offset);
+					$entity->trigger('offset')->anchor('start')->offset($entry->Offset);
 				}
 			} else {
-				$notification->trigger('unknown');
+				$entity->trigger('unknown');
 			}
 		}
 		// occurrence(s)
-        foreach ($eo->OccurrencePatterns as $id => $entry) {
-			$pattern = $to->recurrenceRules($id);
+        foreach ($eo->OccurrencePatterns as $index => $entry) {
+			$entity = $to->recurrenceRules($index);
 			if ($entry->Precision) {
-				$pattern->frequency(match ($entry->Precision) {
+				$entity->frequency(match ($entry->Precision) {
 					EventOccurrencePrecisionTypes::Yearly => 'yearly',
 					EventOccurrencePrecisionTypes::Monthly => 'monthly',
 					EventOccurrencePrecisionTypes::Weekly => 'weekly',
@@ -1137,46 +1014,46 @@ class RemoteEventsService {
 				});
 			}
 			if ($entry->Interval) {
-				$pattern->interval($entry->Interval);
+				$entity->interval($entry->Interval);
 			}
 			if ($entry->Iterations) {
-				$pattern->count($entry->Iterations);
+				$entity->count($entry->Iterations);
 			}
 			if ($entry->Concludes) {
-				$pattern->until($entry->Concludes);
+				$entity->until($entry->Concludes);
 			}
 			if ($entry->OnDayOfWeek !== []){
 				foreach ($entry->OnDayOfWeek as $id => $day) {
-					$nDay = $pattern->byDayOfWeek($id);
+					$nDay = $entity->byDayOfWeek($id);
 					$nDay->day($day);
 				}	
 			}
 			if (!empty($entry->OnDayOfMonth)){
-				$pattern->byDayOfMonth(...$entry->OnDayOfMonth);
+				$entity->byDayOfMonth(...$entry->OnDayOfMonth);
 			}
 			if (!empty($entry->OnDayOfYear)){
-				$pattern->byDayOfYear(...$entry->OnDayOfYear);
+				$entity->byDayOfYear(...$entry->OnDayOfYear);
 			}
 			if (!empty($entry->OnWeekOfMonth)){
-				$pattern->byWeekOfYear(...$entry->OnWeekOfMonth);
+				$entity->byWeekOfYear(...$entry->OnWeekOfMonth);
 			}
 			if (!empty($entry->OnWeekOfYear)){
-				$pattern->byWeekOfYear(...$entry->OnWeekOfYear);
+				$entity->byWeekOfYear(...$entry->OnWeekOfYear);
 			}
 			if (!empty($entry->OnMonthOfYear)){
-				$pattern->byMonthOfYear(...$entry->OnMonthOfYear);
+				$entity->byMonthOfYear(...$entry->OnMonthOfYear);
 			}
 			if (!empty($entry->OnHour)){
-				$pattern->byHour(...$entry->OnHour);
+				$entity->byHour(...$entry->OnHour);
 			}
 			if (!empty($entry->OnMinute)){
-				$pattern->byMinute(...$entry->OnMinute);
+				$entity->byMinute(...$entry->OnMinute);
 			}
 			if (!empty($entry->OnSecond)){
-				$pattern->bySecond(...$entry->OnSecond);
+				$entity->bySecond(...$entry->OnSecond);
 			}
 			if (!empty($entry->OnPosition)){
-				$pattern->byPosition(...$entry->OnPosition);
+				$entity->byPosition(...$entry->OnPosition);
 			}
 		}
         
@@ -1190,9 +1067,21 @@ class RemoteEventsService {
         // clone self
         $o = clone $eo;
         // remove non needed values
-        unset($o->Origin, $o->ID, $o->UUID, $o->Signature, $o->CCID, $o->CEID, $o->CESN, $o->CreatedOn, $o->ModifiedOn);
+        unset(
+			$o->Origin,
+			$o->ID,
+			$o->CID,
+			$o->Signature,
+			$o->CCID,
+			$o->CEID,
+			$o->CESN,
+			$o->UUID,
+			$o->CreatedOn,
+			$o->ModifiedOn
+		);
+
         // generate signature
-        return md5(json_encode($o));
+        return md5(json_encode($o, JSON_PARTIAL_OUTPUT_ON_ERROR));
 
     }
 
@@ -1223,33 +1112,6 @@ class RemoteEventsService {
 
 		return ['address' => $address, 'name' => $name];
 		
-	}
-
-	/**
-     * convert event object availability status to remote availability status
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $value		event object availability status value
-	 * 
-	 * @return string	 		remote availability status value
-	 */
-	private function toSender(string $address, ?string $name): string {
-		
-		// transposition matrix
-		$_tm = array(
-			'F' => 'free',
-			'B' => 'busy',
-		);
-		// evaluate if value exists
-		if (isset($_tm[$value])) {
-			// return transposed value
-			return $_tm[$value];
-		} else {
-			// return default value
-			return 'busy';
-		}
-
 	}
 
 	/**

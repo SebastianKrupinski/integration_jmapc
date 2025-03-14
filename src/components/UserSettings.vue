@@ -38,7 +38,12 @@
 				:options="configuredServices"
 				:value="selectedService"
 				@option:selected="serviceSelect" />
-			<NcButton @click="freshService">
+			<NcButton @click="disconnectService()">
+				<template #icon>
+					<AccountRemoveIcon :size="20" />
+				</template>
+			</NcButton>
+			<NcButton @click="freshService()">
 				<template #icon>
 					<AccountAddIcon :size="20" />
 				</template>
@@ -48,7 +53,7 @@
 			<h3>{{ t('integration_jmapc', 'Connection') }}</h3>
 			<div v-if="!Boolean(selectedService.connected)" class="jmapc-section-parameters">
 				<div class="description">
-					{{ t('integration_jmapc', 'Enter your JMAP Server and account information then press connect.') }}
+					{{ t('integration_jmapc', 'Enter your server and account information then press connect.') }}
 				</div>
 				<div class="parameter">
 					<label for="jmapc-account-description">
@@ -201,7 +206,7 @@
 					<label class="jmapc-connect">
 						&nbsp;
 					</label>
-					<NcButton @click="onConnectClick">
+					<NcButton @click="connectService()">
 						<template #icon>
 							<CheckIcon />
 						</template>
@@ -215,12 +220,6 @@
 					<label>
 						{{ t('integration_jmapc', 'Connected as {0} to {1}', {0:selectedService.address_primary, 1:selectedService.location_host}) }}
 					</label>
-					<NcButton @click="onDisconnectClick">
-						<template #icon>
-							<CloseIcon />
-						</template>
-						{{ t('integration_jmapc', 'Disconnect') }}
-					</NcButton>
 				</div>
 				<div>
 					{{ t('integration_jmapc', 'Synchronization was last started on ') }} {{ formatDate(selectedService.harmonization_start) }}
@@ -240,13 +239,13 @@
 									@update:checked="changeContactCorrelation(ritem.id, $event)" />
 								<ContactIcon :inline="true" :style="{ color: establishedContactCorrelationColor(ritem.id) }" />
 								<label>
-									{{ ritem.name }}
+									{{ ritem.label }}
 								</label>
 								<label v-if="ritem.count > 0">
 									({{ ritem.count }} {{ t('integration_jmapc', 'Contacts') }})
 								</label>
 								<label v-if="establishedContactCorrelationHarmonized(ritem.id) > 0">
-									{{ t('integration_jmapc', 'Last Harmonized') }} {{ formatDate(establishedContactCorrelationHarmonized(ritem.id))}}
+									{{ t('integration_jmapc', 'Last Harmonized') }} {{ formatDate(establishedContactCorrelationHarmonized(ritem.id)) }}
 								</label>
 								<label v-else>
 									{{ t('integration_jmapc', 'Last Harmonized never') }}
@@ -280,13 +279,13 @@
 									<CalendarIcon :inline="true" :style="{ color: establishedEventCorrelationColor(ritem.id) }" />
 								</NcColorPicker>
 								<label>
-									{{ ritem.name }}
+									{{ ritem.label }}
 								</label>
 								<label v-if="ritem.count > 0">
 									({{ ritem.count }} {{ t('integration_jmapc', 'Events') }})
 								</label>
 								<label v-if="establishedEventCorrelationHarmonized(ritem.id) > 0">
-									{{ t('integration_jmapc', 'Last Harmonized') }} {{ formatDate(establishedEventCorrelationHarmonized(ritem.id))}}
+									{{ t('integration_jmapc', 'Last Harmonized') }} {{ formatDate(establishedEventCorrelationHarmonized(ritem.id)) }}
 								</label>
 								<label v-else>
 									{{ t('integration_jmapc', 'Last Harmonized never') }}
@@ -320,13 +319,13 @@
 									<CalendarIcon :inline="true" :style="{ color: establishedTaskCorrelationColor(ritem.id) }" />
 								</NcColorPicker>
 								<label>
-									{{ ritem.name }}
+									{{ ritem.label }}
 								</label>
 								<label v-if="ritem.count > 0">
 									({{ ritem.count }} {{ t('integration_jmapc', 'Tasks') }})
 								</label>
 								<label v-if="establishedTaskCorrelationHarmonized(ritem.id) > 0">
-									{{ t('integration_jmapc', 'Last Harmonized') }} {{ formatDate(establishedTaskCorrelationHarmonized(ritem.id))}}
+									{{ t('integration_jmapc', 'Last Harmonized') }} {{ formatDate(establishedTaskCorrelationHarmonized(ritem.id)) }}
 								</label>
 								<label v-else>
 									{{ t('integration_jmapc', 'Last Harmonized never') }}
@@ -346,17 +345,23 @@
 					<br>
 				</div>
 				<div class="jmapc-actions">
-					<NcButton @click="onSaveClick()">
+					<NcButton @click="modifyService()">
 						<template #icon>
 							<CheckIcon />
 						</template>
 						{{ t('integration_jmapc', 'Save') }}
 					</NcButton>
-					<NcButton @click="onHarmonizeClick()">
+					<NcButton @click="harmonizeService()">
 						<template #icon>
 							<LinkIcon />
 						</template>
-						{{ t('integration_jmapc', 'Sync') }}
+						{{ t('integration_jmapc', 'Harmonize') }}
+					</NcButton>
+					<NcButton @click="disconnectService()">
+						<template #icon>
+							<CloseIcon />
+						</template>
+						{{ t('integration_jmapc', 'Disconnect') }}
 					</NcButton>
 				</div>
 			</div>
@@ -379,6 +384,7 @@ import NcSelect from '@nextcloud/vue/dist/Components/NcSelect.js'
 
 import JmapIcon from './icons/JmapIcon.vue'
 import AccountAddIcon from 'vue-material-design-icons/AccountPlus.vue'
+import AccountRemoveIcon from 'vue-material-design-icons/AccountMinus.vue'
 import CheckIcon from 'vue-material-design-icons/Check.vue'
 import CloseIcon from 'vue-material-design-icons/Close.vue'
 import CalendarIcon from 'vue-material-design-icons/Calendar.vue'
@@ -397,6 +403,7 @@ export default {
 		NcSelect,
 		JmapIcon,
 		AccountAddIcon,
+		AccountRemoveIcon,
 		CheckIcon,
 		CloseIcon,
 		CalendarIcon,
@@ -451,35 +458,39 @@ export default {
 		loadData() {
 			this.serviceList()
 		},
-		onConnectClick() {
-			const uri = generateUrl('/apps/integration_jmapc/connect')
+		freshService() {
+			this.selectedService = { label: 'New Connection' }
+		},
+		connectService() {
+			const uri = generateUrl('/apps/integration_jmapc/service/connect')
 			const data = {
-				params: {
-					service: this.selectedService,
-				},
+				service: this.selectedService,
 			}
-			axios.get(uri, data)
+			axios.post(uri, data)
 				.then((response) => {
 					if (response.data === 'success') {
-						showSuccess(('Successfully connected to JMAP account'))
+						showSuccess(('Successfully connected to account'))
 						this.selectedService.connected = 1
 						this.loadData()
 					}
 				})
 				.catch((error) => {
 					showError(
-						t('integration_jmapc', 'Failed to authenticate with JMAP server')
+						t('integration_jmapc', 'Failed to authenticate with server')
 						+ ': ' + error.response?.request?.responseText
 					)
 				})
 		},
-		onDisconnectClick() {
-			const uri = generateUrl('/apps/integration_jmapc/disconnect')
-			axios.get(uri)
+		disconnectService() {
+			const uri = generateUrl('/apps/integration_jmapc/service/disconnect')
+			const data = {
+				sid: this.selectedService.id,
+			}
+			axios.post(uri, data)
 				.then((response) => {
-					showSuccess(('Successfully disconnected from JMAP account'))
+					showSuccess(('Successfully disconnected from account'))
 					// state
-					this.selectedService.connected = 0
+					this.selectedService = null
 					// contacts
 					this.remoteContactCollections = []
 					this.availableLocalContactCollections = []
@@ -492,33 +503,27 @@ export default {
 					this.remoteTaskCollections = []
 					this.availableLocalTaskCollections = []
 					this.localTaskCollections = []
+					// refresh service list
+					this.serviceList()
 				})
 				.catch((error) => {
 					showError(
-						t('integration_jmapc', 'Failed to disconnect from JMAP account')
+						t('integration_jmapc', 'Failed to disconnect from account')
 						+ ': ' + error.response?.request?.responseText
 					)
 				})
 				.then(() => {
 				})
 		},
-		onSaveClick() {
-			/*
-			this.depositPreferences({
-				id: this.selectedService.id,
-				contacts_prevalence: this.selectedService.contacts_prevalence,
-				contacts_harmonize: this.selectedService.contacts_harmonize,
-				events_prevalence: this.selectedService.events_prevalence,
-				events_harmonize: this.selectedService.events_harmonize,
-				tasks_prevalence: this.selectedService.tasks_prevalence,
-				tasks_harmonize: this.selectedService.tasks_harmonize,
-			})
-			*/
-			this.depositCorrelations()
+		modifyService() {
+			this.localCollectionsDeposit()
 		},
-		onHarmonizeClick() {
-			const uri = generateUrl('/apps/integration_jmapc/harmonize')
-			axios.get(uri)
+		harmonizeService() {
+			const uri = generateUrl('/apps/integration_jmapc/service/harmonize')
+			const data = {
+				sid: this.selectedService.id,
+			}
+			axios.post(uri, data)
 				.then((response) => {
 					showSuccess('Synchronization Successful')
 				})
@@ -530,7 +535,7 @@ export default {
 				})
 		},
 		serviceList() {
-			const uri = generateUrl('/apps/integration_jmapc/service-list')
+			const uri = generateUrl('/apps/integration_jmapc/service/list')
 			axios.get(uri)
 				.then((response) => {
 					if (response.data) {
@@ -555,11 +560,8 @@ export default {
 			this.remoteCollectionsFetch()
 			this.localCollectionsFetch()
 		},
-		freshService() {
-			this.selectedService = { label: 'New Connection' }
-		},
 		remoteCollectionsFetch() {
-			const uri = generateUrl('/apps/integration_jmapc/remote-collections-fetch')
+			const uri = generateUrl('/apps/integration_jmapc/remote/collections/fetch')
 			const params = {
 				sid: this.selectedService.id,
 			}
@@ -588,7 +590,7 @@ export default {
 				})
 		},
 		localCollectionsFetch() {
-			const uri = generateUrl('/apps/integration_jmapc/local-collections-fetch')
+			const uri = generateUrl('/apps/integration_jmapc/local/collections/fetch')
 			const params = {
 				sid: this.selectedService.id,
 			}
@@ -617,28 +619,17 @@ export default {
 				})
 		},
 		localCollectionsDeposit() {
-			const uri = generateUrl('/apps/integration_jmapc/local-collections-deposit')
+			const uri = generateUrl('/apps/integration_jmapc/local/collections/deposit')
 			const data = {
-				id: this.selectedService.id,
+				sid: this.selectedService.id,
 				ContactCorrelations: this.localContactCollections,
 				EventCorrelations: this.localEventCollections,
 				TaskCorrelations: this.localTaskCollections,
 			}
-			axios.put(uri, data)
+			axios.post(uri, data)
 				.then((response) => {
 					showSuccess('Saved correlations')
-					if (response.data.ContactCorrelations) {
-						this.localContactCollections = response.data.ContactCorrelations
-						showSuccess('Found ' + this.localContactCollections.length + ' Contact Collection Correlations')
-					}
-					if (response.data.EventCorrelations) {
-						this.localEventCollections = response.data.EventCorrelations
-						showSuccess('Found ' + this.localEventCollections.length + ' Event Collection Correlations')
-					}
-					if (response.data.TaskCorrelations) {
-						this.localTaskCollections = response.data.TaskCorrelations
-						showSuccess('Found ' + this.localTaskCollections.length + ' Task Collection Correlations')
-					}
+					this.serviceSelect()
 				})
 				.catch((error) => {
 					showError(
@@ -649,51 +640,69 @@ export default {
 				})
 
 		},
-		changeContactCorrelation(roid, e) {
-			const cid = this.localContactCollections.findIndex(i => String(i.roid) === String(roid))
+		changeContactCorrelation(rcid, e) {
+			const lCollection = this.localContactCollections.find(i => String(i.ccid) === String(rcid))
 
-			if (cid === -1) {
-				this.localContactCollections.push({ id: null, roid, type: 'CC', enabled: e })
+			if (lCollection === undefined) {
+				const rCollection = this.remoteContactCollections.find(i => String(i.id) === String(rcid))
+				this.localContactCollections.push({
+					id: null,
+					ccid: rCollection.id,
+					label: rCollection.label,
+					enabled: e,
+				})
 			} else {
-				this.localContactCollections[cid].enabled = e
+				lCollection.enabled = e
 			}
 		},
-		changeEventCorrelation(roid, e) {
-			const cid = this.localEventCollections.findIndex(i => String(i.roid) === String(roid))
+		changeEventCorrelation(rcid, e) {
+			const lCollection = this.localEventCollections.find(i => String(i.ccid) === String(rcid))
 
-			if (cid === -1) {
-				this.localEventCollections.push({ id: null, roid, type: 'EC', enabled: e })
+			if (lCollection === undefined) {
+				const rCollection = this.remoteEventCollections.find(i => String(i.id) === String(rcid))
+				this.localEventCollections.push({
+					id: null,
+					ccid: rCollection.id,
+					label: rCollection.label,
+					enabled: e,
+				})
 			} else {
-				this.localEventCollections[cid].enabled = e
+				lCollection.enabled = e
 			}
 		},
-		changeTaskCorrelation(roid, e) {
-			const cid = this.localTaskCollections.findIndex(i => String(i.roid) === String(roid))
+		changeTaskCorrelation(rcid, e) {
+			const lCollection = this.localTaskCollections.find(i => String(i.ccid) === String(rcid))
 
-			if (cid === -1) {
-				this.localTaskCollections.push({ id: null, roid, type: 'TC', enabled: e })
+			if (lCollection === undefined) {
+				const rCollection = this.remoteTaskCollections.find(i => String(i.id) === String(rcid))
+				this.localTaskCollections.push({
+					id: null,
+					ccid: rCollection.id,
+					label: rCollection.label,
+					enabled: e,
+				})
 			} else {
-				this.localTaskCollections[cid].enabled = e
+				lCollection.enabled = e
 			}
 		},
-		establishedContactCorrelation(ccid) {
-			const collection = this.localContactCollections.find(i => String(i.ccid) === String(ccid))
+		establishedContactCorrelation(rcid) {
+			const collection = this.localContactCollections.find(i => String(i.ccid) === String(rcid))
 			if (typeof collection !== 'undefined') {
 				return true
 			} else {
 				return false
 			}
 		},
-		establishedEventCorrelation(ccid) {
-			const collection = this.localEventCollections.find(i => String(i.ccid) === String(ccid))
+		establishedEventCorrelation(rcid) {
+			const collection = this.localEventCollections.find(i => String(i.ccid) === String(rcid))
 			if (typeof collection !== 'undefined') {
 				return true
 			} else {
 				return false
 			}
 		},
-		establishedTaskCorrelation(ccid) {
-			const collection = this.localTaskCollections.find(i => String(i.ccid) === String(ccid))
+		establishedTaskCorrelation(rcid) {
+			const collection = this.localTaskCollections.find(i => String(i.ccid) === String(rcid))
 			if (typeof collection !== 'undefined') {
 				return true
 			} else {

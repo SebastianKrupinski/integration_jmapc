@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -25,12 +25,9 @@
 
 namespace OCA\JMAPC\Service;
 
-use Exception;
-
+use OCA\JMAPC\AppInfo\Application;
 use OCP\IConfig;
 use OCP\Security\ICrypto;
-
-use OCA\JMAPC\AppInfo\Application;
 
 class ConfigurationService {
 
@@ -51,23 +48,16 @@ class ConfigurationService {
 	 * Default System Secure Parameters 
 	 * @var array
 	 * */
-	private const _SYSTEM_SECURE = [
-	];
+	private const _SYSTEM_SECURE = [];
 
 	/**
 	 * Default User Configuration 
 	 * @var array
 	 * */
 	private const _USER = [
-		'contacts_harmonize' => '5',
-		'contacts_prevalence' => 'R',
 		'contacts_presentation' => '',
-		'events_harmonize' => '5',
-		'events_prevalence' => 'R',
 		'events_timezone' => '',
 		'events_attachment_path' => '/Calendar',
-		'tasks_harmonize' => '5',
-		'tasks_prevalence' => 'R',
 		'tasks_attachment_path' => '/Tasks',
 	];
 
@@ -75,20 +65,12 @@ class ConfigurationService {
 	 * Default User Secure Parameters 
 	 * @var array
 	 * */
-	private const _USER_SECURE = [
-	];
+	private const _USER_SECURE = [];
 
-	/** @var IConfig */
-	private $_ds;
-	
-	/** @var ICrypto */
-	private $_cs;
-
-	public function __construct(IConfig $config, ICrypto $crypto)
-	{
-		$this->_ds = $config;
-		$this->_cs = $crypto;
-	}
+	public function __construct(
+		private IConfig $_ds, 
+		private ICrypto $_cs
+	) {}
 
 	/**
 	 * Retrieves collection of system configuration parameters
@@ -519,136 +501,6 @@ class ConfigurationService {
 	}
 
 	/**
-	 * Gets harmonization state
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * 
-	 * @return bool
-	 */
-	public function getHarmonizationState(string $uid): bool {
-
-		// retrieve state
-		return (bool) $this->retrieveUserValue($uid, 'account_harmonization_state');
-
-	}
-
-	/**
-	 * Sets harmonization state
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		nextcloud user id
-	 * @param bool $state		harmonization state (true/false)
-	 * 
-	 * @return void
-	 */
-	public function setHarmonizationState(string $uid, bool $state): void {
-		
-		// deposit state
-		$this->depositUserValue($uid, 'account_harmonization_state', $state);
-
-	}
-
-	
-	/**
-	 * Gets harmonization start
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * 
-	 * @return int
-	 */
-	public function getHarmonizationStart(string $uid): int {
-
-		// return time stamp
-		return (int) $this->retrieveUserValue($uid, 'account_harmonization_start');
-
-	}
-
-	/**
-	 * Sets harmonization start
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		nextcloud user id
-	 * 
-	 * @return void
-	 */
-	public function setHarmonizationStart(string $uid): void {
-		
-		// deposit time stamp
-		$this->depositUserValue($uid, 'account_harmonization_start', time());
-
-	}
-
-	/**
-	 * Gets harmonization end
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * 
-	 * @return int
-	 */
-	public function getHarmonizationEnd(string $uid): int {
-
-		// return time stamp
-		return (int) $this->retrieveUserValue($uid, 'account_harmonization_end');
-
-	}
-
-	/**
-	 * Sets harmonization end
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		nextcloud user id
-	 * 
-	 * @return void
-	 */
-	public function setHarmonizationEnd(string $uid): void {
-		
-		// deposit time stamp
-		$this->depositUserValue($uid, 'account_harmonization_end', time());
-
-	}
-
-	/**
-	 * Gets harmonization heart beat
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * 
-	 * @return int
-	 */
-	public function getHarmonizationHeartBeat(string $uid): int {
-
-		// return time stamp
-		return (int) $this->retrieveUserValue($uid, 'account_harmonization_hb');
-
-	}
-
-	/**
-	 * Sets harmonization heart beat
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		nextcloud user id
-	 * 
-	 * @return void
-	 */
-	public function setHarmonizationHeartBeat(string $uid): void {
-		
-		// deposit time stamp
-		$this->depositUserValue($uid, 'account_harmonization_hb', time());
-
-	}
-
-	/**
 	 * Gets harmonization thread run duration interval
 	 * 
 	 * @since Release 1.0.0
@@ -665,7 +517,7 @@ class ConfigurationService {
 			return intval($interval);
 		}
 		else {
-			return intval($self::_SYSTEM['harmonization_thread_duration']);
+			return intval(self::_SYSTEM['harmonization_thread_duration']);
 		}
 
 	}

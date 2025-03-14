@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -27,11 +27,12 @@ namespace OCA\JMAPC\Objects\Contact;
 
 class ContactEmailObject {
 
-    public ?string $Type;
-	public ?string $Address;
-	
-	public function __construct(?string $type = null, ?string $address = null) {
-        $this->Type = $type;
-        $this->Address = $address;
-	}
+    public ?string $Address = null;
+
+    public ?string $Id = null;
+    public ?int $Index = null;
+    public ?int $Priority = null;
+    public ?string $Context = null;
+	public ?string $URI = null;
+    
 }

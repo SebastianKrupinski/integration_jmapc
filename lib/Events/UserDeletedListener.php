@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -25,41 +25,32 @@
 
 namespace OCA\JMAPC\Events;
 
+use Exception;
+use OCA\JMAPC\Service\CoreService;
+use OCA\JMAPC\Service\ServicesService;
 use Psr\Log\LoggerInterface;
 
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\User\Events\UserDeletedEvent;
 
-use OCA\JMAPC\Service\CorrelationsService;
-use OCA\JMAPC\Service\HarmonizationThreadService;
-
 class UserDeletedListener implements IEventListener {
-    /**
-	 * @var LoggerInterface
-	 */
-	private $logger;
-	/**
-	 * @var CorrelationsService
-	 */
-	private $CorrelationsService;
-	/**
-	 * @var HarmonizationThreadService
-	 */
-	private $HarmonizationThreadService;
 
-	public function __construct(LoggerInterface $logger, CorrelationsService $CorrelationsService, HarmonizationThreadService $HarmonizationThreadService) {
-		$this->logger = $logger;
-		$this->CorrelationsService = $CorrelationsService;
-		$this->HarmonizationThreadService = $HarmonizationThreadService;
-	}
+	public function __construct(
+		private LoggerInterface $logger,
+		private ServicesService $servicesService,
+		private CoreService $coreService,
+	) {}
 
     public function handle(Event $event): void {
 
         if ($event instanceof UserDeletedEvent) {
 			try {
-				$this->CorrelationsService->deleteByUserId($event->getUser()->getUID());
-				$this->HarmonizationThreadService->terminate($event->getUser()->getUID());
+				$services = $this->servicesService->fetchByUserId($event->getUser()->getUID());
+
+				foreach ($services as $service) {
+					$this->coreService->disconnectAccount($service->getUid(), $service->Id());
+				}
 			} catch (Exception $e) {
 				$this->logger->warning($e->getMessage(), ['uid' => $event->getUser()->getUID()]);
 			}

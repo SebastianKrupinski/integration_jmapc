@@ -25,7 +25,6 @@ declare(strict_types=1);
 */
 namespace OCA\JMAPC\Store;
 
-use JsonSerializable;
 use OCP\AppFramework\Db\Entity;
 
 /**
@@ -41,11 +40,11 @@ use OCP\AppFramework\Db\Entity;
  * @method getSignature(): string
  * @method setSignature(string $uuid): void
  * @method getCCID(): string
- * @method setCCID(string $rcid): void
+ * @method setCCID(string $ccid): void
  * @method getCEID(): string
- * @method setCEID(string $reid): void
+ * @method setCEID(string $ceid): void
  * @method getCESN(): string
- * @method setCESN(string $resn): void
+ * @method setCESN(string $cesn): void
  * @method getData(): string
  * @method setData(string $data): void
  * @method getLabel(): string

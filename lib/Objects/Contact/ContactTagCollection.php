@@ -23,7 +23,7 @@ declare(strict_types=1);
 *
 */
 
-namespace OCA\JMAPC\Objects\Event;
+namespace OCA\JMAPC\Objects\Contact;
 
 use OCA\JMAPC\Objects\BaseCollection;
 

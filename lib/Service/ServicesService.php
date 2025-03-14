@@ -31,83 +31,69 @@ use OCP\Security\ICrypto;
 class ServicesService {
 
 	private ServicesStore $_Store;
-	private ICrypto $_cs;
 
-	/**
-	 * Default User Secure Parameters 
-	 * @var array
-	 * */
-	private const _USER_SECURE = [
-		'bauth_secret' => true,
-		'oauth_access_token' => true,
-		'oauth_refresh_token' => true,
-	];
-
-	public function __construct(ServicesStore $ServicesStore, ICrypto $crypto) {
+	public function __construct(ServicesStore $ServicesStore) {
 
 		$this->_Store = $ServicesStore;
-		$this->_cs = $crypto;
 
 	}
 
+	/**
+	 * @return array<ServiceEntity>
+	 */
 	public function fetchByUserId(string $uid): array {
 
-		// return collection of services/accounts
 		return $this->_Store->fetchByUserId($uid);
 
 	}
 
 	public function fetchByUserIdAndServiceId(string $uid, int $sid): ServiceEntity {
 
-		// return collection of services/accounts
 		return $this->_Store->fetchByUserIdAndServiceId($uid, $sid);
 
 	}
 
+	/**
+	 * @return array<ServiceEntity>
+	 */
 	public function fetchByUserIdAndAddress(string $uid, string $address): array {
 
-		// return collection of services/accounts
 		return $this->_Store->fetchByUserIdAndAddress($uid, $address);
 
 	}
 
 	public function fetch(int $id): ServiceEntity {
 
-		// return service/account information
 		return $this->_Store->fetch($id);
 
 	}
 
 	public function deposit(string $uid, ServiceEntity $service): ServiceEntity {
 
-		// create or update service/account information
-		if (is_numeric($service->getId())) {
-			return $this->_Store->modify($service);
+		if (!is_numeric($service->getId())) {
+			return $this->create($uid, $service);
 		} else {
-			$service->setUid($uid);
-			return $this->_Store->create($service);
+			return $this->modify($uid, $service);
 		}
 		
 	}
 
-	public function create(array $service): string {
+	public function create(string $uid, ServiceEntity $service): ServiceEntity {
 
-		// return service/account id
-		return '8a365c50-0694-4d37-8a40-425f378036ff';
-
-	}
-
-	public function update(string $id, array $service): string {
-
-		// return service/account id
-		return '8a365c50-0694-4d37-8a40-425f378036ff';
+		$service->setUid($uid);
+		return $this->_Store->create($service);
 
 	}
 
-	public function delete(string $id): string {
+	public function modify(string $uid, ServiceEntity $service): ServiceEntity {
 
-		// return service/account id
-		return '8a365c50-0694-4d37-8a40-425f378036ff';
+		return $this->_Store->modify($service);
+
+	}
+
+	public function delete(string $uid, ServiceEntity $service): void {
+
+		$this->_Store->delete($service);
 
 	}
 

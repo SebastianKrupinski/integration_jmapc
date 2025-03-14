@@ -1,5 +1,5 @@
 <?php
-//declare(strict_types=1);
+declare(strict_types=1);
 
 /**
 * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -40,7 +40,7 @@ class LocalService {
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @return EventStore
+	 * @return ContactStore
 	 */
 	public static function initializeContactStore(): ContactStore {
 		$store = Server::get(ContactStore::class);
@@ -64,7 +64,7 @@ class LocalService {
 	 * 
 	 * @since Release 1.0.0
 	 * 
-	 * @return EventStore
+	 * @return TaskStore
 	 */
 	public static function initializeTaskStore(): TaskStore {
 		$store = Server::get(TaskStore::class);
