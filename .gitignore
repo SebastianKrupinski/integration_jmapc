@@ -1,8 +1,10 @@
+/build/
+/js/
+/node_modules/
+/vendor/
+/.php_cs.cache
 .vscode
 .idea
 *.iml
-/vendor/
-/build/
-node_modules/
-/.php_cs.cache
-js/*hot-update.*
+*.log
+*.log.*

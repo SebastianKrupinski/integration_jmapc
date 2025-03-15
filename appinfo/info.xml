@@ -21,7 +21,7 @@
     <repository>https://github.com/SebastianKrupinski/integration_jmapc</repository>
     <screenshot>https://github.com/SebastianKrupinski/integration_jmapc</screenshot>
     <dependencies>
-        <php min-version="8.0" max-version="8.3"  min-int-size="64" />
+        <php min-version="8.1" max-version="8.4"  min-int-size="64" />
         <database>pgsql</database>
         <database>sqlite</database>
         <database>mysql</database>
@@ -29,7 +29,7 @@
         <command>ps</command>
         <command>kill</command>
         <lib>curl</lib>
-        <nextcloud min-version="26" max-version="31"/>
+        <nextcloud min-version="26" max-version="32"/>
     </dependencies>
     <commands>
 		<command>OCA\JMAPC\Commands\Connect</command>
