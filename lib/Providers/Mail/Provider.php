@@ -26,11 +26,10 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Providers\Mail;
 
 use OCA\JMAPC\Account;
-use OCA\JMAPC\Service\ServicesService;
-use OCA\JMAPC\Providers\ServiceLocation;
 use OCA\JMAPC\Providers\ServiceIdentityBAuth;
 use OCA\JMAPC\Providers\ServiceIdentityOAuth;
-use OCA\JMAPC\Providers\Mail\Service;
+use OCA\JMAPC\Providers\ServiceLocation;
+use OCA\JMAPC\Service\ServicesService;
 
 use OCP\Mail\Provider\Address as MailAddress;
 use OCP\Mail\Provider\IProvider;
@@ -44,7 +43,7 @@ class Provider implements IProvider {
 
 	public function __construct(
 		protected ContainerInterface $container,
-		protected ServicesService $ServicesService
+		protected ServicesService $ServicesService,
 	) {
 	}
 
@@ -53,7 +52,7 @@ class Provider implements IProvider {
 	 *
 	 * @since 2024.06.25
 	 *
-	 * @return string				id of this provider (e.g. UUID or 'IMAP/SMTP' or anything else)
+	 * @return string id of this provider (e.g. UUID or 'IMAP/SMTP' or anything else)
 	 */
 	public function id(): string {
 
@@ -66,7 +65,7 @@ class Provider implements IProvider {
 	 *
 	 * @since 2024.06.25
 	 *
-	 * @return string				label/name of this provider (e.g. Plain Old IMAP/SMTP)
+	 * @return string label/name of this provider (e.g. Plain Old IMAP/SMTP)
 	 */
 	public function label(): string {
 
@@ -79,7 +78,7 @@ class Provider implements IProvider {
 	 *
 	 * @since 2024.06.25
 	 *
-	 * @return bool 				true if any services are configure for the user
+	 * @return bool true if any services are configure for the user
 	 */
 	public function hasServices(string $uid): bool {
 
@@ -92,7 +91,7 @@ class Provider implements IProvider {
 	 *
 	 * @since 2024.06.25
 	 *
-	 * @return array<string,IService>		collection of service objects
+	 * @return array<string,IService> collection of service objects
 	 */
 	public function listServices(string $uid): array {
 
@@ -119,19 +118,19 @@ class Provider implements IProvider {
 	 *
 	 * @since 2024.06.25
 	 *
-	 * @param string $uid				user id
-	 * @param string $id				service id
+	 * @param string $uid user id
+	 * @param string $id service id
 	 *
-	 * @return IService|null			returns service object or null if non found
+	 * @return IService|null returns service object or null if non found
 	 */
-	public function findServiceById(string $uid, string $id): IService | null {
+	public function findServiceById(string $uid, string $id): ?IService {
 
 		// evaluate if id is a number
 		if (is_numeric($id)) {
 			try {
 				// retrieve service details from data store
-				$account = $this->ServicesService->fetchByUserIdAndServiceId($uid, (int) $id);
-			} catch(\Throwable $th) {
+				$account = $this->ServicesService->fetchByUserIdAndServiceId($uid, (int)$id);
+			} catch (\Throwable $th) {
 				return null;
 			}
 		}
@@ -150,17 +149,17 @@ class Provider implements IProvider {
 	 *
 	 * @since 2024.06.25
 	 *
-	 * @param string $uid				user id
-	 * @param string $address			mail address (e.g. test@example.com)
+	 * @param string $uid user id
+	 * @param string $address mail address (e.g. test@example.com)
 	 *
-	 * @return IService					returns service object or null if non found
+	 * @return IService returns service object or null if non found
 	 */
-	public function findServiceByAddress(string $uid, string $address): IService | null {
+	public function findServiceByAddress(string $uid, string $address): ?IService {
 
 		try {
 			// retrieve service details from data store
 			$accounts = $this->ServicesService->fetchByUserIdAndAddress($uid, $address);
-		} catch(\Throwable $th) {
+		} catch (\Throwable $th) {
 			return null;
 		}
 		// evaliate if service details where found
@@ -175,7 +174,7 @@ class Provider implements IProvider {
 
 	protected function instanceService(string $uid, array $entry): Service {
 		// extract values
-		$id = (string) $entry['id'];
+		$id = (string)$entry['id'];
 		$label = $entry['label'];
 		$address = new MailAddress($entry['address_primary'], '');
 		$location = new ServiceLocation(
@@ -206,7 +205,7 @@ class Provider implements IProvider {
 	 *
 	 * @since 30.0.0
 	 *
-	 * @return IService				blank service instance
+	 * @return IService blank service instance
 	 */
 	public function initiateService(): IService {
 
@@ -219,10 +218,10 @@ class Provider implements IProvider {
 	 *
 	 * @since 2024.06.25
 	 *
-	 * @param string $uid			user id of user to configure service for
-	 * @param IService $service 	service configuration object
+	 * @param string $uid user id of user to configure service for
+	 * @param IService $service service configuration object
 	 *
-	 * @return string				id of created service
+	 * @return string id of created service
 	 */
 	public function createService(string $uid, IService $service): string {
 
@@ -235,10 +234,10 @@ class Provider implements IProvider {
 	 *
 	 * @since 2024.06.25
 	 *
-	 * @param string $uid			user id of user to configure service for
-	 * @param IService $service 	service configuration object
+	 * @param string $uid user id of user to configure service for
+	 * @param IService $service service configuration object
 	 *
-	 * @return string				id of modifided service
+	 * @return string id of modifided service
 	 */
 	public function modifyService(string $uid, IService $service): string {
 
@@ -251,10 +250,10 @@ class Provider implements IProvider {
 	 *
 	 * @since 2024.06.25
 	 *
-	 * @param string $uid			user id of user to delete service for
-	 * @param IService $service 	service configuration object
+	 * @param string $uid user id of user to delete service for
+	 * @param IService $service service configuration object
 	 *
-	 * @return bool					status of delete action
+	 * @return bool status of delete action
 	 */
 	public function deleteService(string $uid, IService $service): bool {
 

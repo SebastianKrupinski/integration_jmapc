@@ -1,35 +1,36 @@
 <?php
+
 declare(strict_types=1);
 
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 namespace OCA\JMAPC\Migration;
 
 use Closure;
 use OCP\DB\ISchemaWrapper;
 use OCP\DB\Types;
-use OCP\Migration\SimpleMigrationStep;
 use OCP\Migration\IOutput;
+use OCP\Migration\SimpleMigrationStep;
 
 class Version1000Date20240701 extends SimpleMigrationStep {
 
@@ -150,7 +151,7 @@ class Version1000Date20240701 extends SimpleMigrationStep {
 			$table->addColumn('contacts_prevalence', Types::STRING, [
 				'length' => 2,
 				'notnull' => false
-			]);	
+			]);
 			// events harmonization
 			$table->addColumn('events_harmonize', Types::INTEGER, [
 				'notnull' => false
@@ -159,7 +160,7 @@ class Version1000Date20240701 extends SimpleMigrationStep {
 			$table->addColumn('events_prevalence', Types::STRING, [
 				'length' => 2,
 				'notnull' => false
-			]);	
+			]);
 			// tasks harmonization
 			$table->addColumn('tasks_harmonize', Types::INTEGER, [
 				'notnull' => false
@@ -168,7 +169,7 @@ class Version1000Date20240701 extends SimpleMigrationStep {
 			$table->addColumn('tasks_prevalence', Types::STRING, [
 				'length' => 2,
 				'notnull' => false
-			]);			
+			]);
 
 			$table->setPrimaryKey(['id']);
 		}

@@ -1,43 +1,39 @@
 <?php
+
 declare(strict_types=1);
 
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 namespace OCA\JMAPC\Service;
 
-use Datetime;
-use DateTimeZone;
-use Exception;
-use Throwable;
-use Psr\Log\LoggerInterface;
-use OCP\Files\IRootFolder;
-
-use OCA\JMAPC\Store\TaskStore;
-use OCA\JMAPC\Service\Local\LocalTasksService;
-use OCA\JMAPC\Service\Remote\RemoteTasksService;
-use OCA\JMAPC\Utile\Eas\EasClient;
-use OCA\JMAPC\Objects\TaskObject;
 use OCA\JMAPC\Objects\HarmonizationStatisticsObject;
+use OCA\JMAPC\Service\Local\LocalTasksService;
+
+use OCA\JMAPC\Service\Remote\RemoteTasksService;
+use OCA\JMAPC\Store\Local\TaskStore;
+use OCA\JMAPC\Utile\Eas\EasClient;
+use OCP\Files\IRootFolder;
+use Psr\Log\LoggerInterface;
 
 class TasksService {
 	
@@ -49,11 +45,11 @@ class TasksService {
 	private TaskStore $LocalStore;
 	private EasClient $RemoteStore;
 
-	public function __construct (LoggerInterface $logger,
-								LocalTasksService $LocalTasksService,
-								RemoteTasksService $RemoteTasksService,
-								IRootFolder $LocalFileStore,
-								TaskStore $LocalStore) {
+	public function __construct(LoggerInterface $logger,
+		LocalTasksService $LocalTasksService,
+		RemoteTasksService $RemoteTasksService,
+		IRootFolder $LocalFileStore,
+		TaskStore $LocalStore) {
 		$this->logger = $logger;
 		$this->LocalTasksService = $LocalTasksService;
 		$this->RemoteTasksService = $RemoteTasksService;
@@ -81,7 +77,7 @@ class TasksService {
 
 	/**
 	 * Perform harmonization for all contacts collection correlations
-	 * 
+	 *
 	 * @since Release 1.0.0
 	 *
 	 * @return HarmonizationStatisticsObject
@@ -93,11 +89,11 @@ class TasksService {
 		// extract required id's
 		$caid = $correlation->getid();
 		$lcid = $correlation->getloid();
-		$lcst = (string) $correlation->getlosignature();
+		$lcst = (string)$correlation->getlosignature();
 		$rcid = $correlation->getroid();
-		$rcst = (string) $correlation->getrosignature();
+		$rcst = (string)$correlation->getrosignature();
 		// delete and skip collection correlation if remote id or local id is missing
-		if (empty($lcid) || empty($rcid)){
+		if (empty($lcid) || empty($rcid)) {
 			$this->CorrelationsService->delete($correlation);
 			$this->logger->debug('EAS - Deleted tasks collection correlation for ' . $this->Configuration->UserId . ' due to missing Remote ID or Local ID');
 			return $statistics;
@@ -126,9 +122,9 @@ class TasksService {
 			foreach ($lCollectionDelta['additions'] as $variant) {
 				// process addition
 				$as = $this->harmonizeLocalAltered(
-					$this->Configuration->UserId, 
-					$lcid, 
-					$variant['id'], 
+					$this->Configuration->UserId,
+					$lcid,
+					$variant['id'],
 					$rcid,
 					$rcst,
 					$caid
@@ -174,7 +170,7 @@ class TasksService {
 			foreach ($lCollectionDelta['deletions'] as $variant) {
 				// process deletion
 				$as = $this->harmonizeLocalDelete(
-					$this->Configuration->UserId, 
+					$this->Configuration->UserId,
 					$lcid,
 					$variant['id'],
 					$rcst
@@ -194,7 +190,7 @@ class TasksService {
 		//$rCollectionDelta = [];
 		$rCollectionDelta = $this->RemoteTasksService->reconcileCollection($rcid, $rcst);
 		// evaluate if remote entity variations exist
-		// according to the EAS spec the change object can be blank if there is no changes 
+		// according to the EAS spec the change object can be blank if there is no changes
 		if (isset($rCollectionDelta->SyncKey)) {
 			//
 			$rcst = $rCollectionDelta->SyncKey->getContents();
@@ -234,11 +230,11 @@ class TasksService {
 			foreach ($rCollectionDelta->Commands->Modify as $Altered) {
 				// process modification
 				$as = $this->harmonizeRemoteAltered(
-					$this->Configuration->UserId, 
-					$rcid, 
+					$this->Configuration->UserId,
+					$rcid,
 					$Altered->EntityId->getContents(),
-					$Altered->Data, 
-					$lcid, 
+					$Altered->Data,
+					$lcid,
 					$caid
 				);
 				// increment statistics
@@ -262,8 +258,8 @@ class TasksService {
 			foreach ($rCollectionDelta->Commands->Delete as $Deleted) {
 				// process delete
 				$as = $this->harmonizeRemoteDelete(
-					$this->Configuration->UserId, 
-					$rcid, 
+					$this->Configuration->UserId,
+					$rcid,
 					$Deleted->EntityId->getContents()
 				);
 				if ($as == 'LD') {
@@ -283,19 +279,19 @@ class TasksService {
 
 	/**
 	 * Perform harmonization for locally altered object
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		User ID
-	 * @param int $lcid			Local Collection ID
-	 * @param int $loid			Local Entity ID
-	 * @param string $rcid		Remote Collection ID
-	 * @param string $rcst		Remote Collection Signature Token
-	 * @param int $caid			Correlation Affiliation ID
 	 *
-	 * @return string 			what action was performed
+	 * @since Release 1.0.0
+	 *
+	 * @param string $uid User ID
+	 * @param int $lcid Local Collection ID
+	 * @param int $loid Local Entity ID
+	 * @param string $rcid Remote Collection ID
+	 * @param string $rcst Remote Collection Signature Token
+	 * @param int $caid Correlation Affiliation ID
+	 *
+	 * @return string what action was performed
 	 */
-	function harmonizeLocalAltered ($uid, $lcid, $leid, $rcid, &$rcst, $caid): string {
+	public function harmonizeLocalAltered($uid, $lcid, $leid, $rcid, &$rcst, $caid): string {
 
 		// // define default operation status
 		$status = 'NA'; // no actions
@@ -315,13 +311,13 @@ class TasksService {
 		// if correlation exists
 		// compare local signature to correlation signature and stop processing if they match
 		// this is nessary to prevent synconization feedback loop
-		if ($ci instanceof \OCA\JMAPC\Store\Correlation && 
+		if ($ci instanceof \OCA\JMAPC\Store\Correlation &&
 			$ci->getlosignature() == $lo->Signature) {
 			// return default operation status
 			return $status;
 		}
 		// if correlation exists, try to retrieve remote entity
-		if ($ci instanceof \OCA\JMAPC\Store\Correlation && 
+		if ($ci instanceof \OCA\JMAPC\Store\Correlation &&
 			!empty($ci->getroid())) {
 			// retrieve entity
 			$ro = $this->RemoteTasksService->entityFetch($ci->getrcid(), $rcst, $ci->getroid());
@@ -361,8 +357,7 @@ class TasksService {
 					$status = 'RU'; // Remote Update
 				}
 			}
-		}
-		else {
+		} else {
 			// create remote entity
 			$ro = $this->RemoteTasksService->entityCreate($rcid, $rcst, $lo);
 			// assign operation status
@@ -378,8 +373,7 @@ class TasksService {
 			$ci->setrosignature($ro->Signature); // Remote Signature
 			$ci->setrcid($rcid); // Remote Collection ID
 			$this->CorrelationsService->update($ci);
-		}
-		elseif (isset($ro) && isset($lo)) {
+		} elseif (isset($ro) && isset($lo)) {
 			$ci = new \OCA\JMAPC\Store\Correlation();
 			$ci->settype(CorrelationsService::TaskEntity); // Correlation Type
 			$ci->setuid($uid); // User ID
@@ -399,17 +393,17 @@ class TasksService {
 
 	/**
 	 * Perform harmonization for locally deleted entity
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	user id
-	 * @param string $lcid	local collection id
-	 * @param string $loid	local entity id
-	 * @param string $rcst	remote collection signature token
+	 *
+	 * @param string $uid user id
+	 * @param string $lcid local collection id
+	 * @param string $loid local entity id
+	 * @param string $rcst remote collection signature token
 	 *
 	 * @return string what action was performed
 	 */
-	function harmonizeLocalDelete ($uid, $lcid, $leid, &$rcst): string {
+	public function harmonizeLocalDelete($uid, $lcid, $leid, &$rcst): string {
 
 		// retrieve correlation
 		$ci = $this->CorrelationsService->findByLocalId($uid, CorrelationsService::TaskEntity, $leid, $lcid);
@@ -421,8 +415,7 @@ class TasksService {
 			$this->CorrelationsService->delete($ci);
 			// return status of action
 			return 'RD';
-		}
-		else {
+		} else {
 			// return status of action
 			return 'NA';
 		}
@@ -431,18 +424,18 @@ class TasksService {
 
 	/**
 	 * Perform harmonization for remotely altered entity
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		User id
-	 * @param string $rcid		remote collection id
-	 * @param string $reid		remote object id
-	 * @param string $lcid		local collection id
-	 * @param string $caid		correlation affiliation id
 	 *
-	 * @return string 			what action was performed
+	 * @since Release 1.0.0
+	 *
+	 * @param string $uid User id
+	 * @param string $rcid remote collection id
+	 * @param string $reid remote object id
+	 * @param string $lcid local collection id
+	 * @param string $caid correlation affiliation id
+	 *
+	 * @return string what action was performed
 	 */
-	function harmonizeRemoteAltered ($uid, $rcid, $reid, $rdata, $lcid, $caid): string {
+	public function harmonizeRemoteAltered($uid, $rcid, $reid, $rdata, $lcid, $caid): string {
 		
 		// define default operation status
 		$status = 'NA'; // no acction
@@ -463,21 +456,21 @@ class TasksService {
 		$ro->RCID = $rcid;
 		$ro->REID = $reid;
 		// generate a signature for the data
-        // this a crude but nessary as EAS does not transmit a harmonization signature for entities
-        $ro->Signature = $this->generateSignature($ro);
+		// this a crude but nessary as EAS does not transmit a harmonization signature for entities
+		$ro->Signature = $this->generateSignature($ro);
 		// retrieve correlation for remote and local entity
 		$ci = $this->CorrelationsService->findByRemoteId($uid, CorrelationsService::TaskEntity, $reid, $rcid);
 		// if correlation exists
 		// compare remote generated signature to correlation signature and stop processing if they match
 		// this is nessary to prevent synconization feedback loop
-		if ($ci instanceof \OCA\JMAPC\Store\Correlation && 
+		if ($ci instanceof \OCA\JMAPC\Store\Correlation &&
 			$ci->getrosignature() == $ro->Signature) {
 			// return default operation status
 			return $status;
 		}
 		// if correlation exists, try to retrieve local entity
-		if ($ci instanceof \OCA\JMAPC\Store\Correlation && 
-			$ci->getloid()) {			
+		if ($ci instanceof \OCA\JMAPC\Store\Correlation &&
+			$ci->getloid()) {
 			$lo = $this->LocalTasksService->entityFetch($ci->getloid());
 		}
 		// modify local entity if one EXISTS
@@ -514,8 +507,7 @@ class TasksService {
 					$status = 'RU'; // Remote Update
 				}
 			}
-		}
-		else {
+		} else {
 			// create local entity
 			$lo = $this->LocalTasksService->entityCreate($uid, $lcid, $ro);
 			// assign operation status
@@ -531,8 +523,7 @@ class TasksService {
 			$ci->setrosignature($ro->Signature); // Remote Signature
 			$ci->setrcid($rcid); // Remote Collection ID
 			$this->CorrelationsService->update($ci);
-		}
-		elseif (isset($ro) && isset($lo)) {
+		} elseif (isset($ro) && isset($lo)) {
 			$ci = new \OCA\JMAPC\Store\Correlation();
 			$ci->settype(CorrelationsService::TaskEntity); // Correlation Type
 			$ci->setuid($uid); // User ID
@@ -552,16 +543,16 @@ class TasksService {
 
 	/**
 	 * Perform harmonization for remotely deleted object
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * @param string $rcid	local collection id
-	 * @param string $reid	local object id
+	 *
+	 * @param string $uid nextcloud user id
+	 * @param string $rcid local collection id
+	 * @param string $reid local object id
 	 *
 	 * @return string what action was performed
 	 */
-	function harmonizeRemoteDelete ($uid, $rcid, $reid): string {
+	public function harmonizeRemoteDelete($uid, $rcid, $reid): string {
 
 		// find correlation
 		$ci = $this->CorrelationsService->findByRemoteId($uid, CorrelationsService::TaskEntity, $reid, $rcid);
@@ -573,8 +564,7 @@ class TasksService {
 			$this->CorrelationsService->delete($ci);
 			// return operation status
 			return 'LD';
-		}
-		else {
+		} else {
 			// return operation status
 			return 'NA';
 		}
@@ -582,14 +572,14 @@ class TasksService {
 	}
 
 	public function generateSignature($eo): string {
-        
-        // clone self
-        $o = clone $eo;
-        // remove non needed values
-        unset($o->ID, $o->CID, $o->UUID, $o->RCID, $o->REID, $o->Signature, $o->CreatedOn, $o->ModifiedOn);
-        // generate signature
-        return md5(json_encode($o));
+		
+		// clone self
+		$o = clone $eo;
+		// remove non needed values
+		unset($o->ID, $o->CID, $o->UUID, $o->RCID, $o->REID, $o->Signature, $o->CreatedOn, $o->ModifiedOn);
+		// generate signature
+		return md5(json_encode($o));
 
-    }
+	}
 
 }

@@ -1,33 +1,34 @@
 <?php
+
 declare(strict_types=1);
 
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
-namespace OCA\JMAPC\Store;
+namespace OCA\JMAPC\Store\Local;
 
-use OCP\AppFramework\Db\Entity;
-use OCP\DB\QueryBuilder\IQueryBuilder;
 use OC\DB\QueryBuilder\Literal;
+use OCA\JMAPC\Store\Common\Range\IRange;
+use OCP\AppFramework\Db\Entity;
 use OCP\IDBConnection;
 
 class BaseStore {
@@ -43,19 +44,19 @@ class BaseStore {
 
 	protected function toCollection(array $row): Entity {
 		unset($row['DOCTRINE_ROWNUM']); // remove doctrine/dbal helper column
-		return \call_user_func($this->_CollectionClass .'::fromRow', $row);
+		return \call_user_func($this->_CollectionClass . '::fromRow', $row);
 	}
 
 	protected function toEntity(array $row): Entity {
 		unset($row['DOCTRINE_ROWNUM']); // remove doctrine/dbal helper column
-		return \call_user_func($this->_EntityClass .'::fromRow', $row);
+		return \call_user_func($this->_EntityClass . '::fromRow', $row);
 	}
 
 	/**
 	 * retrieve collections from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return array<int, CollectionEntity>
 	 */
 	public function collectionList(): array {
@@ -80,11 +81,11 @@ class BaseStore {
 
 	/**
 	 * retrieve collections for specific user from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		user id
-	 * 
+	 *
+	 * @param string $uid user id
+	 *
 	 * @return array<int, CollectionEntity>
 	 */
 	public function collectionListByUser(string $uid): array {
@@ -111,11 +112,11 @@ class BaseStore {
 
 	/**
 	 * retrieve collections for specific user from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $sid			service id
-	 * 
+	 *
+	 * @param int $sid service id
+	 *
 	 * @return array<int, CollectionEntity>
 	 */
 	public function collectionListByService(int $sid): array {
@@ -142,11 +143,11 @@ class BaseStore {
 
 	/*
 	 * confirm collection exists in data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @param int $id			collection id
-	 * 
+	 *
 	 * @return int|bool			collection id on success / false on failure
 	 */
 	public function collectionConfirm(int $cid): int|bool {
@@ -161,9 +162,8 @@ class BaseStore {
 		$cmd->executeQuery()->closeCursor();
 		// evaluate if anything was found
 		if (is_array($data) && count($data) > 0) {
-			return (int) $data['id'];
-		}
-		else {
+			return (int)$data['id'];
+		} else {
 			return false;
 		}
 
@@ -171,13 +171,13 @@ class BaseStore {
 
 	/**
 	 * confirm collection exists in data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		user id
-	 * @param string $uuid		collection uuid
-	 * 
-	 * @return int|bool			collection id on success / false on failure
+	 *
+	 * @param string $uid user id
+	 * @param string $uuid collection uuid
+	 *
+	 * @return int|bool collection id on success / false on failure
 	 */
 	public function collectionConfirmByUUID(string $uid, string $uuid): int|bool {
 		
@@ -192,9 +192,8 @@ class BaseStore {
 		$cmd->executeQuery()->closeCursor();
 		// evaluate if anything was found
 		if (is_array($data) && count($data) > 0) {
-			return (int) $data['id'];
-		}
-		else {
+			return (int)$data['id'];
+		} else {
 			return false;
 		}
 
@@ -202,11 +201,11 @@ class BaseStore {
 
 	/**
 	 * retrieve collection from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $id			collection id
-	 * 
+	 *
+	 * @param int $id collection id
+	 *
 	 * @return CollectionEntity
 	 */
 	public function collectionFetch(int $id): CollectionEntity {
@@ -228,12 +227,12 @@ class BaseStore {
 
 	/**
 	 * retrieve collection from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		user id
-	 * @param string $uuid		collection uuid
-	 * 
+	 *
+	 * @param string $uid user id
+	 * @param string $uuid collection uuid
+	 *
 	 * @return CollectionEntity
 	 */
 	public function collectionFetchByUUID(string $uid, string $uuid): CollectionEntity {
@@ -256,9 +255,9 @@ class BaseStore {
 
 	/**
 	 * fresh instance of a collection entity
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return CollectionEntity
 	 */
 	public function collectionFresh(): CollectionEntity {
@@ -269,11 +268,11 @@ class BaseStore {
 
 	/**
 	 * create a collection entry in the data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @param CollectionEntity $entity
-	 * 
+	 *
 	 * @return CollectionEntity
 	 */
 	public function collectionCreate(CollectionEntity $entity): CollectionEntity {
@@ -305,11 +304,11 @@ class BaseStore {
 	
 	/**
 	 * modify a collection entry in the data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @param CollectionEntity $entity
-	 * 
+	 *
 	 * @return CollectionEntity
 	 */
 	public function collectionModify(CollectionEntity $entity): CollectionEntity {
@@ -344,18 +343,18 @@ class BaseStore {
 
 	/**
 	 * delete a collection entry from the data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @param CollectionEntity $entity
-	 * 
+	 *
 	 * @return CollectionEntity
 	 */
 	public function collectionDelete(CollectionEntity $entity): CollectionEntity {
 
 		// remove entities
 		$this->entityDeleteByCollection($entity->getId());
-		// remove chronicle 
+		// remove chronicle
 		$this->chronicleExpungeByCollection($entity->getId());
 		// remove collection
 		// construct command
@@ -371,18 +370,18 @@ class BaseStore {
 
 	/**
 	 * delete collections for a specific user from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $id		collection id
-	 * 
+	 *
+	 * @param int $id collection id
+	 *
 	 * @return mixed
 	 */
 	public function collectionDeleteById(int $id): mixed {
 
 		// remove entities
 		$this->entityDeleteByCollection($id);
-		// remove chronicle 
+		// remove chronicle
 		$this->chronicleExpungeByCollection($id);
 		// remove collection
 		// construct data store command
@@ -396,18 +395,18 @@ class BaseStore {
 
 	/**
 	 * delete collections for a specific user from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $id		user id
-	 * 
+	 *
+	 * @param string $id user id
+	 *
 	 * @return mixed
 	 */
 	public function collectionDeleteByUser(string $id): mixed {
 
 		// remove entities
 		$this->entityDeleteByUser($id);
-		// remove chronicle 
+		// remove chronicle
 		$this->chronicleExpungeByUser($id);
 		// remove collection
 		// construct data store command
@@ -422,18 +421,18 @@ class BaseStore {
 
 	/**
 	 * delete collections for a specific user from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $id			service id
-	 * 
+	 *
+	 * @param int $id service id
+	 *
 	 * @return mixed
 	 */
 	public function collectionDeleteByService(int $id): mixed {
 
 		// remove entities
 		$this->entityDeleteByService($id);
-		// remove chronicle 
+		// remove chronicle
 		$this->chronicleExpungeByService($id);
 		// remove collection
 		// construct data store command
@@ -448,12 +447,12 @@ class BaseStore {
 
 	/**
 	 * retrieve entities for specific user from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		user id
-	 * 
-	 * @return array 			of entities
+	 *
+	 * @param string $uid user id
+	 *
+	 * @return array of entities
 	 */
 	public function entityList(string $uid): array {
 		
@@ -478,12 +477,12 @@ class BaseStore {
 
 	/**
 	 * retrieve entities for specific user and collection from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $cid			collection id
-	 * 
-	 * @return array 			of entities
+	 *
+	 * @param int $cid collection id
+	 *
+	 * @return array of entities
 	 */
 	public function entityListByCollection(int $cid): array {
 		
@@ -508,12 +507,12 @@ class BaseStore {
 
 	/**
 	 * confirm entity exists in data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $id			entity id
-	 * 
-	 * @return int|bool			entry id on success / false on failure
+	 *
+	 * @param int $id entity id
+	 *
+	 * @return int|bool entry id on success / false on failure
 	 */
 	public function entityConfirm(int $id): int|bool {
 
@@ -527,9 +526,8 @@ class BaseStore {
 		$cmd->executeQuery()->closeCursor();
 		// evaluate if anything was found
 		if (is_array($data) && count($data) > 0) {
-			return (int) $data['id'];
-		}
-		else {
+			return (int)$data['id'];
+		} else {
 			return false;
 		}
 
@@ -537,13 +535,13 @@ class BaseStore {
 
 	/**
 	 * check if entity exists in data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $cid			collection id
-	 * @param string $uuid		entity uuid
-	 * 
-	 * @return int|bool			entry id on success / false on failure
+	 *
+	 * @param int $cid collection id
+	 * @param string $uuid entity uuid
+	 *
+	 * @return int|bool entry id on success / false on failure
 	 */
 	public function entityConfirmByUUID(int $cid, string $uuid): int|bool {
 
@@ -558,9 +556,8 @@ class BaseStore {
 		$cmd->executeQuery()->closeCursor();
 		// evaluate if anything was found
 		if (is_array($data) && count($data) > 0) {
-			return (int) $data['id'];
-		}
-		else {
+			return (int)$data['id'];
+		} else {
 			return false;
 		}
 
@@ -568,21 +565,21 @@ class BaseStore {
 
 	/**
 	 * retrieve entities for specific user, collection and search parameters from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $cid 			collection id
-	 * @param array $filter		filter options
-	 * @param array $elements	data fields
-	 * 
-	 * @return array 			of entities
+	 *
+	 * @param int $cid collection id
+	 * @param array $filter filter options
+	 * @param array $elements data fields
+	 *
+	 * @return array of entities
 	 */
-	public function entityFind(int $cid, array $filter, array $elements = []): array {
+	public function entityFind(string $cid, array $elements = [], ?array $filter = null, ?IRange $range = null, $sort): array {
 		
 		// evaluate if specific elements where requested
 		if (!is_array($elements)) {
 			$elements = ['*'];
-		} 
+		}
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select($elements)
@@ -629,14 +626,14 @@ class BaseStore {
 
 	/**
 	 * retrieve entity from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $id		entity id
-	 * 
+	 *
+	 * @param int $id entity id
+	 *
 	 * @return Entity|null
 	 */
-	public function entityFetch(int $id): Entity|null {
+	public function entityFetch(int $id): ?Entity {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -660,15 +657,15 @@ class BaseStore {
 
 	/**
 	 * retrieve entity from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $cid			collection id
-	 * @param string $uuid		entity uuid
-	 *  
+	 *
+	 * @param int $cid collection id
+	 * @param string $uuid entity uuid
+	 *
 	 * @return Entity|null
 	 */
-	public function entityFetchByUUID(int $cid, string $uuid): Entity|null {
+	public function entityFetchByUUID(int $cid, string $uuid): ?Entity {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -693,16 +690,16 @@ class BaseStore {
 
 	/**
 	 * retrieve entity from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $cid			collection id
-	 * @param string $ccid		correlation collection id
-	 * @param string $ceid		correlation entity id
-	 *  
+	 *
+	 * @param int $cid collection id
+	 * @param string $ccid correlation collection id
+	 * @param string $ceid correlation entity id
+	 *
 	 * @return Entity|null
 	 */
-	public function entityFetchByCorrelation(int $cid, string $ccid, string $ceid): Entity|null {
+	public function entityFetchByCorrelation(int $cid, string $ccid, string $ceid): ?Entity {
 
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
@@ -717,8 +714,7 @@ class BaseStore {
 			$entity = $rsl->fetch();
 			if ($entity) {
 				return $this->toEntity($entity);
-			}
-			else {
+			} else {
 				return null;
 			}
 		} finally {
@@ -729,9 +725,9 @@ class BaseStore {
 
 	/**
 	 * fresh instance of a entity
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return Entity
 	 */
 	public function entityFresh(): Entity {
@@ -742,11 +738,11 @@ class BaseStore {
 
 	/**
 	 * create a entity entry in the data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @param Entity $entity
-	 * 
+	 *
 	 * @return Entity
 	 */
 	public function entityCreate(Entity $entity): Entity {
@@ -778,11 +774,11 @@ class BaseStore {
 	
 	/**
 	 * modify a entity entry in the data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @param Entity $entity
-	 * 
+	 *
 	 * @return Entity
 	 */
 	public function entityModify(Entity $entity): Entity {
@@ -817,11 +813,11 @@ class BaseStore {
 
 	/**
 	 * delete a entity from the data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @param Entity $entity
-	 * 
+	 *
 	 * @return Entity
 	 */
 	public function entityDelete(Entity $entity): Entity {
@@ -841,11 +837,11 @@ class BaseStore {
 
 	/**
 	 * delete entity by id
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $id		entity id
-	 * 
+	 *
+	 * @param string $id entity id
+	 *
 	 * @return mixed
 	 */
 	public function entityDeleteById(int $id): mixed {
@@ -861,11 +857,11 @@ class BaseStore {
 
 	/**
 	 * delete entities for a specific user from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		user id
-	 * 
+	 *
+	 * @param string $uid user id
+	 *
 	 * @return mixed
 	 */
 	public function entityDeleteByUser(string $uid): mixed {
@@ -881,11 +877,11 @@ class BaseStore {
 
 	/**
 	 * delete entities for a specific service from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $sid			service id
-	 * 
+	 *
+	 * @param int $sid service id
+	 *
 	 * @return mixed
 	 */
 	public function entityDeleteByService(int $sid): mixed {
@@ -901,11 +897,11 @@ class BaseStore {
 
 	/**
 	 * delete entities for a specific collection from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $cid		collection id
-	 * 
+	 *
+	 * @param int $cid collection id
+	 *
 	 * @return mixed
 	 */
 	public function entityDeleteByCollection(int $cid): mixed {
@@ -921,16 +917,16 @@ class BaseStore {
 
 	/**
 	 * chronicle a operation to an entity to the data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		user id
-	 * @param int $sid			service id
-	 * @param string $cid		collection id
-	 * @param string $eid		entity id
-	 * @param string $euuid		entity uuid
-	 * @param string $operation		operation type (1 - Created, 2 - Modified, 3 - Deleted)
-	 * 
+	 *
+	 * @param string $uid user id
+	 * @param int $sid service id
+	 * @param string $cid collection id
+	 * @param string $eid entity id
+	 * @param string $euuid entity uuid
+	 * @param string $operation operation type (1 - Created, 2 - Modified, 3 - Deleted)
+	 *
 	 * @return string
 	 */
 	public function chronicleDocument(string $uid, int $sid, int $cid, int $eid, string $euuid, int $operation): string {
@@ -951,18 +947,18 @@ class BaseStore {
 		// execute command
 		$cmd->executeStatement();
 		// return stamp
-		return base64_encode((string) $stamp);
+		return base64_encode((string)$stamp);
 		
 	}
 
 	/**
 	 * reminisce operations to entities in data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $cid			collection id
-	 * @param int $encode		weather to encode the result
-	 * 
+	 *
+	 * @param int $cid collection id
+	 * @param int $encode weather to encode the result
+	 *
 	 * @return int|float|string
 	 */
 	public function chronicleApex(int $cid, bool $encode = true): int|float|string {
@@ -985,14 +981,14 @@ class BaseStore {
 
 	/**
 	 * reminisce operations to entities in data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $cid			collection id
-	 * @param string $stamp		time stamp
-	 * @param int $limit		results limit
-	 * @param int $offset		results offset
-	 * 
+	 *
+	 * @param int $cid collection id
+	 * @param string $stamp time stamp
+	 * @param int $limit results limit
+	 * @param int $offset results offset
+	 *
 	 * @return array
 	 */
 	public function chronicleReminisce(int $cid, string $stamp, ?int $limit = null, ?int $offset = null): array {
@@ -1014,8 +1010,7 @@ class BaseStore {
 		if ($initial) {
 			// select only entries that are not deleted
 			$cmd->having(new Literal('MAX(operation) != 3'));
-		}
-		else {
+		} else {
 			// select entries between nadir and apex
 			$cmd->andWhere($cmd->expr()->gt('stamp', $cmd->createNamedParameter($stampNadir)));
 			$cmd->andWhere($cmd->expr()->lte('stamp', $cmd->createNamedParameter($stampApex)));
@@ -1030,7 +1025,7 @@ class BaseStore {
 		}
 
 		// define place holder
-		$chronicle = ['additions' => [], 'modifications' => [], 'deletions' => [], 'stamp' => base64_encode((string) $stampApex)];
+		$chronicle = ['additions' => [], 'modifications' => [], 'deletions' => [], 'stamp' => base64_encode((string)$stampApex)];
 		
 		// execute command
 		$rs = $cmd->executeQuery();
@@ -1058,11 +1053,11 @@ class BaseStore {
 
 	/**
 	 * delete chronicle entries for a specific user from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $id		user id
-	 * 
+	 *
+	 * @param int $id user id
+	 *
 	 * @return mixed
 	 */
 	public function chronicleExpungeByUser(string $id) {
@@ -1076,11 +1071,11 @@ class BaseStore {
 
 	/**
 	 * delete chronicle entries for a specific service from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $id		service id
-	 * 
+	 *
+	 * @param int $id service id
+	 *
 	 * @return mixed
 	 */
 	public function chronicleExpungeByService(int $id) {
@@ -1094,11 +1089,11 @@ class BaseStore {
 
 	/**
 	 * delete chronicle entries for a specific collection from data store
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param int $id		collection id
-	 * 
+	 *
+	 * @param int $id collection id
+	 *
 	 * @return mixed
 	 */
 	public function chronicleExpungeByCollection(int $id) {

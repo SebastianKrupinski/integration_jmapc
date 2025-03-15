@@ -6,7 +6,7 @@ use OCA\DAV\CardDAV\Integration\ExternalAddressBook;
 use OCA\DAV\CardDAV\Integration\IAddressBookProvider;
 
 use OCA\JMAPC\AppInfo\Application;
-use OCA\JMAPC\Store\ContactStore;
+use OCA\JMAPC\Store\Local\ContactStore;
 
 class Provider implements IAddressBookProvider {
 
@@ -58,8 +58,7 @@ class Provider implements IAddressBookProvider {
 
 		if (isset($entry)) {
 			return new ContactCollection($this->_store, $entry);
-		}
-		else {
+		} else {
 			return null;
 		}
 

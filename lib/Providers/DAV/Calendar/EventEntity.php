@@ -2,8 +2,7 @@
 
 namespace OCA\JMAPC\Providers\DAV\Calendar;
 
-use OCA\JMAPC\Providers\DAV\Calendar\EventCollection;
-use OCA\JMAPC\Store\EventEntity as EventEntityData;
+use OCA\JMAPC\Store\Local\EventEntity as EventEntityData;
 
 class EventEntity implements \Sabre\CalDAV\ICalendarObject, \Sabre\DAVACL\IACL {
 
@@ -24,104 +23,104 @@ class EventEntity implements \Sabre\CalDAV\ICalendarObject, \Sabre\DAVACL\IACL {
 	/**
 	 * @inheritDoc
 	 */
-	function getOwner() {
+	public function getOwner() {
 		return $this->_collection->getOwner();
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function getGroup() {
+	public function getGroup() {
 		return $this->_collection->getGroup();
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function getACL() {
+	public function getACL() {
 		return [
-            [
-                'privilege' => '{DAV:}all',
-                'principal' => $this->getOwner(),
-                'protected' => true,
-            ],
-        ];
+			[
+				'privilege' => '{DAV:}all',
+				'principal' => $this->getOwner(),
+				'protected' => true,
+			],
+		];
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function setACL(array $acl) {
+	public function setACL(array $acl) {
 		throw new \Sabre\DAV\Exception\Forbidden('This function is not supported yet');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function getSupportedPrivilegeSet() {
+	public function getSupportedPrivilegeSet() {
 		return null;
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function get() {
+	public function get() {
 		return $this->_entity->getData();
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function put($data) {
+	public function put($data) {
 		return $this->_collection->modifyFile($this->_entity, $data);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function delete() {
+	public function delete() {
 		return $this->_collection->deleteFile($this->_entity);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function getContentType() {
+	public function getContentType() {
 		return 'text/calendar; charset=utf-8';
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function getETag() {
+	public function getETag() {
 		return $this->_entity->getSignature();
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function getSize() {
+	public function getSize() {
 		return strlen($this->_entity->getData());
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function getName() {
+	public function getName() {
 		return $this->_entity->getUuid() . '.ics';
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function setName($name) {
+	public function setName($name) {
 		throw new \Sabre\DAV\Exception\Forbidden('This function is not supported yet');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	function getLastModified() {
+	public function getLastModified() {
 		return time();
 	}
 

@@ -1,67 +1,64 @@
 <?php
+
 declare(strict_types=1);
 
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 namespace OCA\JMAPC\Service;
 
-use Psr\Log\LoggerInterface;
-
-use OCA\JMAPC\Service\ConfigurationService;
-use OCA\JMAPC\Service\CoreService;
-use OCA\JMAPC\Service\ContactsService;
-use OCA\JMAPC\Service\EventsService;
-use OCA\JMAPC\Service\TasksService;
-use OCA\JMAPC\Service\HarmonizationThreadService;
 use OCA\JMAPC\Service\Remote\RemoteCommonService;
+
 use OCA\JMAPC\Service\Remote\RemoteService;
+use Psr\Log\LoggerInterface;
 
 class HarmonizationService {
 
-	public function __construct (string $appName,
-			private LoggerInterface $logger,
-			private ConfigurationService $ConfigurationService,
-			private CoreService $CoreService,
-			private ServicesService $ServicesService,
-			private RemoteCommonService $RemoteCommonService,
-			private ContactsService $ContactsService,
-			private EventsService $EventsService,
-			private TasksService $TasksService,
-			private HarmonizationThreadService $HarmonizationThreadService
-	) {}
+	public function __construct(
+		string $appName,
+		private LoggerInterface $logger,
+		private ConfigurationService $ConfigurationService,
+		private CoreService $CoreService,
+		private ServicesService $ServicesService,
+		private RemoteCommonService $RemoteCommonService,
+		private ContactsService $ContactsService,
+		private EventsService $EventsService,
+		private TasksService $TasksService,
+		private HarmonizationThreadService $HarmonizationThreadService,
+	) {
+	}
 
 	/**
 	 * Perform harmonization for all modules
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		user id
-	 * @param int $sid			service id
-	 * @param string $mode		running mode (S - Service, M - Manually)
+	 *
+	 * @param string $uid user id
+	 * @param int $sid service id
+	 * @param string $mode running mode (S - Service, M - Manually)
 	 *
 	 * @return void
 	 */
-	public function performHarmonization(string $uid, int $sid, string $mode = "S"): void {
+	public function performHarmonization(string $uid, int $sid, string $mode = 'S'): void {
 
 		// retrieve service
 		$service = $this->ServicesService->fetchByUserIdAndServiceId($uid, $sid);
@@ -113,10 +110,10 @@ class HarmonizationService {
 
 	/**
 	 * Perform harmonization for all modules
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
+	 *
+	 * @param string $uid nextcloud user id
 	 *
 	 * @return void
 	 */
@@ -182,12 +179,12 @@ class HarmonizationService {
 			}
 
 		} catch (Exception $e) {
-			
+
 			throw new Exception($e, 1);
-			
+
 		}
 		*/
-		 /*
+		/*
 		// events harmonization
 		try {
 			// evaluate, if calendar app is available and events harmonization is turned on
@@ -232,12 +229,12 @@ class HarmonizationService {
 				}
 				$this->logger->info('Finished Harmonization of Events for ' . $uid);
 			}
-			
+
 
 		} catch (Exception $e) {
-			
+
 			throw new Exception($e, 1);
-			
+
 		}
 		*/
 
@@ -288,9 +285,9 @@ class HarmonizationService {
 			}
 
 		} catch (Exception $e) {
-			
+
 			throw new Exception($e, 1);
-			
+
 		}
 		*/
 		// update harmonization state and end time
@@ -305,18 +302,16 @@ class HarmonizationService {
 		// evaluate if any correlation where found
 		if (count($cc) > 0) {
 			// extract correlation ids
-			$ids = array_map(function($o) { return $o->getroid();}, $cc);
+			$ids = array_map(function ($o) { return $o->getroid();}, $cc);
 			// create remote store client
 			$remoteStore = $this->CoreService->createClient($uid);
 			// execute command
 			$rs = $this->RemoteCommonService->connectEvents($remoteStore, $duration, $ids, null, ['CreatedEvent', 'ModifiedEvent', 'DeletedEvent', 'CopiedEvent', 'MovedEvent']);
 		}
 		// return id and token
-		if ($rs instanceof \stdClass)
-		{
+		if ($rs instanceof \stdClass) {
 			return $rs;
-		}
-		else {
+		} else {
 			return null;
 		}
 
@@ -396,7 +391,7 @@ class HarmonizationService {
 		}
 
 		// return response
-		return (object) ['Id' => $id, 'Token' => $token, 'signature' => $state];
+		return (object)['Id' => $id, 'Token' => $token, 'signature' => $state];
 
 	}
 

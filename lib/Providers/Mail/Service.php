@@ -26,18 +26,17 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Providers\Mail;
 
 use OCA\JMAPC\Providers\IRange;
-use OCA\JMAPC\Providers\ServiceLocation;
+use OCA\JMAPC\Providers\IServiceIdentity;
+use OCA\JMAPC\Providers\IServiceLocation;
 use OCA\JMAPC\Providers\ServiceIdentityBAuth;
 use OCA\JMAPC\Providers\ServiceIdentityOAuth;
-use OCA\JMAPC\Providers\Mail\Message;
+use OCA\JMAPC\Providers\ServiceLocation;
 use OCA\JMAPC\Service\Remote\RemoteService;
+use OCP\Mail\Provider\Address;
 use OCP\Mail\Provider\IAddress;
 use OCP\Mail\Provider\IMessage;
 use OCP\Mail\Provider\IMessageSend;
 use OCP\Mail\Provider\IService;
-use OCA\JMAPC\Providers\IServiceIdentity;
-use OCA\JMAPC\Providers\IServiceLocation;
-use OCP\Mail\Provider\Address;
 use Psr\Container\ContainerInterface;
 
 class Service implements IService, IMessageSend {
@@ -81,7 +80,7 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 2024.05.25
 	 *
-	 * @return string						id of this service (e.g. 1 or service1 or anything else)
+	 * @return string id of this service (e.g. 1 or service1 or anything else)
 	 */
 	public function id(): string {
 
@@ -94,15 +93,15 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 4.0.0
 	 *
-	 * @param string $value					required ability e.g. 'MessageSend'
+	 * @param string $value required ability e.g. 'MessageSend'
 	 *
-	 * @return bool							true/false if ability is supplied and found in collection
+	 * @return bool true/false if ability is supplied and found in collection
 	 */
 	public function capable(string $value): bool {
 
 		// evaluate if required ability exists
 		if (isset($this->serviceAbilities[$value])) {
-			return (bool) $this->serviceAbilities[$value];
+			return (bool)$this->serviceAbilities[$value];
 		}
 		
 		return false;
@@ -114,7 +113,7 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 4.0.0
 	 *
-	 * @return array						collection of abilities otherwise empty collection
+	 * @return array collection of abilities otherwise empty collection
 	 */
 	public function capabilities(): array {
 
@@ -127,7 +126,7 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 2024.05.25
 	 *
-	 * @return string						label/name of service (e.g. ACME Company Mail Service)
+	 * @return string label/name of service (e.g. ACME Company Mail Service)
 	 */
 	public function getLabel(): string {
 
@@ -140,9 +139,9 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 2024.05.25
 	 *
-	 * @param string $value					label/name of service (e.g. ACME Company Mail Service)
+	 * @param string $value label/name of service (e.g. ACME Company Mail Service)
 	 *
-	 * @return self                         return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setLabel(string $value): self {
 
@@ -155,10 +154,10 @@ class Service implements IService, IMessageSend {
 	 * construct a new empty identity object
 	 *
 	 * @since 30.0.0
-	 * 
-	 * @param string $type					identity type e.g. BA = Basic, OA = Bearer
 	 *
-	 * @return IServiceIdentity				blank identity object
+	 * @param string $type identity type e.g. BA = Basic, OA = Bearer
+	 *
+	 * @return IServiceIdentity blank identity object
 	 */
 	public function initiateIdentity(string $type): IServiceIdentity {
 
@@ -174,9 +173,9 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 2024.05.25
 	 *
-	 * @return IServiceIdentity				service identity object
+	 * @return IServiceIdentity service identity object
 	 */
-	public function getIdentity(): IServiceIdentity | null {
+	public function getIdentity(): ?IServiceIdentity {
 
 		return $this->serviceIdentity;
 
@@ -187,9 +186,9 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 2024.05.25
 	 *
-	 * @param IServiceIdentity $identity	service identity object
+	 * @param IServiceIdentity $identity service identity object
 	 *
-	 * @return self                         return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setIdentity(IServiceIdentity $value): self {
 
@@ -202,7 +201,7 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 30.0.0
 	 *
-	 * @return IServiceLocation				blank identity object
+	 * @return IServiceLocation blank identity object
 	 */
 	public function initiateLocation(): IServiceLocation {
 
@@ -215,9 +214,9 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 2024.05.25
 	 *
-	 * @return IServiceLocation				service location object
+	 * @return IServiceLocation service location object
 	 */
-	public function getLocation(): IServiceLocation | null {
+	public function getLocation(): ?IServiceLocation {
 
 		return $this->serviceLocation;
 
@@ -228,9 +227,9 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 2024.05.25
 	 *
-	 * @param IServiceLocation $location	service location object
+	 * @param IServiceLocation $location service location object
 	 *
-	 * @return self                         return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setLocation(IServiceLocation $value): self {
 
@@ -244,7 +243,7 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 2024.05.25
 	 *
-	 * @return IAddress						mail address object
+	 * @return IAddress mail address object
 	 */
 	public function getPrimaryAddress(): IAddress {
 
@@ -258,9 +257,9 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 2024.05.25
 	 *
-	 * @param IAddress $value				mail address object
+	 * @param IAddress $value mail address object
 	 *
-	 * @return self                         return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setPrimaryAddress(IAddress $value): self {
 
@@ -274,7 +273,7 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 2024.05.25
 	 *
-	 * @return array<int, IAddress>			collection of mail address objects
+	 * @return array<int, IAddress> collection of mail address objects
 	 */
 	public function getSecondaryAddresses(): array {
 
@@ -288,9 +287,9 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 2024.05.25
 	 *
-	 * @param IAddress ...$value				collection of or one or more mail address objects
+	 * @param IAddress ...$value collection of or one or more mail address objects
 	 *
-	 * @return self                         	return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setSecondaryAddresses(IAddress ...$value): self {
 
@@ -304,7 +303,7 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 30.0.0
 	 *
-	 * @return IMessage				blank message object
+	 * @return IMessage blank message object
 	 */
 	public function initiateMessage(): IMessage {
 
@@ -444,14 +443,14 @@ class Service implements IService, IMessageSend {
 
 	}
 
-	public function entityList(string $location, IRange $range = null, string $sort = null, string $particulars = 'D', array $options = []): array {
+	public function entityList(string $location, ?IRange $range = null, ?string $sort = null, string $particulars = 'D', array $options = []): array {
 
 		// perform action
 		return $this->mailService()->entityList($location, $range, $sort, $particulars, $options);
 
 	}
 
-	public function entitySearch(string $location, array $filter, IRange $range = null, string $sort = null, string $scope = null, string $particulars = 'D', array $options = []): array {
+	public function entitySearch(string $location, array $filter, ?IRange $range = null, ?string $sort = null, ?string $scope = null, string $particulars = 'D', array $options = []): array {
 		
 		// perform action
 		return $this->mailService()->entitySearch($location, $filter, $range, $sort, $scope, $particulars, $options);
@@ -463,9 +462,9 @@ class Service implements IService, IMessageSend {
 	 *
 	 * @since 2024.05.25
 	 *
-	 * @param IMessage $message			mail message object with all required parameters to send a message
+	 * @param IMessage $message mail message object with all required parameters to send a message
 	 *
-	 * @param array $options			array of options reserved for future use
+	 * @param array $options array of options reserved for future use
 	 */
 	public function sendMessage(IMessage $message, array $options = []): void {
 

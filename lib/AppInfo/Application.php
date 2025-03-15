@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 /**
  * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
@@ -23,18 +24,18 @@ declare(strict_types=1);
  */
 namespace OCA\JMAPC\AppInfo;
 
-use OCP\AppFramework\App;
-use OCP\AppFramework\Bootstrap\IRegistrationContext;
-use OCP\AppFramework\Bootstrap\IBootContext;
-use OCP\AppFramework\Bootstrap\IBootstrap;
-use OCP\EventDispatcher\IEventDispatcher;
-use OCP\Notification\IManager as INotificationManager;
-use OCP\User\Events\UserDeletedEvent;
-
 use OCA\JMAPC\Events\UserDeletedListener;
 use OCA\JMAPC\Notification\Notifier;
-
 use OCA\JMAPC\Providers\Mail\Provider as MailProvider;
+use OCP\AppFramework\App;
+use OCP\AppFramework\Bootstrap\IBootContext;
+use OCP\AppFramework\Bootstrap\IBootstrap;
+use OCP\AppFramework\Bootstrap\IRegistrationContext;
+
+use OCP\EventDispatcher\IEventDispatcher;
+use OCP\Notification\IManager as INotificationManager;
+
+use OCP\User\Events\UserDeletedEvent;
 
 /**
  * Class Application
@@ -42,37 +43,37 @@ use OCA\JMAPC\Providers\Mail\Provider as MailProvider;
  * @package OCA\JMAPC\AppInfo
  */
 class Application extends App implements IBootstrap {
-    // assign application identification
-    public const APP_ID = 'integration_jmapc';
-    public const APP_TAG = 'JMAPC';
-    public const APP_LABEL = 'JMAP Client';
+	// assign application identification
+	public const APP_ID = 'integration_jmapc';
+	public const APP_TAG = 'JMAPC';
+	public const APP_LABEL = 'JMAP Client';
 
-    public function __construct(array $urlParams = []) {
-        if ((@include_once __DIR__ . '/../../vendor/autoload.php') === false) {
+	public function __construct(array $urlParams = []) {
+		if ((@include_once __DIR__ . '/../../vendor/autoload.php') === false) {
 			throw new \Exception('Cannot include autoload. Did you run install dependencies using composer?');
 		}
-        
-        parent::__construct(self::APP_ID, $urlParams);
+		
+		parent::__construct(self::APP_ID, $urlParams);
 
-    }
+	}
 
-    public function register(IRegistrationContext $context): void {
-        
-        // register notifications
-        $manager = $this->getContainer()->get(INotificationManager::class);
-        $manager->registerNotifierService(Notifier::class);
+	public function register(IRegistrationContext $context): void {
+		
+		// register notifications
+		$manager = $this->getContainer()->get(INotificationManager::class);
+		$manager->registerNotifierService(Notifier::class);
 
-        // register event handlers
-        $dispatcher = $this->getContainer()->get(IEventDispatcher::class);
-        $dispatcher->addServiceListener(UserDeletedEvent::class, UserDeletedListener::class);
+		// register event handlers
+		$dispatcher = $this->getContainer()->get(IEventDispatcher::class);
+		$dispatcher->addServiceListener(UserDeletedEvent::class, UserDeletedListener::class);
 
-		if (method_exists($context, 'registerMailProvider')) {	
+		if (method_exists($context, 'registerMailProvider')) {
 			$context->registerMailProvider(MailProvider::class);
 		}
-    }
+	}
 
-    public function boot(IBootContext $context): void {
+	public function boot(IBootContext $context): void {
 
-    }
+	}
 
 }

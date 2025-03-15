@@ -3,26 +3,23 @@
 namespace OCA\JMAPC\Providers\DAV\Calendar;
 
 use DateTime;
-use DateTimeImmutable;
 use DateTimeInterface;
-use OCA\DAV\CalDAV\EventReaderRRule;
+use DateTimeZone;
+use OCA\DAV\CalDAV\EventReader;
 use OCA\DAV\CalDAV\Integration\ExternalCalendar;
 use OCA\DAV\CalDAV\Plugin;
 use OCA\JMAPC\AppInfo\Application;
-use Sabre\CalDAV\Xml\Property\SupportedCalendarComponentSet;
-use Sabre\DAV\PropPatch;
-
-use OCA\JMAPC\Store\EventStore;
-use OCA\JMAPC\Store\CollectionEntity as CollectionEntityData;
-use OCA\JMAPC\Store\EventEntity as EventEntityData;
+use OCA\JMAPC\Store\Common\Range\RangeDate;
+use OCA\JMAPC\Store\Local\CollectionEntity as CollectionEntityData;
+use OCA\JMAPC\Store\Local\EventEntity as EventEntityData;
+use OCA\JMAPC\Store\Local\EventStore;
 use Sabre\CalDAV\ICalendar;
-use Sabre\DAV\Exception\Forbidden;
+use Sabre\CalDAV\Xml\Property\SupportedCalendarComponentSet;
 use Sabre\DAV\IMultiGet;
 use Sabre\DAV\IProperties;
+use Sabre\DAV\PropPatch;
 use Sabre\DAV\Sync\ISyncCollection;
-use Sabre\VObject\Component;
 use Sabre\VObject\Component\VCalendar;
-use Sabre\VObject\Recur\NoInstancesException;
 
 class EventCollection extends ExternalCalendar implements ICalendar, IProperties, IMultiGet, ISyncCollection {
 	
@@ -45,56 +42,56 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	}
 
 	/**
-     * collection principal owner
-     *
-     * @return string|null
-     */
-	public function getOwner(): string|null {
+	 * collection principal owner
+	 *
+	 * @return string|null
+	 */
+	public function getOwner(): ?string {
 
 		return 'principals/users/' . $this->_collection->getUid();
 
 	}
 
 	/**
-     * collection principal group
-     *
-     * @return string|null
-     */
-	public function getGroup(): string|null {
+	 * collection principal group
+	 *
+	 * @return string|null
+	 */
+	public function getGroup(): ?string {
 
 		return null;
 
 	}
 
 	/**
-     * collection id
-     */
+	 * collection id
+	 */
 	/*
-    public function getName(): string {
+	public function getName(): string {
 
 		return 'app-generated--' . Application::APP_ID . '--'. $this->_collection->getUuid();
 
 	}
 	*/
 
-    /**
-     * collection id
-     *
-     * @param string $id
-     */
+	/**
+	 * collection id
+	 *
+	 * @param string $id
+	 */
 	/*
-    public function setName($id): void {
-		
+	public function setName($id): void {
+
 		throw new \Sabre\DAV\Exception\Forbidden('This function is not supported');
 
 	}
 	*/
 
 	/**
-     * collection permissions
-	 * 
-     * @return array
-     */
+	 * collection permissions
+	 *
+	 * @return array
+	 */
 	public function getACL(): array {
 
 		return [
@@ -109,9 +106,9 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 
 	/**
 	 * collection permissions
-	 * 
+	 *
 	 * @return void
-     */
+	 */
 	public function setACL(array $acl): void {
 
 		throw new \Sabre\DAV\Exception\Forbidden('This function is not supported yet');
@@ -120,20 +117,20 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 
 	/**
 	 * supported permissions
-	 * 
-     * @return array|null
-     */
-	public function getSupportedPrivilegeSet(): array|null {
+	 *
+	 * @return array|null
+	 */
+	public function getSupportedPrivilegeSet(): ?array {
 
 		return null;
 
 	}
 
 	/**
-     * collection modification timestamp
-     *
-     * @return int|null
-     */
+	 * collection modification timestamp
+	 *
+	 * @return int|null
+	 */
 	public function getLastModified() {
 
 		return null;
@@ -141,26 +138,26 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	}
 
 	/**
-     * collection mutation signature
-	 * 
-     * @return string|null
-     */
-    public function getSyncToken(): string|null {
+	 * collection mutation signature
+	 *
+	 * @return string|null
+	 */
+	public function getSyncToken(): ?string {
 
 		return $this->_store->chronicleApex($this->_collection->getId(), true);
 
 	}
 
-    /**
-     * collection delta 
-	 * 
-     * @param string $token
-     * @param int $level
-     * @param int $limit
-     *
-     * @return array|null
-     */
-    public function getChanges($token, $level, $limit = null): array {
+	/**
+	 * collection delta
+	 *
+	 * @param string $token
+	 * @param int $level
+	 * @param int $limit
+	 *
+	 * @return array|null
+	 */
+	public function getChanges($token, $level, $limit = null): array {
 
 		$delta = $this->_store->chronicleReminisce($this->_collection->getId(), (string)$token, $limit);
 
@@ -174,10 +171,10 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	}
 
 	/**
-     * determines if this collection is shared
-	 * 
+	 * determines if this collection is shared
+	 *
 	 * @return bool
-     */
+	 */
 	public function isShared(): bool {
 
 		return false;
@@ -185,12 +182,12 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	}
 
 	/**
-     * retrieves properties for this collection
-     *
-     * @param array $properties			requested properties
-     *
-     * @return array
-     */
+	 * retrieves properties for this collection
+	 *
+	 * @param array $properties requested properties
+	 *
+	 * @return array
+	 */
 	public function getProperties($properties): array {
 		
 		// return collection properties
@@ -204,12 +201,12 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	}
 
 	/**
-     * modifies properties of this collection
-	 * 
+	 * modifies properties of this collection
+	 *
 	 * @param PropPatch $data
-	 * 
+	 *
 	 * @return void
-     */
+	 */
 	public function propPatch(PropPatch $propPatch): void {
 		
 		// retrieve mutations
@@ -243,12 +240,12 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	}
 
 	/**
-     * creates sub collection
-     *
-     * @param string $name
-     */
+	 * creates sub collection
+	 *
+	 * @param string $name
+	 */
 	/*
-    public function createDirectory($name): void {
+	public function createDirectory($name): void {
 
 		throw new \Sabre\DAV\Exception\Forbidden('This function is not supported');
 
@@ -256,10 +253,10 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	*/
 
 	/**
-     * Deletes this collection and all entities
-	 * 
+	 * Deletes this collection and all entities
+	 *
 	 * @return void
-     */
+	 */
 	public function delete(): void {
 
 		// delete local entities
@@ -271,29 +268,26 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 
 	/**
 	 * find entities in this collection
-	 * 
+	 *
 	 * @return array<int,string>
 	 */
 	public function calendarQuery(array $filters): array {
 
-		// construct place holder
-		$limit = [];
-		//
+		$storeFilter = null;
+		$storeRange = null;
+
 		if (is_array($filters) && is_array($filters['comp-filters'])) {
 			foreach ($filters['comp-filters'] as $filter) {
-				if (is_array($filter['time-range'])) {
-					if (isset($filter['time-range']['start'])) {
-						$limit[] = ['startson', '>=', $filter['time-range']['start']->format('U')];
-					}
-					if (isset($filter['time-range']['end'])) {
-						$limit[] = ['startson', '<=', $filter['time-range']['end']->format('U')];
+				if (is_array($filter['time-range']) && isset($filter['time-range']['start']) && isset($filter['time-range']['end'])) {
+					if ($filter['time-range']['start'] instanceof DateTimeInterface && $filter['time-range']['end'] instanceof DateTimeInterface) {
+						$storeRange = new RangeDate($filter['time-range']['start'], $filter['time-range']['end']);
 					}
 				}
 			}
 		}
 
 		// retrieve entries
-		$entries = $this->_store->entityFind($this->_collection->getId(), $limit, ['uuid']);
+		$entries = $this->_store->entityFind($this->_collection->getId(), ['uuid'], $storeFilter, $storeRange, null);
 		// list entries
 		$list = [];
 		foreach ($entries as $entry) {
@@ -305,10 +299,10 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	}
 
 	/**
-     * list all entities in this collection
-     *
-     * @return array<int,EventEntity>
-     */
+	 * list all entities in this collection
+	 *
+	 * @return array<int,EventEntity>
+	 */
 	public function getChildren(): array {
 		
 		// retrieve entries
@@ -324,12 +318,12 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	}
 
 	/**
-     * determine if a specific entity exists in this collection
-     *
-     * @param string $id
-     *
-     * @return bool
-     */
+	 * determine if a specific entity exists in this collection
+	 *
+	 * @param string $id
+	 *
+	 * @return bool
+	 */
 	public function childExists($id): bool {
 
 		// remove extension
@@ -341,12 +335,12 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 
 	/**
 	 * retrieve specific entities in this collection
-     *
-     * @param array<int,string> $ids
-     *
-     * @return array<int,EventEntity>
+	 *
+	 * @param array<int,string> $ids
+	 *
+	 * @return array<int,EventEntity>
 	 */
-    public function getMultipleChildren(array $ids): array {
+	public function getMultipleChildren(array $ids): array {
 
 		// construct place holder
 		$list = [];
@@ -354,7 +348,7 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 		foreach ($ids as $id) {
 			// retrieve object properties
 			$entry = $this->_store->entityFetchByUUID($this->_collection->getId(), $id);
-			// evaluate if object properties where retrieved 
+			// evaluate if object properties where retrieved
 			if ($entry instanceof EventEntityData) {
 				$list[] = new EventEntity($this, $entry);
 			}
@@ -366,36 +360,35 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	}
 
 	/**
-     * retrieve a specific entity in this collection
-     *
-     * @param string $id				existing entity id
-     *
-     * @return EventEntity|false
-     */
+	 * retrieve a specific entity in this collection
+	 *
+	 * @param string $id existing entity id
+	 *
+	 * @return EventEntity|false
+	 */
 	public function getChild($id): EventEntity|false {
 
 		// remove extension
 		$id = str_replace('.ics', '', $id);
 		// retrieve object properties
 		$entry = $this->_store->entityFetchByUUID($this->_collection->getId(), $id);
-		// evaluate if object properties where retrieved 
+		// evaluate if object properties where retrieved
 		if (isset($entry)) {
 			return new EventEntity($this, $entry);
-		}
-		else {
+		} else {
 			throw new \Sabre\DAV\Exception\NotFound('Entity not found');
 		}
 
 	}
 
 	/**
-     * create a entity in this collection
-     *
-     * @param string $id				fresh entity id
-     * @param string $data				fresh entity contents
-     *
-     * @return string					fresh entity signature
-     */
+	 * create a entity in this collection
+	 *
+	 * @param string $id fresh entity id
+	 * @param string $data fresh entity contents
+	 *
+	 * @return string fresh entity signature
+	 */
 	public function createFile($id, $data = null): string {
 
 		// remove extension
@@ -404,26 +397,22 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 		if (!mb_check_encoding($data, 'UTF-8')) {
 			$data = iconv(mb_detect_encoding($data), 'UTF-8', $data);
 		}
+		// data store entry
+		$entity = new EventEntityData();
 		// read the data
 		$vObject = \Sabre\VObject\Reader::read($data);
 		// normalize properties
 		$this->normalizeProperties($vObject);
-		$vBase = $vObject->getBaseComponent();
-		// data store entry
-		$entity = new EventEntityData();
 		// direct properties
-        $entity->setData($vObject->serialize());
 		$entity->setUid($this->_collection->getUid());
 		$entity->setSid($this->_collection->getSid());
 		$entity->setCid($this->_collection->getId());
-		$entity->setUuid($id);
+		$entity->setData($vObject->serialize());
 		// calculated properties
-		$entity->setSignature(md5($data));
-		// extracted properties
-		$entity->setLabel(isset($vBase->SUMMARY) ? $this->extractString($vBase->SUMMARY) : null);
-        $entity->setDescription(isset($vBase->DESCRIPTION) ? $this->extractString($vBase->DESCRIPTION) : null);
-		$entity->setStartson($this->extractDateTime($vBase->DTSTART)->setTimezone(new \DateTimeZone('UTC'))->format('U'));
-		$entity->setEndson($this->extractDateTime($vBase->DTEND)->setTimezone(new \DateTimeZone('UTC'))->format('U'));
+		$entity->setSignature(md5($entity->getData()));
+		// extract additional properties
+		$this->extractProperties($entity, $vObject);
+
 		// deposit entity to data store
 		$entity = $this->_store->entityCreate($entity);
 		// return state
@@ -432,13 +421,13 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	}
 
 	/**
-     * modify a entity in this collection
-     *
-     * @param EventEntityData $entity	existing entity object
-     * @param string $data				modified entity contents
-     *
-     * @return string					modified entity signature
-     */
+	 * modify a entity in this collection
+	 *
+	 * @param EventEntityData $entity existing entity object
+	 * @param string $data modified entity contents
+	 *
+	 * @return string modified entity signature
+	 */
 	public function modifyFile(EventEntityData $entity, string $data): string {
 		
 		// evaluate if data is in UTF8 format and convert if needed
@@ -449,16 +438,12 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 		$vObject = \Sabre\VObject\Reader::read($data);
 		// normalize properties
 		$this->normalizeProperties($vObject);
-		$vBase = $vObject->getBaseComponent();
 		// direct properties
-        $entity->setData($vObject->serialize());
+		$entity->setData($vObject->serialize());
 		// calculated properties
-		$entity->setSignature(md5($data));
-		// extracted properties
-		$entity->setLabel(isset($vBase->SUMMARY) ? $this->extractString($vBase->SUMMARY) : null);
-        $entity->setDescription(isset($vBase->DESCRIPTION) ? $this->extractString($vBase->DESCRIPTION) : null);
-		$entity->setStartson($this->extractDateTime($vBase->DTSTART)->setTimezone(new \DateTimeZone('UTC'))->format('U'));
-		$entity->setEndson($this->extractEndDate($vBase)->setTimezone(new \DateTimeZone('UTC'))->format('U'));
+		$entity->setSignature(md5($entity->getData()));
+		// extract additional properties
+		$this->extractProperties($entity, $vObject);
 		// deposit entry to data store
 		$entity = $this->_store->entityModify($entity);
 		// return state
@@ -467,99 +452,17 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	}
 
 	/**
-     * delete a entity in this collection
-     *
-     * @param EventEntityData $entity	existing entity object
-     *
-     * @return void
-     */
+	 * delete a entity in this collection
+	 *
+	 * @param EventEntityData $entity existing entity object
+	 *
+	 * @return void
+	 */
 	public function deleteFile(EventEntityData $entity): void {
 
 		// delete entry from data store and return result
 		$this->_store->entityDelete($entity);
 
-	}
-
-	/**
-	 * converts entity text property to string
-	 * 
-	 * @return string
-	 */
-	protected function extractString($property): string {
-		return trim($property->getValue());
-	}
-
-	/**
-	 * converts entity date property to DateTime
-	 * 
-	 * @return DateTime|null
-	 */
-	protected function extractDateTime($property): \DateTime|null {
-
-		if (isset($property)) {
-			if (isset($property->parameters['TZID'])) {
-				$tz = new \DateTimeZone($property->parameters['TZID']->getValue());
-			}
-			else {
-				$tz = new \DateTimeZone('UTC');
-			}
-			return new \DateTime($property->getValue(), $tz);
-		}
-		else {
-			return null;
-		}
-
-	}
-
-	protected function extractEndDate(Component $component): DateTimeImmutable {
-
-		$startDate = $component->DTSTART->getDateTime();
-		$endDate = clone $startDate;
-		// Recurring
-		if ($component->RRULE || $component->RDATE) {
-			// RDATE can have both instances and multiple values
-			// RDATE;TZID=America/Toronto:20250701T000000,20260701T000000
-			// RDATE;TZID=America/Toronto:20270701T000000
-			if ($component->RDATE) {
-				foreach ($component->RDATE as $instance) {
-					foreach ($instance->getDateTimes() as $entry) {
-						if ($entry > $endDate) {
-							$endDate = $entry;
-						}
-					}
-				}
-			}
-			// RRULE can be infinate or limited by a UNTIL or COUNT
-			if ($component->RRULE) {
-				try {
-					$rule = new EventReaderRRule($component->RRULE->getValue(), $startDate);
-					$endDate = $rule->isInfinite() ? new DateTime('2038-01-01') : $rule->concludes();
-				} catch (NoInstancesException $e) {
-					$this->logger->debug('Caught no instance exception for calendar data. This usually indicates invalid calendar data.', [
-						'app' => 'dav',
-						'exception' => $e,
-					]);
-					throw new Forbidden($e->getMessage());
-				}
-			}
-			// Singleton
-		} else {
-			if ($component->DTEND instanceof \Sabre\VObject\Property\ICalendar\DateTime) {
-				// VEVENT component types
-				$endDate = $component->DTEND->getDateTime();
-			} elseif ($component->DURATION  instanceof \Sabre\VObject\Property\ICalendar\Duration) {
-				// VEVENT / VTODO component types
-				$endDate = $startDate->add($component->DURATION->getDateInterval());
-			} elseif ($component->DUE  instanceof \Sabre\VObject\Property\ICalendar\DateTime) {
-				// VTODO component types
-				$endDate = $component->DUE->getDateTime();
-			} elseif ($component->name === 'VEVENT' && !$component->DTSTART->hasTime()) {
-				// VEVENT component type without time is automatically one day
-				$endDate = (clone $startDate)->modify('+1 day');
-			}
-		}
-
-		return DateTimeImmutable::createFromInterface($endDate);
 	}
 
 	protected function normalizeProperties(VCalendar $vObject): void {
@@ -588,8 +491,7 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 			foreach ($component->VALARM as $entry) {
 				if ($entry->{'X-ID'} === null) {
 					$entry->add('X-ID', uniqid());
-				}
-				elseif (empty($entry->{'X-ID'}?->getValue())) {
+				} elseif (empty($entry->{'X-ID'}?->getValue())) {
 					$entry->{'X-ID'}->setValue(uniqid());
 				}
 			}
@@ -599,6 +501,61 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 					$entry->add('X-ID', uniqid());
 				}
 			}
+		}
+
+	}
+	
+	/**
+	 * converts vObject properties to entity properties
+	 *
+	 * @return void
+	 */
+	protected function extractProperties(EventEntityData $entity, VCalendar $vObject): void {
+
+		$vBase = $vObject->getBaseComponent();
+
+		$entity->setUuid(isset($vBase->UID) ? $this->extractString($vBase->UID) : null);
+		$entity->setLabel(isset($vBase->SUMMARY) ? $this->extractString($vBase->SUMMARY) : null);
+		$entity->setDescription(isset($vBase->DESCRIPTION) ? $this->extractString($vBase->DESCRIPTION) : null);
+		$entity->setStartson($this->extractDateTime($vBase->DTSTART)->setTimezone(new \DateTimeZone('UTC'))->format('U'));
+
+		if (isset($vBase->RRULE) || isset($vBase->RDATE)) {
+			$eventReader = new EventReader($vObject, $entity->getUuid());
+			if ($eventReader->recurringConcludes()) {
+				$entity->setEndson($eventReader->recurringConcludesOn()->setTimezone(new DateTimeZone('UTC'))->format('U'));
+			} else {
+				$entity->setEndson(2147483647);
+			}
+		} else {
+			$entity->setEndson($this->extractDateTime($vBase->DTEND)->setTimezone(new DateTimeZone('UTC'))->format('U'));
+		}
+	}
+
+	/**
+	 * converts entity text property to string
+	 *
+	 * @return string
+	 */
+	protected function extractString($property): string {
+		return trim($property->getValue());
+	}
+
+	/**
+	 * converts entity date property to DateTime
+	 *
+	 * @return DateTime|null
+	 */
+	protected function extractDateTime($property): ?\DateTime {
+
+		if (isset($property)) {
+			if (isset($property->parameters['TZID'])) {
+				$tz = new \DateTimeZone($property->parameters['TZID']->getValue());
+			} else {
+				$tz = new \DateTimeZone('UTC');
+			}
+			return new \DateTime($property->getValue(), $tz);
+		} else {
+			return null;
 		}
 
 	}

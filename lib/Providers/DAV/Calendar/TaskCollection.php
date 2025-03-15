@@ -5,15 +5,15 @@ namespace OCA\JMAPC\Providers\DAV\Calendar;
 use OCA\DAV\CalDAV\Integration\ExternalCalendar;
 use OCA\DAV\CalDAV\Plugin;
 use OCA\JMAPC\AppInfo\Application;
-use Sabre\CalDAV\Xml\Property\SupportedCalendarComponentSet;
-use Sabre\DAV\PropPatch;
+use OCA\JMAPC\Store\Local\CollectionEntity as CollectionEntityData;
+use OCA\JMAPC\Store\Local\TaskStore;
 
-use OCA\JMAPC\Store\TaskStore;
-use OCA\JMAPC\Store\CollectionEntity as CollectionEntityData;
 use OCA\JMAPC\Store\TaskEntity as TaskEntityData;
 use Sabre\CalDAV\ICalendar;
+use Sabre\CalDAV\Xml\Property\SupportedCalendarComponentSet;
 use Sabre\DAV\IMultiGet;
 use Sabre\DAV\IProperties;
+use Sabre\DAV\PropPatch;
 use Sabre\DAV\Sync\ISyncCollection;
 
 class TaskCollection extends ExternalCalendar implements ICalendar, IProperties, IMultiGet, ISyncCollection {
@@ -37,56 +37,56 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 	}
 
 	/**
-     * collection principal owner
-     *
-     * @return string|null
-     */
-	public function getOwner(): string|null {
+	 * collection principal owner
+	 *
+	 * @return string|null
+	 */
+	public function getOwner(): ?string {
 
 		return 'principals/users/' . $this->_collection->getUid();
 
 	}
 
 	/**
-     * collection principal group
-     *
-     * @return string|null
-     */
-	public function getGroup(): string|null {
+	 * collection principal group
+	 *
+	 * @return string|null
+	 */
+	public function getGroup(): ?string {
 
 		return null;
 
 	}
 
 	/**
-     * collection id
-     */
+	 * collection id
+	 */
 	/*
-    public function getName(): string {
+	public function getName(): string {
 
 		return 'app-generated--' . Application::APP_ID . '--'. $this->_collection->getUuid();
 
 	}
 	*/
 
-    /**
-     * collection id
-     *
-     * @param string $id
-     */
+	/**
+	 * collection id
+	 *
+	 * @param string $id
+	 */
 	/*
-    public function setName($id): void {
-		
+	public function setName($id): void {
+
 		throw new \Sabre\DAV\Exception\Forbidden('This function is not supported');
 
 	}
 	*/
 
 	/**
-     * collection permissions
-	 * 
-     * @return array
-     */
+	 * collection permissions
+	 *
+	 * @return array
+	 */
 	public function getACL(): array {
 
 		return [
@@ -101,9 +101,9 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 
 	/**
 	 * collection permissions
-	 * 
+	 *
 	 * @return void
-     */
+	 */
 	public function setACL(array $acl): void {
 
 		throw new \Sabre\DAV\Exception\Forbidden('This function is not supported yet');
@@ -112,20 +112,20 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 
 	/**
 	 * supported permissions
-	 * 
-     * @return array|null
-     */
-	public function getSupportedPrivilegeSet(): array|null {
+	 *
+	 * @return array|null
+	 */
+	public function getSupportedPrivilegeSet(): ?array {
 
 		return null;
 
 	}
 
 	/**
-     * collection modification timestamp
-     *
-     * @return int|null
-     */
+	 * collection modification timestamp
+	 *
+	 * @return int|null
+	 */
 	public function getLastModified() {
 
 		return null;
@@ -133,26 +133,26 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 	}
 
 	/**
-     * collection mutation signature
-	 * 
-     * @return string|null
-     */
-    public function getSyncToken(): string|null {
+	 * collection mutation signature
+	 *
+	 * @return string|null
+	 */
+	public function getSyncToken(): ?string {
 
 		return $this->_store->chronicleApex($this->_collection->getId(), true);
 
 	}
 
-    /**
-     * collection delta 
-	 * 
-     * @param string $token
-     * @param int $level
-     * @param int $limit
-     *
-     * @return array|null
-     */
-    public function getChanges($token, $level, $limit = null): array {
+	/**
+	 * collection delta
+	 *
+	 * @param string $token
+	 * @param int $level
+	 * @param int $limit
+	 *
+	 * @return array|null
+	 */
+	public function getChanges($token, $level, $limit = null): array {
 
 		$delta = $this->_store->chronicleReminisce($this->_collection->getId(), (string)$token, $limit);
 
@@ -166,10 +166,10 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 	}
 
 	/**
-     * determines if this collection is shared
-	 * 
+	 * determines if this collection is shared
+	 *
 	 * @return bool
-     */
+	 */
 	public function isShared(): bool {
 
 		return false;
@@ -177,12 +177,12 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 	}
 
 	/**
-     * retrieves properties for this collection
-     *
-     * @param array $properties			requested properties
-     *
-     * @return array
-     */
+	 * retrieves properties for this collection
+	 *
+	 * @param array $properties requested properties
+	 *
+	 * @return array
+	 */
 	public function getProperties($properties): array {
 		
 		// return collection properties
@@ -196,12 +196,12 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 	}
 
 	/**
-     * modifies properties of this collection
-	 * 
+	 * modifies properties of this collection
+	 *
 	 * @param PropPatch $data
-	 * 
+	 *
 	 * @return void
-     */
+	 */
 	public function propPatch(PropPatch $propPatch): void {
 		
 		// retrieve mutations
@@ -235,12 +235,12 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 	}
 
 	/**
-     * creates sub collection
-     *
-     * @param string $name
-     */
+	 * creates sub collection
+	 *
+	 * @param string $name
+	 */
 	/*
-    public function createDirectory($name): void {
+	public function createDirectory($name): void {
 
 		throw new \Sabre\DAV\Exception\Forbidden('This function is not supported');
 
@@ -248,10 +248,10 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 	*/
 
 	/**
-     * Deletes this collection and all entities
-	 * 
+	 * Deletes this collection and all entities
+	 *
 	 * @return void
-     */
+	 */
 	public function delete(): void {
 
 		// delete local entities
@@ -263,7 +263,7 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 
 	/**
 	 * find entities in this collection
-	 * 
+	 *
 	 * @return array<int,string>
 	 */
 	public function calendarQuery(array $filters): array {
@@ -297,10 +297,10 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 	}
 
 	/**
-     * list all entities in this collection
-     *
-     * @return array<int,TaskEntity>
-     */
+	 * list all entities in this collection
+	 *
+	 * @return array<int,TaskEntity>
+	 */
 	public function getChildren(): array {
 		
 		// retrieve entries
@@ -316,12 +316,12 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 	}
 
 	/**
-     * determine if a specific entity exists in this collection
-     *
-     * @param string $id
-     *
-     * @return bool
-     */
+	 * determine if a specific entity exists in this collection
+	 *
+	 * @param string $id
+	 *
+	 * @return bool
+	 */
 	public function childExists($id): bool {
 
 		// remove extension
@@ -333,12 +333,12 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 
 	/**
 	 * retrieve specific entities in this collection
-     *
-     * @param array<int,string> $ids
-     *
-     * @return array<int,TaskEntity>
+	 *
+	 * @param array<int,string> $ids
+	 *
+	 * @return array<int,TaskEntity>
 	 */
-    public function getMultipleChildren(array $ids): array {
+	public function getMultipleChildren(array $ids): array {
 
 		// construct place holder
 		$list = [];
@@ -346,7 +346,7 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 		foreach ($ids as $id) {
 			// retrieve object properties
 			$entry = $this->_store->entityFetchByUUID($this->_collection->getId(), $id);
-			// evaluate if object properties where retrieved 
+			// evaluate if object properties where retrieved
 			if ($entry instanceof TaskEntityData) {
 				$list[] = new TaskEntity($this, $entry);
 			}
@@ -358,36 +358,35 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 	}
 
 	/**
-     * retrieve a specific entity in this collection
-     *
-     * @param string $id				existing entity id
-     *
-     * @return TaskEntity|false
-     */
+	 * retrieve a specific entity in this collection
+	 *
+	 * @param string $id existing entity id
+	 *
+	 * @return TaskEntity|false
+	 */
 	public function getChild($id): TaskEntity|false {
 
 		// remove extension
 		$id = str_replace('.ics', '', $id);
 		// retrieve object properties
 		$entry = $this->_store->entityFetchByUUID($this->_collection->getId(), $id);
-		// evaluate if object properties where retrieved 
+		// evaluate if object properties where retrieved
 		if (isset($entry)) {
 			return new TaskEntity($this, $entry);
-		}
-		else {
+		} else {
 			throw new \Sabre\DAV\Exception\NotFound('Entity not found');
 		}
 
 	}
 
 	/**
-     * create a entity in this collection
-     *
-     * @param string $id				fresh entity id
-     * @param string $data				fresh entity contents
-     *
-     * @return string					fresh entity signature
-     */
+	 * create a entity in this collection
+	 *
+	 * @param string $id fresh entity id
+	 * @param string $data fresh entity contents
+	 *
+	 * @return string fresh entity signature
+	 */
 	public function createFile($id, $data = null): string {
 
 		// remove extension
@@ -402,7 +401,7 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 		// data store entry
 		$entity = new TaskEntityData();
 		// direct properties
-        $entity->setData($data);
+		$entity->setData($data);
 		$entity->setUid($this->_collection->getUid());
 		$entity->setSid($this->_collection->getSid());
 		$entity->setCid($this->_collection->getId());
@@ -411,7 +410,7 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 		$entity->setSignature(md5($data));
 		// extracted properties
 		$entity->setLabel(isset($vo->SUMMARY) ? $this->extractString($vo->SUMMARY) : null);
-        $entity->setDescription(isset($vo->DESCRIPTION) ? $this->extractString($vo->DESCRIPTION) : null);
+		$entity->setDescription(isset($vo->DESCRIPTION) ? $this->extractString($vo->DESCRIPTION) : null);
 		$entity->setStartson($this->extractDateTime($vo->DTSTART)->setTimezone(new \DateTimeZone('UTC'))->format('U'));
 		$entity->setEndson($this->extractDateTime($vo->DTEND)->setTimezone(new \DateTimeZone('UTC'))->format('U'));
 		// deposit entity to data store
@@ -422,13 +421,13 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 	}
 
 	/**
-     * modify a entity in this collection
-     *
-     * @param TaskEntityData $entity	existing entity object
-     * @param string $data				modified entity contents
-     *
-     * @return string					modified entity signature
-     */
+	 * modify a entity in this collection
+	 *
+	 * @param TaskEntityData $entity existing entity object
+	 * @param string $data modified entity contents
+	 *
+	 * @return string modified entity signature
+	 */
 	public function modifyFile(TaskEntityData $entity, string $data): string {
 		
 		// evaluate if data is in UTF8 format and convert if needed
@@ -439,12 +438,12 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 		$vo = \Sabre\VObject\Reader::read($data);
 		$vo = $vo->VTODO;
 		// direct properties
-        $entity->setData($data);
+		$entity->setData($data);
 		// calculated properties
 		$entity->setSignature(md5($data));
 		// extracted properties
 		$entity->setLabel(isset($vo->SUMMARY) ? $this->extractString($vo->SUMMARY) : null);
-        $entity->setDescription(isset($vo->DESCRIPTION) ? $this->extractString($vo->DESCRIPTION) : null);
+		$entity->setDescription(isset($vo->DESCRIPTION) ? $this->extractString($vo->DESCRIPTION) : null);
 		$entity->setStartson($this->extractDateTime($vo->DTSTART)->setTimezone(new \DateTimeZone('UTC'))->format('U'));
 		$entity->setEndson($this->extractDateTime($vo->DTEND)->setTimezone(new \DateTimeZone('UTC'))->format('U'));
 		// deposit entry to data store
@@ -455,12 +454,12 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 	}
 
 	/**
-     * delete a entity in this collection
-     *
-     * @param TaskEntityData $entity	existing entity object
-     *
-     * @return void
-     */
+	 * delete a entity in this collection
+	 *
+	 * @param TaskEntityData $entity existing entity object
+	 *
+	 * @return void
+	 */
 	public function deleteFile(TaskEntityData $entity): void {
 
 		// delete entry from data store and return result
@@ -470,7 +469,7 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 
 	/**
 	 * converts entity text property to string
-	 * 
+	 *
 	 * @return string
 	 */
 	protected function extractString($property): string {
@@ -479,21 +478,19 @@ class TaskCollection extends ExternalCalendar implements ICalendar, IProperties,
 
 	/**
 	 * converts entity date property to DateTime
-	 * 
+	 *
 	 * @return DateTime|null
 	 */
-	protected function extractDateTime($property): \DateTime|null {
+	protected function extractDateTime($property): ?\DateTime {
 
 		if (isset($property)) {
 			if (isset($property->parameters['TZID'])) {
 				$tz = new \DateTimeZone($property->parameters['TZID']->getValue());
-			}
-			else {
+			} else {
 				$tz = new \DateTimeZone('UTC');
 			}
 			return new \DateTime($property->getValue(), $tz);
-		}
-		else {
+		} else {
 			return null;
 		}
 

@@ -8,8 +8,6 @@ declare(strict_types=1);
  */
 namespace OCA\JMAPC\Providers\Mail;
 
-use OCA\JMAPC\Providers\Mail\MessagePart;
-
 /**
  * Mail Attachment Object
  *
@@ -37,16 +35,16 @@ class MessageAttachment implements \OCP\Mail\Provider\IAttachment {
 		if ($contents !== null) {
 			$this->setContents($contents);
 		}
-    }
+	}
 
 	/**
 	 * sets the attachments parameters
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array $value						collection of all message parameters
+	 * @param array $value collection of all message parameters
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setParameters(?MessagePart $meta): self {
 		
@@ -61,7 +59,7 @@ class MessageAttachment implements \OCP\Mail\Provider\IAttachment {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return array					collection of all message parameters
+	 * @return array collection of all message parameters
 	 */
 	public function getParameters(): MessagePart {
 		// evaluate if data store field exists and return value(s) or null otherwise
@@ -73,7 +71,7 @@ class MessageAttachment implements \OCP\Mail\Provider\IAttachment {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return string						    id of this message
+	 * @return string id of this message
 	 */
 	public function id(): string {
 		// return id of message
@@ -85,9 +83,9 @@ class MessageAttachment implements \OCP\Mail\Provider\IAttachment {
 	 *
 	 * @since 30.0.0
 	 *
-	 * @param string $value     file name (e.g example.txt)
+	 * @param string $value file name (e.g example.txt)
 	 *
-	 * @return self             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setName(string $value): self {
 		$this->_meta->setName($value);
@@ -99,9 +97,9 @@ class MessageAttachment implements \OCP\Mail\Provider\IAttachment {
 	 *
 	 * @since 30.0.0
 	 *
-	 * @return string | null	returns the attachment file name or null if not set
+	 * @return string | null returns the attachment file name or null if not set
 	 */
-	public function getName(): string | null {
+	public function getName(): ?string {
 		return $this->_meta->getName();
 	}
 
@@ -110,9 +108,9 @@ class MessageAttachment implements \OCP\Mail\Provider\IAttachment {
 	 *
 	 * @since 30.0.0
 	 *
-	 * @param string $value     mime type (e.g. text/plain)
+	 * @param string $value mime type (e.g. text/plain)
 	 *
-	 * @return self             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setType(string $value): self {
 		$this->_meta->setType($value);
@@ -124,9 +122,9 @@ class MessageAttachment implements \OCP\Mail\Provider\IAttachment {
 	 *
 	 * @since 30.0.0
 	 *
-	 * @return string | null	returns the attachment mime type or null if not set
+	 * @return string | null returns the attachment mime type or null if not set
 	 */
-	public function getType(): string | null {
+	public function getType(): ?string {
 		return $this->_meta->getType();
 	}
 
@@ -135,9 +133,9 @@ class MessageAttachment implements \OCP\Mail\Provider\IAttachment {
 	 *
 	 * @since 30.0.0
 	 *
-	 * @param string $value     binary contents of file
+	 * @param string $value binary contents of file
 	 *
-	 * @return self             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setContents(string $value): self {
 		$this->_contents = $value;
@@ -149,9 +147,9 @@ class MessageAttachment implements \OCP\Mail\Provider\IAttachment {
 	 *
 	 * @since 30.0.0
 	 *
-	 * @return string | null	returns the attachment contents or null if not set
+	 * @return string | null returns the attachment contents or null if not set
 	 */
-	public function getContents(): string | null {
+	public function getContents(): ?string {
 		return $this->_contents;
 	}
 
@@ -160,9 +158,9 @@ class MessageAttachment implements \OCP\Mail\Provider\IAttachment {
 	 *
 	 * @since 30.0.0
 	 *
-	 * @param bool $value		true - embedded / false - not embedded
+	 * @param bool $value true - embedded / false - not embedded
 	 *
-	 * @return self             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setEmbedded(bool $value): self {
 		if ($value) {
@@ -178,7 +176,7 @@ class MessageAttachment implements \OCP\Mail\Provider\IAttachment {
 	 *
 	 * @since 30.0.0
 	 *
-	 * @return bool			embedded status of the attachment
+	 * @return bool embedded status of the attachment
 	 */
 	public function getEmbedded(): bool {
 		if ($this->getDisposition() === 'inline') {

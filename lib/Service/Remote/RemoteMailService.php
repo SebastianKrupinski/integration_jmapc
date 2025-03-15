@@ -1,62 +1,62 @@
 <?php
+
 declare(strict_types=1);
 
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 namespace OCA\JMAPC\Service\Remote;
 
 use JmapClient\Client;
-use JmapClient\Requests\Identity\IdentityGet;
-use JmapClient\Requests\Mail\MailboxGet;
-use JmapClient\Requests\Mail\MailboxSet;
-use JmapClient\Requests\Mail\MailboxQuery;
-use JmapClient\Requests\Mail\MailGet;
-use JmapClient\Requests\Mail\MailSet;
-use JmapClient\Requests\Mail\MailQuery;
-use JmapClient\Requests\Mail\MailSubmissionSet;
-use JmapClient\Requests\Mail\MailParameters;
 use JmapClient\Requests\Blob\BlobGet;
 use JmapClient\Requests\Blob\BlobSet;
+use JmapClient\Requests\Identity\IdentityGet;
+use JmapClient\Requests\Mail\MailboxGet;
+use JmapClient\Requests\Mail\MailboxQuery;
+use JmapClient\Requests\Mail\MailboxSet;
+use JmapClient\Requests\Mail\MailGet;
+use JmapClient\Requests\Mail\MailQuery;
+use JmapClient\Requests\Mail\MailSet;
+use JmapClient\Requests\Mail\MailSubmissionSet;
 
 use OCA\JMAPC\Providers\IRange;
-use OCA\JMAPC\Providers\Mail\ICollection;
 use OCA\JMAPC\Providers\Mail\Collection;
+use OCA\JMAPC\Providers\Mail\ICollection;
 use OCA\JMAPC\Providers\Mail\Message;
 
-use OCP\Mail\Provider\IMessage;
 use OCP\Mail\Provider\IAttachment;
+use OCP\Mail\Provider\IMessage;
 
 class RemoteMailService {
 
 	protected Client $dataStore;
 
 	protected array $defaultMailProperties = [
-		"id", "blobId", "threadId", "mailboxIds", "keywords", "size",
-		"receivedAt", "messageId", "inReplyTo", "references", "sender", "from",
-		"to", "cc", "bcc", "replyTo", "subject", "sentAt", "hasAttachment",
-		"attachments", "preview", "bodyStructure", "bodyValues"
+		'id', 'blobId', 'threadId', 'mailboxIds', 'keywords', 'size',
+		'receivedAt', 'messageId', 'inReplyTo', 'references', 'sender', 'from',
+		'to', 'cc', 'bcc', 'replyTo', 'subject', 'sentAt', 'hasAttachment',
+		'attachments', 'preview', 'bodyStructure', 'bodyValues'
 	];
 
-	public function __construct () {
+	public function __construct() {
 
 	}
 
@@ -67,10 +67,10 @@ class RemoteMailService {
 	}
 
 	/**
-     * retrieve properties for specific collection
-     * 
-     * @since Release 1.0.0
-     * 
+	 * retrieve properties for specific collection
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function collectionFetch(string $account, string $location, string $id): ICollection {
 		// construct get request
@@ -82,13 +82,13 @@ class RemoteMailService {
 		$response = $bundle->response(0);
 		// convert json object to message object and return
 		return new Collection($response->object(0)->parametersRaw());
-    }
+	}
 
 	/**
-     * create collection in remote storage
-     * 
-     * @since Release 1.0.0
-	 * 
+	 * create collection in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function collectionCreate(string $account, string $location, string $label): string {
 		// construct set request
@@ -102,17 +102,17 @@ class RemoteMailService {
 		// extract response
 		$response = $bundle->response(0);
 		// return collection information
-		return (string) $response->created()['1']['id'];
-    }
+		return (string)$response->created()['1']['id'];
+	}
 
-    /**
-     * update collection in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	/**
+	 * update collection in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function collectionUpdate(string $account, string $location, string $id, string $label): string {
-        // construct set request
+		// construct set request
 		$r0 = new MailboxSet($account);
 		// construct object
 		$m0 = $r0->update($id);
@@ -122,17 +122,17 @@ class RemoteMailService {
 		// extract response
 		$response = $bundle->response(0);
 		// return collection information
-		return array_key_exists($id, $response->updated()) ? (string) $id : '';
-    }
+		return array_key_exists($id, $response->updated()) ? (string)$id : '';
+	}
 
-    /**
-     * delete collection in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	/**
+	 * delete collection in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
-    public function collectionDelete(string $account, string $location, string $id): string {
-        // construct set request
+	public function collectionDelete(string $account, string $location, string $id): string {
+		// construct set request
 		$r0 = new MailboxSet($account);
 		// construct object
 		$r0->delete($id);
@@ -141,17 +141,17 @@ class RemoteMailService {
 		// extract response
 		$response = $bundle->response(0);
 		// return collection information
-		return (string) $response->deleted()[0];
-    }
+		return (string)$response->deleted()[0];
+	}
 
 	/**
-     * move collection in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * move collection in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
-    public function collectionMove(string $account, string $sourceLocation, string $id, string $destinationLocation): string {
-        // construct set request
+	public function collectionMove(string $account, string $sourceLocation, string $id, string $destinationLocation): string {
+		// construct set request
 		$r0 = new MailboxSet($account);
 		// construct object
 		$m0 = $r0->update($id);
@@ -161,14 +161,14 @@ class RemoteMailService {
 		// extract response
 		$response = $bundle->response(0);
 		// return collection information
-		return array_key_exists($id, $response->updated()) ? (string) $id : '';
-    }
+		return array_key_exists($id, $response->updated()) ? (string)$id : '';
+	}
 
 	/**
-     * list of collections in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * list of collections in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function collectionList(string $account, string $location, string $scope): array {
 		// construct set request
@@ -195,13 +195,13 @@ class RemoteMailService {
 	}
 
 	/**
-     * search for collection in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * search for collection in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
-    public function collectionSearch(string $account, string $location, string $filter, string $scope): array {
-        // construct set request
+	public function collectionSearch(string $account, string $location, string $filter, string $scope): array {
+		// construct set request
 		$r0 = new MailboxQuery($account);
 		// set location constraint
 		if (!empty($location)) {
@@ -226,13 +226,13 @@ class RemoteMailService {
 		}
 		// return collection of collections
 		return $list;
-    }
+	}
 
 	/**
-     * retrieve entity from remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * retrieve entity from remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function entityFetch(string $account, string $location, string $id, string $particulars = 'D'): IMessage {
 		// construct set request
@@ -248,13 +248,13 @@ class RemoteMailService {
 		$response = $bundle->response(0);
 		// convert json object to message object and return
 		return new Message($response->object(0)->parametersRaw());
-    }
-    
+	}
+	
 	/**
-     * create entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * create entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function entityCreate(string $account, string $location, IMessage $message): string {
 		// construct set request
@@ -266,14 +266,14 @@ class RemoteMailService {
 		// extract response
 		$response = $bundle->response(0);
 		// return collection information
-		return (string) $response->created()['1']['id'];
-    }
+		return (string)$response->created()['1']['id'];
+	}
 
-    /**
-     * update entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	/**
+	 * update entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function entityUpdate(string $account, string $location, string $id, IMessage $message): string {
 		//
@@ -298,17 +298,17 @@ class RemoteMailService {
 		// extract response
 		$response = $bundle->response(0);
 		// return collection information
-		return array_key_exists($id, $response->updated()) ? (string) $id : '';
-    }
-    
-    /**
-     * delete entity from remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+		return array_key_exists($id, $response->updated()) ? (string)$id : '';
+	}
+	
+	/**
+	 * delete entity from remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
-    public function entityDelete(string $account, string $location, string $id): string {
-        // construct set request
+	public function entityDelete(string $account, string $location, string $id): string {
+		// construct set request
 		$r0 = new MailSet($account);
 		// construct object
 		$r0->delete($id);
@@ -317,27 +317,27 @@ class RemoteMailService {
 		// extract response
 		$response = $bundle->response(0);
 		// return collection information
-		return (string) $response->deleted()[0];
-    }
+		return (string)$response->deleted()[0];
+	}
 
 	/**
-     * copy entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * copy entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
-    public function entityCopy(string $account, string $sourceLocation, string $id, string $destinationLocation): string {
-        
-    }
+	public function entityCopy(string $account, string $sourceLocation, string $id, string $destinationLocation): string {
+		
+	}
 
 	/**
-     * move entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * move entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
-    public function entityMove(string $account, string $sourceLocation, string $id, string $destinationLocation): string {
-        // construct set request
+	public function entityMove(string $account, string $sourceLocation, string $id, string $destinationLocation): string {
+		// construct set request
 		$r0 = new MailSet($account);
 		// construct object
 		$m0 = $r0->update($id);
@@ -347,51 +347,51 @@ class RemoteMailService {
 		// extract response
 		$response = $bundle->response(0);
 		// return collection information
-		return array_key_exists($id, $response->updated()) ? (string) $id : '';
-    }
+		return array_key_exists($id, $response->updated()) ? (string)$id : '';
+	}
 
 	/**
-     * forward entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * forward entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
-    public function entityForward(string $account, string $location, string $id, IMessage $message): string {
+	public function entityForward(string $account, string $location, string $id, IMessage $message): string {
 
-    }
+	}
 
 	/**
-     * reply to entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * reply to entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
-    public function entityReply(string $account, string $location, string $id, IMessage $message): string {
+	public function entityReply(string $account, string $location, string $id, IMessage $message): string {
 
-    }
+	}
 
 	/**
-     * send entity
-     * 
-     * @since Release 1.0.0
-     * 
+	 * send entity
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
-    public function entitySend(string $account, string $identity, IMessage $message, string $presendLocation = null, string $postsendLocation = null): string {
+	public function entitySend(string $account, string $identity, IMessage $message, ?string $presendLocation = null, ?string $postsendLocation = null): string {
 		
 		// determine if pre-send location is present
 		if ($presendLocation === null || empty($presendLocation)) {
-			throw new Exception("Pre-Send Location is missing", 1);
+			throw new Exception('Pre-Send Location is missing', 1);
 		}
 		// determine if post-send location is present
 		if ($postsendLocation === null || empty($postsendLocation)) {
-			throw new Exception("Post-Send Location is missing", 1);
+			throw new Exception('Post-Send Location is missing', 1);
 		}
 		// determine if we have the basic required data and fail otherwise
 		if (empty($message->getFrom())) {
-			throw new Exception("Missing Requirements: Message MUST have a From address", 1);
+			throw new Exception('Missing Requirements: Message MUST have a From address', 1);
 		}
 		if (empty($message->getTo())) {
-			throw new Exception("Missing Requirements: Message MUST have a To address(es)", 1);
+			throw new Exception('Missing Requirements: Message MUST have a To address(es)', 1);
 		}
 		
 		// determine if message has attachments
@@ -403,7 +403,7 @@ class RemoteMailService {
 		$from = $message->getFrom()->getAddress();
 		// convert to, cc and bcc address object arrays to single strings array
 		$to = array_map(
-			function($entry) { return $entry->getAddress(); }, 
+			function ($entry) { return $entry->getAddress(); },
 			array_merge($message->getTo(), $message->getCc(), $message->getBcc())
 		);
 		unset($cc, $bcc);
@@ -423,16 +423,16 @@ class RemoteMailService {
 		// extract response
 		$response = $bundle->response(1);
 		// return collection information
-		return (string) $response->created()['2']['id'];
-    }
+		return (string)$response->created()['2']['id'];
+	}
 
 	/**
-     * retrieve entities from remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * retrieve entities from remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
-	public function entityList(string $account, string $location, IRange $range = null, string $sort = null, string $particulars = 'D'): array {
+	public function entityList(string $account, string $location, ?IRange $range = null, ?string $sort = null, string $particulars = 'D'): array {
 		// construct query request
 		$r0 = new MailQuery($account);
 		// set location constraint
@@ -475,15 +475,15 @@ class RemoteMailService {
 		}
 		// return message collection
 		return $list;
-    }
+	}
 
 	/**
-     * search for entities from remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * search for entities from remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
-	public function entitySearch(string $account, string $location, array $filter = null, IRange $range = null, string $sort = null, string $particulars = 'D'): array {
+	public function entitySearch(string $account, string $location, ?array $filter = null, ?IRange $range = null, ?string $sort = null, string $particulars = 'D'): array {
 		// construct query request
 		$r0 = new MailQuery($account);
 		// set location constraint
@@ -537,13 +537,13 @@ class RemoteMailService {
 		}
 		// return message collection
 		return $list;
-    }
+	}
 
 	/**
-     * retrieve blob/attachment from remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * retrieve blob/attachment from remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function blobFetch(string $account, string $id): Object {
 
@@ -566,10 +566,10 @@ class RemoteMailService {
 	}
 
 	/**
-     * deposit bolb/attachment to remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * deposit bolb/attachment to remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function blobDeposit(string $account, string $type, &$data): array {
 
@@ -596,10 +596,10 @@ class RemoteMailService {
 	}
 
 	/**
-     * retrieve collection entity attachment from remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * retrieve collection entity attachment from remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function depositAttachmentsFromMessage(string $account, Message $message): Message {
 		
@@ -637,34 +637,34 @@ class RemoteMailService {
 		
 	}
 
-    /**
-     * create collection item attachment in local storage
-     * 
-     * @since Release 1.0.0
-     * 
+	/**
+	 * create collection item attachment in local storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function createAttachment(string $account, IAttachment ...$attachment): array {
 		
 		// http://LAPTOP-7DVOR6NC:8080/jmap/upload/{accountId}/
 
 
-    }
+	}
 
-    /**
-     * delete collection item attachment from local storage
-     * 
-     * @since Release 1.0.0
-     * 
+	/**
+	 * delete collection item attachment from local storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function deleteAttachment(string $account, string ...$id): array {
 
-    }
+	}
 
 	/**
-     * retrieve identity from remote storage
-     * 
-     * @since Release 1.0.0
-     * 
+	 * retrieve identity from remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 */
 	public function identityFetch(string $account): array {
 		// construct set request
@@ -675,26 +675,26 @@ class RemoteMailService {
 		$response = $bundle->response(0);
 		// convert json object to message object and return
 		return $response->objects();
-    }
+	}
 
 	// Recursive function to build JSON Pointer
-    function convertJsonToJsonPointer($data, $path = '') {
-        $pointer = [];
-        foreach ($data as $key => $value) {
+	public function convertJsonToJsonPointer($data, $path = '') {
+		$pointer = [];
+		foreach ($data as $key => $value) {
 			// generate path
 			if (!empty($path)) {
 				$current_path = $path . '/' . str_replace('~', '~0', str_replace('/', '~1', $key));
 			} else {
 				$current_path = str_replace('~', '~0', str_replace('/', '~1', $key));
 			}
-    
-            if (is_array($value)) {
-                $pointer = array_merge($pointer, $this->convertJsonToJsonPointer($value, $current_path));
-            } else {
-                $pointer[$current_path] = $value;
-            }
-        }
-        return $pointer;
-    }
+	
+			if (is_array($value)) {
+				$pointer = array_merge($pointer, $this->convertJsonToJsonPointer($value, $current_path));
+			} else {
+				$pointer[$current_path] = $value;
+			}
+		}
+		return $pointer;
+	}
 
 }

@@ -1,27 +1,28 @@
 <?php
+
 declare(strict_types=1);
 
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 namespace OCA\JMAPC\Providers;
 
 //use OCP\Mail\Provider\IServiceLocationUri;
@@ -36,8 +37,8 @@ class ServiceLocation implements IServiceLocationUri {
 	public function __construct(
 		string $host,
 		string $path = '/',
-		int $port = null,
-		string $scheme = 'https://'
+		?int $port = null,
+		string $scheme = 'https://',
 	) {
 
 		$this->_host = $host;
@@ -48,7 +49,7 @@ class ServiceLocation implements IServiceLocationUri {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function type(): string {
@@ -58,22 +59,21 @@ class ServiceLocation implements IServiceLocationUri {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function location(): string {
 
 		if (isset($this->_port)) {
 			return $this->_scheme . $this->_host . ':' . $this->_port . $this->_path;
-		}
-		else {
+		} else {
 			return $this->_scheme . $this->_host . $this->_path;
 		}
 
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function getScheme(): string {
@@ -83,7 +83,7 @@ class ServiceLocation implements IServiceLocationUri {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function setScheme(string $value) {
@@ -93,7 +93,7 @@ class ServiceLocation implements IServiceLocationUri {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function getHost(): string {
@@ -103,7 +103,7 @@ class ServiceLocation implements IServiceLocationUri {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function setHost(string $value) {
@@ -113,7 +113,7 @@ class ServiceLocation implements IServiceLocationUri {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function getPort(): int {
@@ -123,7 +123,7 @@ class ServiceLocation implements IServiceLocationUri {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function setPort(int $value) {
@@ -133,7 +133,7 @@ class ServiceLocation implements IServiceLocationUri {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function getPath(): string {
@@ -143,7 +143,7 @@ class ServiceLocation implements IServiceLocationUri {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function setPath(string $value) {

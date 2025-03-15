@@ -23,7 +23,7 @@ class Collection implements ICollection {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array $data						message data array
+	 * @param array $data message data array
 	 */
 	public function __construct(
 		protected array $data = [],
@@ -36,7 +36,7 @@ class Collection implements ICollection {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return string						    id of this message
+	 * @return string id of this message
 	 */
 	public function id(): string {
 		// return id of message
@@ -48,9 +48,9 @@ class Collection implements ICollection {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return string|null			    id of this message
+	 * @return string|null id of this message
 	 */
-	public function in(): string | null {
+	public function in(): ?string {
 		// return id of collection
 		return isset($this->data['parentId']) ? $this->data['parentId'] : null;
 	}
@@ -108,9 +108,9 @@ class Collection implements ICollection {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $value                     name/label of collection
+	 * @param string $value name/label of collection
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setLabel(string $value): self {
 		// create or update field in data store with value
@@ -126,7 +126,7 @@ class Collection implements ICollection {
 	 *
 	 * @param string|null                       name/label of collection or null if one is not set
 	 */
-	public function getLabel(): string | null {
+	public function getLabel(): ?string {
 		// evaluate if data store field exists and return value(s) or null otherwise
 		return isset($this->data['name']) ? $this->data['name'] : null;
 	}
@@ -136,9 +136,9 @@ class Collection implements ICollection {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $value                     role of collection
+	 * @param string $value role of collection
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setRole(string $value): self {
 		// create or update field in data store with value
@@ -154,7 +154,7 @@ class Collection implements ICollection {
 	 *
 	 * @param string|null                       role of collection or null if one is not set
 	 */
-	public function getRole(): string | null {
+	public function getRole(): ?string {
 		// evaluate if data store field exists and return value(s) or null otherwise
 		return isset($this->data['role']) ? $this->data['role'] : null;
 	}
@@ -164,9 +164,9 @@ class Collection implements ICollection {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param int $value                     	rank/order/priority of collection (low number has higher priority)
+	 * @param int $value rank/order/priority of collection (low number has higher priority)
 	 *
-	 * @return self                           	return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setRank(int $value): self {
 		// create or update field in data store with value
@@ -192,11 +192,11 @@ class Collection implements ICollection {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param bool $value                     	subscribed state of collection
+	 * @param bool $value subscribed state of collection
 	 *
-	 * @return self                           	return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
-	public function setSubscription (bool $value): self {
+	public function setSubscription(bool $value): self {
 		// create or update field in data store with value
 		$this->data['isSubscribed'] = $value;
 		// return this object for command chaining
@@ -220,9 +220,9 @@ class Collection implements ICollection {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array $value						collection of all message parameters
+	 * @param array $value collection of all message parameters
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setParameters(array $data): self {
 		// replace parameters store
@@ -236,7 +236,7 @@ class Collection implements ICollection {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return array							collection of all message parameters
+	 * @return array collection of all message parameters
 	 */
 	public function getParameters(): array {
 		// evaluate if data store field exists and return value(s) or null otherwise

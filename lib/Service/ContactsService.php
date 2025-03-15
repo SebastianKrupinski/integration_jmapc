@@ -1,35 +1,34 @@
 <?php
+
 declare(strict_types=1);
 
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 namespace OCA\JMAPC\Service;
 
-use Psr\Log\LoggerInterface;
-use OCP\Files\IRootFolder;
-
 use JmapClient\Client as JmapClient;
 use OCA\JMAPC\AppInfo\Application;
+
 use OCA\JMAPC\Exceptions\JmapUnknownMethod;
 use OCA\JMAPC\Objects\Contact\ContactObject;
 use OCA\JMAPC\Objects\DeltaObject;
@@ -37,9 +36,11 @@ use OCA\JMAPC\Objects\HarmonizationStatisticsObject;
 use OCA\JMAPC\Service\Local\LocalContactsService;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
 use OCA\JMAPC\Service\Remote\RemoteService;
-use OCA\JMAPC\Store\CollectionEntity;
-use OCA\JMAPC\Store\ContactStore;
-use OCA\JMAPC\Store\ServiceEntity;
+use OCA\JMAPC\Store\Local\CollectionEntity;
+use OCA\JMAPC\Store\Local\ContactStore;
+use OCA\JMAPC\Store\Local\ServiceEntity;
+use OCP\Files\IRootFolder;
+use Psr\Log\LoggerInterface;
 
 class ContactsService {
 	
@@ -49,16 +50,17 @@ class ContactsService {
 	private JmapClient $RemoteStore;
 	private RemoteContactsService $RemoteContactsService;
 
-	public function __construct (
+	public function __construct(
 		private LoggerInterface $logger,
 		private LocalContactsService $LocalContactsService,
 		private ContactStore $LocalStore,
-		private IRootFolder $LocalFileStore
-	) {}
+		private IRootFolder $LocalFileStore,
+	) {
+	}
 
 	/**
 	 * Perform harmonization for all collections for a service
-	 * 
+	 *
 	 * @since Release 1.0.0
 	 *
 	 * @return void
@@ -88,7 +90,7 @@ class ContactsService {
 			if (!$this->debug) {
 				$collection->setHlock(1);
 			}
-			$collection->setHlockhd((int) getmypid());
+			$collection->setHlockhd((int)getmypid());
 			$collection = $this->LocalStore->collectionModify($collection);
 			// execute harmonization loop
 			do {
@@ -113,7 +115,7 @@ class ContactsService {
 
 	/**
 	 * Perform harmonization for all entities in a collection
-	 * 
+	 *
 	 * @since Release 1.0.0
 	 *
 	 * @return HarmonizationStatisticsObject
@@ -129,11 +131,11 @@ class ContactsService {
 		// extract required id's
 		$sid = $collection->getSid();
 		$lcid = $collection->getId();
-		$lcsn = (string) $collection->getHisn();
+		$lcsn = (string)$collection->getHisn();
 		$rcid = $collection->getCcid();
-		$rcsn = (string) $collection->getHesn();
+		$rcsn = (string)$collection->getHesn();
 		// delete and skip collection if remote id is missing
-		if (empty($rcid)){
+		if (empty($rcid)) {
 			$this->LocalContactsService->collectionDeleteById($lcid);
 			$this->logger->debug(Application::APP_TAG . ' - Deleted cached contacts collection for ' . $this->userId . ' due to missing external collection');
 			return $statistics;
@@ -206,7 +208,7 @@ class ContactsService {
 			}
 		}
 
-		// update and deposit remote harmonization signature 
+		// update and deposit remote harmonization signature
 		$collection->setHesn($remoteEntityDelta->signature);
 		$collection = $this->LocalStore->collectionModify($collection);
 		// clean up
@@ -318,16 +320,16 @@ class ContactsService {
 	
 	/**
 	 * harmonize locally altered entity
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		system user id
-	 * @param int $sid			service id
-	 * @param int $lcid			local collection id
-	 * @param int $leid			local entity id
-	 * @param string $rcid		remote collection id
 	 *
-	 * @return string 			what action was performed
+	 * @since Release 1.0.0
+	 *
+	 * @param string $uid system user id
+	 * @param int $sid service id
+	 * @param int $lcid local collection id
+	 * @param int $leid local entity id
+	 * @param string $rcid remote collection id
+	 *
+	 * @return string what action was performed
 	 */
 	public function harmonizeLocalAltered(string $uid, int $sid, int $lcid, int $leid, string $rcid): string {
 
@@ -366,8 +368,7 @@ class ContactsService {
 			}
 			// assign operation status
 			$status = 'RU'; // Remote Update
-		}
-		else {
+		} else {
 			// create remote entity
 			$ro = $this->RemoteContactsService->entityCreate($rcid, $lo);
 			// update local entity
@@ -387,13 +388,13 @@ class ContactsService {
 
 	/**
 	 * harmonize locally deleted entity
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param int $lcid			local collection id
-	 * @param int $leid			local entity id
 	 *
-	 * @return string			what action was performed
+	 * @since Release 1.0.0
+	 *
+	 * @param int $lcid local collection id
+	 * @param int $leid local entity id
+	 *
+	 * @return string what action was performed
 	 */
 	public function harmonizeLocalDelete(int $leid): string {
 
@@ -417,16 +418,16 @@ class ContactsService {
 
 	/**
 	 * harmonize remotely altered entity
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		system user id
-	 * @param int $sid			service id
-	 * @param string $rcid		remote collection id
-	 * @param string $reid		remote entity id
-	 * @param int $lcid			local collection id
-	 * 
-	 * @return string 			what action was performed
+	 *
+	 * @param string $uid system user id
+	 * @param int $sid service id
+	 * @param string $rcid remote collection id
+	 * @param string $reid remote entity id
+	 * @param int $lcid local collection id
+	 *
+	 * @return string what action was performed
 	 */
 	public function harmonizeRemoteAltered(string $uid, int $sid, string $rcid, string $reid, int $lcid): string {
 		
@@ -461,8 +462,7 @@ class ContactsService {
 			$lo = $this->LocalContactsService->entityModify($uid, $sid, $lcid, (int)$lo->ID, $ro);
 			// assign operation status
 			$status = 'LU'; // Local Update
-		}
-		else {
+		} else {
 			// assign missing parameters
 			$ro->CCID = $rcid;
 			$ro->CEID = $reid;
@@ -479,14 +479,14 @@ class ContactsService {
 
 	/**
 	 * harmonize remotely deleted entity
-	 * 
-	 * @since Release 1.0.0
-	 * 
-	 * @param string $rcid		remote collection id
-	 * @param string $reid		remote entity id
-	 * @param int $lcid			local collection id
 	 *
-	 * @return string			what action was performed
+	 * @since Release 1.0.0
+	 *
+	 * @param string $rcid remote collection id
+	 * @param string $reid remote entity id
+	 * @param int $lcid local collection id
+	 *
+	 * @return string what action was performed
 	 */
 	public function harmonizeRemoteDelete(string $rcid, string $reid, int $lcid): string {
 
@@ -501,5 +501,5 @@ class ContactsService {
 
 	}
 
-	
+
 }

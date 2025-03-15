@@ -2,15 +2,15 @@
 
 namespace OCA\JMAPC\Providers\DAV\Calendar;
 
-use OCP\Calendar\ICalendarProvider as ICalendarProvider1;
 use OCA\DAV\CalDAV\Integration\ExternalCalendar;
 use OCA\DAV\CalDAV\Integration\ICalendarProvider as ICalendarProvider2;
-
 use OCA\JMAPC\AppInfo\Application;
+
 use OCA\JMAPC\Service\ConfigurationService;
 use OCA\JMAPC\Service\ServicesService;
-use OCA\JMAPC\Store\EventStore;
-use OCA\JMAPC\Store\TaskStore;
+use OCA\JMAPC\Store\Local\EventStore;
+use OCA\JMAPC\Store\Local\TaskStore;
+use OCP\Calendar\ICalendarProvider as ICalendarProvider1;
 
 class Provider implements ICalendarProvider1, ICalendarProvider2 {
 
@@ -18,8 +18,9 @@ class Provider implements ICalendarProvider1, ICalendarProvider2 {
 		private ConfigurationService $configurationService,
 		private ServicesService $servicesService,
 		private EventStore $_EventStore,
-		private TaskStore $_TaskStore
-	) {}
+		private TaskStore $_TaskStore,
+	) {
+	}
 
 	/**
 	 * @inheritDoc
@@ -71,15 +72,14 @@ class Provider implements ICalendarProvider1, ICalendarProvider2 {
 	/**
 	 * @inheritDoc
 	 */
-	public function getCalendarInCalendarHome(string $principalUri, string $calendarUri): ExternalCalendar|null {
+	public function getCalendarInCalendarHome(string $principalUri, string $calendarUri): ?ExternalCalendar {
 
 		$entry = $this->_EventStore->collectionFetchByUUID(substr($principalUri, 17), $calendarUri);
 
 		if ($entry) {
 			if ($entry->getType() == 'EC') {
 				return new EventCollection($this->_EventStore, $entry);
-			}
-			elseif ($entry->getType() == 'TC') {
+			} elseif ($entry->getType() == 'TC') {
 				return new TaskCollection($this->_TaskStore, $entry);
 			}
 		}

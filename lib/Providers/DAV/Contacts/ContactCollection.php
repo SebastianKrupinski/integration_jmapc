@@ -2,14 +2,14 @@
 
 namespace OCA\JMAPC\Providers\DAV\Contacts;
 
-use Sabre\DAV\PropPatch;
+use OCA\JMAPC\Store\Local\CollectionEntity as CollectionEntityData;
 
-use OCA\JMAPC\Store\ContactStore;
-use OCA\JMAPC\Store\CollectionEntity as CollectionEntityData;
-use OCA\JMAPC\Store\ContactEntity as ContactEntityData;
+use OCA\JMAPC\Store\Local\ContactEntity as ContactEntityData;
+use OCA\JMAPC\Store\Local\ContactStore;
 use Sabre\CardDAV\IAddressBook;
 use Sabre\DAV\IMultiGet;
 use Sabre\DAV\IProperties;
+use Sabre\DAV\PropPatch;
 use Sabre\DAV\Sync\ISyncCollection;
 
 class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCollection {
@@ -33,52 +33,52 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 	}
 
 	/**
-     * collection principal owner
-     *
-     * @return string|null
-     */
-	public function getOwner(): string|null {
+	 * collection principal owner
+	 *
+	 * @return string|null
+	 */
+	public function getOwner(): ?string {
 
 		return 'principals/users/' . $this->_collection->getUid();
 
 	}
 
 	/**
-     * collection principal group
-     *
-     * @return string|null
-     */
-	public function getGroup(): string|null {
+	 * collection principal group
+	 *
+	 * @return string|null
+	 */
+	public function getGroup(): ?string {
 
 		return null;
 
 	}
 
 	/**
-     * collection id
-     */
-    public function getName(): string {
+	 * collection id
+	 */
+	public function getName(): string {
 
 		return $this->_collection->getUuid();
 
 	}
 
-    /**
-     * collection id
-     *
-     * @param string $id
-     */
-    public function setName($id): void {
+	/**
+	 * collection id
+	 *
+	 * @param string $id
+	 */
+	public function setName($id): void {
 		
 		throw new \Sabre\DAV\Exception\Forbidden('This function is not supported');
 
 	}
 
 	/**
-     * collection permissions
-	 * 
-     * @return array
-     */
+	 * collection permissions
+	 *
+	 * @return array
+	 */
 	public function getACL(): array {
 
 		return [
@@ -93,9 +93,9 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 
 	/**
 	 * collection permissions
-	 * 
+	 *
 	 * @return void
-     */
+	 */
 	public function setACL(array $acl): void {
 
 		throw new \Sabre\DAV\Exception\Forbidden('This function is not supported yet');
@@ -104,20 +104,20 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 
 	/**
 	 * supported permissions
-	 * 
-     * @return array|null
-     */
-	public function getSupportedPrivilegeSet(): array|null {
+	 *
+	 * @return array|null
+	 */
+	public function getSupportedPrivilegeSet(): ?array {
 
 		return null;
 
 	}
 
 	/**
-     * collection modification timestamp
-     *
-     * @return int|null
-     */
+	 * collection modification timestamp
+	 *
+	 * @return int|null
+	 */
 	public function getLastModified() {
 
 		return null;
@@ -125,26 +125,26 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 	}
 
 	/**
-     * collection mutation signature
-	 * 
-     * @return string|null
-     */
-    public function getSyncToken(): string|null {
+	 * collection mutation signature
+	 *
+	 * @return string|null
+	 */
+	public function getSyncToken(): ?string {
 
 		return $this->_store->chronicleApex($this->_collection->getId(), true);
 
 	}
 
-    /**
-     * collection delta 
-	 * 
-     * @param string $token
-     * @param int $level
-     * @param int $limit
-     *
-     * @return array|null
-     */
-    public function getChanges($token, $level, $limit = null): array {
+	/**
+	 * collection delta
+	 *
+	 * @param string $token
+	 * @param int $level
+	 * @param int $limit
+	 *
+	 * @return array|null
+	 */
+	public function getChanges($token, $level, $limit = null): array {
 
 		$delta = $this->_store->chronicleReminisce($this->_collection->getId(), (string)$token, $limit);
 
@@ -158,13 +158,13 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 	}
 
 	/**
-     * retrieves properties for this collection
-     *
-     * @param array $properties			requested properties
-     *
-     * @return array
-     */
-	function getProperties($properties): array {
+	 * retrieves properties for this collection
+	 *
+	 * @param array $properties requested properties
+	 *
+	 * @return array
+	 */
+	public function getProperties($properties): array {
 		
 		// return collection properties
 		return [
@@ -175,13 +175,13 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 	}
 
 	/**
-     * modifies properties of this collection
-	 * 
+	 * modifies properties of this collection
+	 *
 	 * @param PropPatch $data
-	 * 
+	 *
 	 * @return void
-     */
-	function propPatch(PropPatch $propPatch): void {
+	 */
+	public function propPatch(PropPatch $propPatch): void {
 		
 		// retrieve mutations
 		$mutations = $propPatch->getMutations();
@@ -208,21 +208,21 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 	}
 	
 	/**
-     * creates sub collection
-     *
-     * @param string $name
-     */
-    public function createDirectory($name): void {
+	 * creates sub collection
+	 *
+	 * @param string $name
+	 */
+	public function createDirectory($name): void {
 
 		throw new \Sabre\DAV\Exception\Forbidden('This function is not supported');
 
 	}
 
 	/**
-     * Deletes this collection and all entities
-	 * 
+	 * Deletes this collection and all entities
+	 *
 	 * @return void
-     */
+	 */
 	public function delete(): void {
 
 		// delete local entities
@@ -233,11 +233,11 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 	}
 
 	/**
-     * list all entities in this collection
-     *
-     * @return array<int,Entity>
-     */
-	function getChildren(): array {
+	 * list all entities in this collection
+	 *
+	 * @return array<int,Entity>
+	 */
+	public function getChildren(): array {
 		
 		// retrieve entries
 		$entries = $this->_store->entityListByCollection($this->_collection->getId());
@@ -252,29 +252,29 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 	}
 
 	/**
-     * determine if a specific entity exists in this collection
-     *
-     * @param string $id
-     *
-     * @return bool
-     */
-	function childExists($id): bool {
+	 * determine if a specific entity exists in this collection
+	 *
+	 * @param string $id
+	 *
+	 * @return bool
+	 */
+	public function childExists($id): bool {
 
 		// remove extension
 		$id = str_replace('.vcf', '', $id);
 		// confirm object exists
-		return $this->_store->entityConfirmByUUID($this->_collection->getId(), $id);		
+		return $this->_store->entityConfirmByUUID($this->_collection->getId(), $id);
 
 	}
 
 	/**
 	 * retrieve specific entities in this collection
-     *
-     * @param array<int,string> $ids
-     *
-     * @return array<int,Entity>
+	 *
+	 * @param array<int,string> $ids
+	 *
+	 * @return array<int,Entity>
 	 */
-    public function getMultipleChildren(array $ids): array {
+	public function getMultipleChildren(array $ids): array {
 
 		// construct place holder
 		$list = [];
@@ -284,7 +284,7 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 			$id = str_replace('.vcf', '', $id);
 			// retrieve object properties
 			$entry = $this->_store->entityFetchByUUID($this->_collection->getId(), $id);
-			// evaluate if object properties where retrieved 
+			// evaluate if object properties where retrieved
 			if ($entry instanceof ContactEntityData) {
 				$list[] = new ContactEntity($this, $entry);
 			}
@@ -296,37 +296,36 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 	}
 
 	/**
-     * retrieve a specific entity in this collection
-     *
-     * @param string $id				existing entity id
-     *
-     * @return Entity|false
-     */
+	 * retrieve a specific entity in this collection
+	 *
+	 * @param string $id existing entity id
+	 *
+	 * @return Entity|false
+	 */
 	public function getChild($id): ContactEntity|false {
 
 		// remove extension
 		$id = str_replace('.vcf', '', $id);
 		// retrieve object properties
 		$entry = $this->_store->entityFetchByUUID($this->_collection->getId(), $id);
-		// evaluate if object properties where retrieved 
+		// evaluate if object properties where retrieved
 		if (isset($entry)) {
 			return new ContactEntity($this, $entry);
-		}
-		else {
+		} else {
 			throw new \Sabre\DAV\Exception\NotFound('Entity not found');
 		}
 
 	}
 
 	/**
-     * create a entity in this collection
-     *
-     * @param string $id				fresh entity id
-     * @param string $data				fresh entity contents
-     *
-     * @return string					fresh entity signature
-     */
-	function createFile($id, $data = null): string {
+	 * create a entity in this collection
+	 *
+	 * @param string $id fresh entity id
+	 * @param string $data fresh entity contents
+	 *
+	 * @return string fresh entity signature
+	 */
+	public function createFile($id, $data = null): string {
 
 		// remove extension
 		$id = str_replace('.vcf', '', $id);
@@ -339,7 +338,7 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 		// data store entry
 		$entity = new ContactEntityData();
 		// direct properties
-        $entity->setData($data);
+		$entity->setData($data);
 		$entity->setUid($this->_collection->getUid());
 		$entity->setSid($this->_collection->getSid());
 		$entity->setCid($this->_collection->getId());
@@ -348,7 +347,7 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 		$entity->setSignature(md5($data));
 		// extracted properties
 		$entity->setLabel(isset($vo->FN) ? trim($vo->FN->getValue()) : null);
-        // deposit entity to data store
+		// deposit entity to data store
 		$entity = $this->_store->entityCreate($entity);
 		// return state
 		return $entity->getSignature();
@@ -356,13 +355,13 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 	}
 
 	/**
-     * modify a entity in this collection
-     *
-     * @param contactEntityData $entity	existing entity object
-     * @param string $data				modified entity contents
-     *
-     * @return string					modified entity signature
-     */
+	 * modify a entity in this collection
+	 *
+	 * @param contactEntityData $entity existing entity object
+	 * @param string $data modified entity contents
+	 *
+	 * @return string modified entity signature
+	 */
 	public function modifyFile(ContactEntityData $entity, string $data): string {
 
 		// evaluate if data is in UTF8 format and convert if needed
@@ -372,12 +371,12 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 		// read the data
 		$vo = \Sabre\VObject\Reader::read($data);
 		// direct properties
-        $entity->setData($data);
+		$entity->setData($data);
 		// calculated properties
 		$entity->setSignature(md5($data));
 		// extracted properties
 		$entity->setLabel(isset($vo->FN) ? trim($vo->FN->getValue()) : null);
-        // deposit entry to data store
+		// deposit entry to data store
 		$entity = $this->_store->entityModify($entity);
 		// return state
 		return $entity->getSignature();
@@ -385,12 +384,12 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 	}
 
 	/**
-     * delete a entity in this collection
-     *
-     * @param ContactEntityData $entity	existing entity object
-     *
-     * @return void
-     */
+	 * delete a entity in this collection
+	 *
+	 * @param ContactEntityData $entity existing entity object
+	 *
+	 * @return void
+	 */
 	public function deleteFile(ContactEntityData $entity): void {
 
 		// delete entry from data store and return result

@@ -1,36 +1,35 @@
 <?php
+
 declare(strict_types=1);
 
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 namespace OCA\JMAPC\Service;
 
 use JmapClient\Client as JmapClient;
-use OCA\Providers\Mail\Service;
 use OCA\JMAPC\Providers\IRange;
-use OCA\JMAPC\Service\ConfigurationService;
-use OCA\JMAPC\Service\CoreService;
-use	OCA\JMAPC\Service\Remote\RemoteMailService;
+use OCA\JMAPC\Service\Remote\RemoteMailService;
+use	OCA\Providers\Mail\Service;
 
 use OCP\Mail\Provider\IMessage;
 
@@ -50,7 +49,7 @@ class MailMessageService {
 
 	public function __construct(
 		protected ConfigurationService $configuration,
-		protected RemoteMailService $remoteMailService
+		protected RemoteMailService $remoteMailService,
 	) {
 		$this->configuration = $configuration;
 		$this->remoteMailService = $remoteMailService;
@@ -60,7 +59,7 @@ class MailMessageService {
 
 		$this->userId = $uid;
 		$this->remoteStore = $remoteStore;
-		// evaluate if client is connected 
+		// evaluate if client is connected
 		if (!$this->remoteStore->sessionStatus()) {
 			$this->remoteStore->connect();
 		}
@@ -205,13 +204,13 @@ class MailMessageService {
 
 	}
 
-	public function entityList(string $location, IRange $range = null, string $sort = null, string $particulars = 'D', array $options = []): array {
+	public function entityList(string $location, ?IRange $range = null, ?string $sort = null, string $particulars = 'D', array $options = []): array {
 
 		return $this->remoteMailService->entityList($this->serviceSelectedAccount, $location, $range, $sort, $particulars);
 
 	}
 
-	public function entitySearch(string $location, array $filter, IRange $range = null, string $sort = null, string $scope = null, string $particulars = 'D', array $options = []): array {
+	public function entitySearch(string $location, array $filter, ?IRange $range = null, ?string $sort = null, ?string $scope = null, string $particulars = 'D', array $options = []): array {
 		
 		return $this->remoteMailService->entitySearch($this->serviceSelectedAccount, $location, $filter, $range, $sort, $particulars);
 

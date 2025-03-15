@@ -1,27 +1,28 @@
 <?php
+
 declare(strict_types=1);
 
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 namespace OCA\JMAPC\Providers;
 
 //use OCP\Mail\Provider\IServiceIdentity;
@@ -34,7 +35,7 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 
 	public function __construct(
 		string $identity = '',
-		string $secret = ''
+		string $secret = '',
 	) {
 
 		$this->_identity = $identity;
@@ -43,7 +44,7 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function type(): string {
@@ -53,7 +54,7 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function label(): string {
@@ -63,7 +64,7 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function getIdentity(): string {
@@ -73,7 +74,7 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function setIdentity(string $value) {
@@ -83,7 +84,7 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function getSecret(): string {
@@ -93,7 +94,7 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	}
 
 	/**
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function setSecret(string $value) {

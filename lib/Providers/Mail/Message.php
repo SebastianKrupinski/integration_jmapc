@@ -12,9 +12,6 @@ use OCP\Mail\Provider\Address;
 use OCP\Mail\Provider\IAddress;
 use OCP\Mail\Provider\IAttachment;
 
-use OCA\JMAPC\Providers\Mail\MessagePart;
-use OCA\JMAPC\Providers\Mail\MessageAttachment;
-
 /**
  * Mail Message Object
  *
@@ -40,7 +37,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array $parameters					message data array
+	 * @param array $parameters message data array
 	 */
 	public function __construct(
 		protected array $parameters = [],
@@ -53,9 +50,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array $value						collection of all message parameters
+	 * @param array $value collection of all message parameters
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setParameters(array $parameters): self {
 
@@ -80,7 +77,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return array					collection of all message parameters
+	 * @return array collection of all message parameters
 	 */
 	public function getParameters(): array {
 
@@ -92,27 +89,27 @@ class Message implements \OCP\Mail\Provider\IMessage {
 		// determine if any attachments are present
 		if (count($this->attachments) > 0) {
 			$message['bodyStructure'] = (object)['type' => 'multipart/mixed', 'subParts' => []];
-			$rootContainer =& $message['bodyStructure'];
+			$rootContainer = & $message['bodyStructure'];
 		}
 		
 		if (isset($rootContainer)) {
 			$rootContainer->subParts[] = (object)['type' => 'multipart/alternative', 'subParts' => []];
-			$messageContainer =& $rootContainer->subParts[0];
+			$messageContainer = & $rootContainer->subParts[0];
 		} else {
 			$message['bodyStructure'] = (object)['type' => 'multipart/alternative', 'subParts' => []];
-			$rootContainer =& $message['bodyStructure'];
-			$messageContainer =& $rootContainer;
+			$rootContainer = & $message['bodyStructure'];
+			$messageContainer = & $rootContainer;
 		}
 
 		// add text
 		if ($this->messageText !== null) {
-			$messageContainer->subParts[] = (object)['type' => 'text/plain', 'partId' => 'text'];		
+			$messageContainer->subParts[] = (object)['type' => 'text/plain', 'partId' => 'text'];
 			$message['bodyValues']['text'] = ['isTruncated' => false, 'value' => $this->messageText];
 		}
 		
 		// add html
 		if ($this->messageHtml !== null) {
-			$messageContainer->subParts[] = (object)['type' => 'text/html', 'partId' => 'html'];		
+			$messageContainer->subParts[] = (object)['type' => 'text/html', 'partId' => 'html'];
 			$message['bodyValues']['html'] = ['isTruncated' => false, 'value' => $this->messageHtml];
 		}
 
@@ -130,7 +127,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return string						    id of this message
+	 * @return string id of this message
 	 */
 	public function id(): string {
 		// return id of message
@@ -142,9 +139,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return string|array|null			    id of this message
+	 * @return string|array|null id of this message
 	 */
-	public function in(): string | array | null {
+	public function in(): string|array|null {
 		// return id of message
 		return isset($this->parameters['mailboxIds']) ? array_keys($this->parameters['mailboxIds']) : null;
 	}
@@ -154,7 +151,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return int						    	size of this message
+	 * @return int size of this message
 	 */
 	public function size(): int {
 		// return size of message
@@ -166,9 +163,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return string|null					    received date/time of this message
+	 * @return string|null received date/time of this message
 	 */
-	public function received(): string | null {
+	public function received(): ?string {
 		// return received date of message
 		return isset($this->parameters['receivedAt']) ? $this->parameters['receivedAt'] : null;
 	}
@@ -178,9 +175,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return string|null				    	sent date/time of this message
+	 * @return string|null sent date/time of this message
 	 */
-	public function sent(): string | null {
+	public function sent(): ?string {
 		// return sent date of message
 		return isset($this->parameters['sentAt']) ? $this->parameters['sentAt'] : null;
 	}
@@ -190,9 +187,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param IAddress $value		            sender's mail address object
+	 * @param IAddress $value sender's mail address object
 	 *
-	 * @return self                         	return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setFrom(IAddress $value): self {
 		// create or update field in data store with value
@@ -208,7 +205,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @param IAddress|null                 	sender's mail address object
 	 */
-	public function getFrom(): IAddress | null {
+	public function getFrom(): ?IAddress {
 		// evaluate if data store field exists and return value(s)
 		if (isset($this->parameters['from'][0])) {
 			$entry = $this->parameters['from'][0];
@@ -224,9 +221,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param IAddress $value		            senders's reply to mail address object
+	 * @param IAddress $value senders's reply to mail address object
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setReplyTo(IAddress $value): self {
 		// create or update field in data store with value
@@ -242,7 +239,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @param IAddress|null                     sender's reply to mail address object
 	 */
-	public function getReplyTo(): IAddress | null {
+	public function getReplyTo(): ?IAddress {
 		// evaluate if data store field exists and return value(s)
 		if (isset($this->parameters['replyTo'][0])) {
 			$entry = $this->parameters['replyTo'][0];
@@ -258,9 +255,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param IAddress ...$value		        collection of or one or more mail address objects
+	 * @param IAddress ...$value collection of or one or more mail address objects
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setTo(IAddress ...$value): self {
 		// create or update field in data store with value
@@ -283,7 +280,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 		if (isset($this->parameters['to']) && is_array($this->parameters['to'])) {
 			foreach ($this->parameters['to'] as $entry) {
 				$values[] = new Address(
-					$entry['email'], 
+					$entry['email'],
 					$entry['name']
 				);
 			}
@@ -298,9 +295,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param IAddress ...$value		        collection of or one or more mail address objects
+	 * @param IAddress ...$value collection of or one or more mail address objects
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setCc(IAddress ...$value): self {
 		// create or update field in data store with value
@@ -323,7 +320,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 		if (isset($this->parameters['cc']) && is_array($this->parameters['cc'])) {
 			foreach ($this->parameters['cc'] as $entry) {
 				$values[] = new Address(
-					$entry['email'], 
+					$entry['email'],
 					$entry['name']
 				);
 			}
@@ -338,9 +335,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param IAddress ...$value		        collection of or one or more mail address objects
+	 * @param IAddress ...$value collection of or one or more mail address objects
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setBcc(IAddress ...$value): self {
 		// create or update field in data store with value
@@ -363,7 +360,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 		if (isset($this->parameters['bcc']) && is_array($this->parameters['bcc'])) {
 			foreach ($this->parameters['bcc'] as $entry) {
 				$values[] = new Address(
-					$entry['email'], 
+					$entry['email'],
 					$entry['name']
 				);
 			}
@@ -378,9 +375,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $value                     subject of mail message
+	 * @param string $value subject of mail message
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setSubject(string $value): self {
 		// create or update field in data store with value
@@ -396,7 +393,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @param string|null                       subject of message or null if one is not set
 	 */
-	public function getSubject(): string | null {
+	public function getSubject(): ?string {
 		// evaluate if data store field exists and return value(s) or null otherwise
 		return isset($this->parameters['subject']) ? $this->parameters['subject'] : null;
 	}
@@ -406,10 +403,10 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $value                     text or html body of message
-	 * @param bool $html                        html flag - true for html
+	 * @param string $value text or html body of message
+	 * @param bool $html html flag - true for html
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setBody(string $value, bool $html = false): self {
 		// evaluate html flag and create or update appropriate field in data store with value
@@ -431,7 +428,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @param string|null                       html/plain body of this message or null if one is not set
 	 */
-	public function getBody(): string | null {
+	public function getBody(): ?string {
 		// evaluate if data store field(s) exists and return value
 		if ($this->bodyHtmlStatus) {
 			return $this->getBodyHtml();
@@ -447,9 +444,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $value                     html body of message
+	 * @param string $value html body of message
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setBodyHtml(string $value): self {
 		
@@ -465,7 +462,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @param string|null                       html body of this message or null if one is not set
 	 */
-	public function getBodyHtml(): string | null {
+	public function getBodyHtml(): ?string {
 
 		return $this->messageHtml;
 
@@ -476,9 +473,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $value         			plain text body of message
+	 * @param string $value plain text body of message
 	 *
-	 * @return self                 			return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setBodyPlain(string $value): self {
 		
@@ -494,7 +491,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @param string|null						plain text body of this message or null if one is not set
 	 */
-	public function getBodyPlain(): string | null {
+	public function getBodyPlain(): ?string {
 
 		return $this->messageText;
 
@@ -507,7 +504,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @param MessagePart						collection of or one or more mail attachment objects
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setContents(MessagePart $value): self {
 		
@@ -592,8 +589,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 		// then create a new part and copy existing contents if necessary
 		if ($part === null) {
 			$part = new MessagePart(['type' => $type]);
-		}
-		elseif ($part !== null && $part->getType() !== $type) {
+		} elseif ($part !== null && $part->getType() !== $type) {
 			$part = (new MessagePart(['type' => $type]))->setParts($part);
 		}
 
@@ -629,9 +625,9 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param IAttachment ...$value				collection of or one or more mail attachment objects
+	 * @param IAttachment ...$value collection of or one or more mail attachment objects
 	 *
-	 * @return self                             return this object for command chaining
+	 * @return self return this object for command chaining
 	 */
 	public function setAttachments(IAttachment ...$value): self {
 
@@ -645,7 +641,7 @@ class Message implements \OCP\Mail\Provider\IMessage {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return array<int,IAttachment>		    collection of all mail attachment objects
+	 * @return array<int,IAttachment> collection of all mail attachment objects
 	 */
 	public function getAttachments(): array {
 

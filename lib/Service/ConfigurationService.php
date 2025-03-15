@@ -1,27 +1,28 @@
 <?php
+
 declare(strict_types=1);
 
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 namespace OCA\JMAPC\Service;
 
@@ -32,7 +33,7 @@ use OCP\Security\ICrypto;
 class ConfigurationService {
 
 	/**
-	 * Default System Configuration 
+	 * Default System Configuration
 	 * @var array
 	 * */
 	private const _SYSTEM = [
@@ -45,13 +46,13 @@ class ConfigurationService {
 	];
 
 	/**
-	 * Default System Secure Parameters 
+	 * Default System Secure Parameters
 	 * @var array
 	 * */
 	private const _SYSTEM_SECURE = [];
 
 	/**
-	 * Default User Configuration 
+	 * Default User Configuration
 	 * @var array
 	 * */
 	private const _USER = [
@@ -62,24 +63,25 @@ class ConfigurationService {
 	];
 
 	/**
-	 * Default User Secure Parameters 
+	 * Default User Secure Parameters
 	 * @var array
 	 * */
 	private const _USER_SECURE = [];
 
 	public function __construct(
-		private IConfig $_ds, 
-		private ICrypto $_cs
-	) {}
+		private IConfig $_ds,
+		private ICrypto $_cs,
+	) {
+	}
 
 	/**
 	 * Retrieves collection of system configuration parameters
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		nextcloud user id
-	 * @param array $keys		collection of configuration parameter keys
-	 * 
+	 *
+	 * @param string $uid nextcloud user id
+	 * @param array $keys collection of configuration parameter keys
+	 *
 	 * @return array of key/value pairs, of configuration parameter
 	 */
 	public function retrieveUser(string $uid, ?array $keys = null): array {
@@ -111,8 +113,7 @@ class ConfigurationService {
 			if (!empty($v)) {
 				$parameters['events_attachment_path'] = $v;
 			}
-		}
-		else {
+		} else {
 			// retrieve specific user configuration values
 			foreach ($keys as $entry) {
 				$parameters[$entry] = $this->retrieveUserValue($uid, $entry);
@@ -129,12 +130,12 @@ class ConfigurationService {
 
 	/**
 	 * Deposit collection of system configuration parameters
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid			nextcloud user id
-	 * @param array $parameters		collection of key/value pairs, of parameters
-	 * 
+	 *
+	 * @param string $uid nextcloud user id
+	 * @param array $parameters collection of key/value pairs, of parameters
+	 *
 	 * @return void
 	 */
 	public function depositUser($uid, array $parameters): void {
@@ -148,12 +149,12 @@ class ConfigurationService {
 
 	/**
 	 * Destroy collection of system configuration parameters
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		nextcloud user id
-	 * @param array $keys		collection of configuration parameter keys
-	 * 
+	 *
+	 * @param string $uid nextcloud user id
+	 * @param array $keys collection of configuration parameter keys
+	 *
 	 * @return void
 	 */
 	public function destroyUser(string $uid, ?array $keys = null): void {
@@ -171,12 +172,12 @@ class ConfigurationService {
 
 	/**
 	 * Retrieves single system configuration parameter
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		nextcloud user id
-	 * @param string $key		configuration parameter key
-	 * 
+	 *
+	 * @param string $uid nextcloud user id
+	 * @param string $key configuration parameter key
+	 *
 	 * @return string configuration parameter value
 	 */
 	public function retrieveUserValue(string $uid, string $key): string {
@@ -200,13 +201,13 @@ class ConfigurationService {
 
 	/**
 	 * Deposit single system configuration parameter
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		nextcloud user id
-	 * @param string $key		configuration parameter key
-	 * @param string $value		configuration parameter value
-	 * 
+	 *
+	 * @param string $uid nextcloud user id
+	 * @param string $key configuration parameter key
+	 * @param string $value configuration parameter value
+	 *
 	 * @return void
 	 */
 	public function depositUserValue(string $uid, string $key, string $value): void {
@@ -224,12 +225,12 @@ class ConfigurationService {
 
 	/**
 	 * Destroy single user configuration parameter
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		nextcloud user id
-	 * @param string $key		configuration parameter keys
-	 * 
+	 *
+	 * @param string $uid nextcloud user id
+	 * @param string $key configuration parameter keys
+	 *
 	 * @return void
 	 */
 	public function destroyUserValue(string $uid, string $key): void {
@@ -241,11 +242,11 @@ class ConfigurationService {
 
 	/**
 	 * Retrieves collection of system configuration parameters
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param array $keys	collection of configuration parameter keys
-	 * 
+	 *
+	 * @param array $keys collection of configuration parameter keys
+	 *
 	 * @return array of key/value pairs, of configuration parameter
 	 */
 	public function retrieveSystem(?array $keys = null): array {
@@ -266,11 +267,11 @@ class ConfigurationService {
 
 	/**
 	 * Deposit collection of system configuration parameters
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param array $parameters	collection of key/value pairs, of parameters
-	 * 
+	 *
+	 * @param array $parameters collection of key/value pairs, of parameters
+	 *
 	 * @return void
 	 */
 	public function depositSystem(array $parameters): void {
@@ -284,11 +285,11 @@ class ConfigurationService {
 
 	/**
 	 * Destroy collection of system configuration parameters
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param array $keys	collection of configuration parameter keys
-	 * 
+	 *
+	 * @param array $keys collection of configuration parameter keys
+	 *
 	 * @return void
 	 */
 	public function destroySystem(?array $keys = null): void {
@@ -306,11 +307,11 @@ class ConfigurationService {
 
 	/**
 	 * Retrieves single system configuration parameter
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $key	configuration parameter key
-	 * 
+	 *
+	 * @param string $key configuration parameter key
+	 *
 	 * @return string configuration parameter value
 	 */
 	public function retrieveSystemValue(string $key): string {
@@ -333,12 +334,12 @@ class ConfigurationService {
 
 	/**
 	 * Deposit single system configuration parameter
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $key		configuration parameter key
-	 * @param string $value		configuration parameter value
-	 * 
+	 *
+	 * @param string $key configuration parameter key
+	 * @param string $value configuration parameter value
+	 *
 	 * @return void
 	 */
 	public function depositSystemValue(string $key, string $value): void {
@@ -356,9 +357,9 @@ class ConfigurationService {
 
 	/**
 	 * Destroy single system configuration parameter
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return void
 	 */
 	public function destroySystemValue(string $key): void {
@@ -370,11 +371,11 @@ class ConfigurationService {
 
 	/**
 	 * Converts key/value paired attribute array to object properties
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $parameters	collection of key/value paired attributes
-	 * 
+	 *
+	 * @param string $parameters collection of key/value paired attributes
+	 *
 	 * @return ConfigurationObject
 	 */
 	public function toUserConfigurationObject(array $parameters): \OCA\JMAPC\Objects\ConfigurationObject {
@@ -465,9 +466,9 @@ class ConfigurationService {
 
 	/**
 	 * Gets harmonization mode
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return string harmonization mode (default P - passive)
 	 */
 	public function getHarmonizationMode(): string {
@@ -477,8 +478,7 @@ class ConfigurationService {
 		// return harmonization mode or default
 		if (!empty($mode)) {
 			return $mode;
-		}
-		else {
+		} else {
 			return self::_SYSTEM['harmonization_mode'];
 		}
 
@@ -486,11 +486,11 @@ class ConfigurationService {
 
 	/**
 	 * Sets harmonization mode
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $mode		harmonization mode (A - Active / P - Passive)
-	 * 
+	 *
+	 * @param string $mode harmonization mode (A - Active / P - Passive)
+	 *
 	 * @return void
 	 */
 	public function setHarmonizationMode(string $mode): void {
@@ -502,9 +502,9 @@ class ConfigurationService {
 
 	/**
 	 * Gets harmonization thread run duration interval
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return string harmonization thread run duration interval (default 3600 seconds)
 	 */
 	public function getHarmonizationThreadDuration(): int {
@@ -515,8 +515,7 @@ class ConfigurationService {
 		// return value or default
 		if (is_numeric($interval)) {
 			return intval($interval);
-		}
-		else {
+		} else {
 			return intval(self::_SYSTEM['harmonization_thread_duration']);
 		}
 
@@ -524,11 +523,11 @@ class ConfigurationService {
 
 	/**
 	 * Sets harmonization thread pause interval
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $interval		harmonization thread pause interval in seconds
-	 * 
+	 *
+	 * @param string $interval harmonization thread pause interval in seconds
+	 *
 	 * @return void
 	 */
 	public function setHarmonizationThreadDuration(int $interval): void {
@@ -540,9 +539,9 @@ class ConfigurationService {
 
 	/**
 	 * Gets harmonization thread pause interval
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return string harmonization thread pause interval (default 5 seconds)
 	 */
 	public function getHarmonizationThreadPause(): int {
@@ -553,8 +552,7 @@ class ConfigurationService {
 		// return value or default
 		if (is_numeric($interval)) {
 			return intval($interval);
-		}
-		else {
+		} else {
 			return intval($self::_SYSTEM['harmonization_thread_pause']);
 		}
 
@@ -562,11 +560,11 @@ class ConfigurationService {
 
 	/**
 	 * Sets harmonization thread pause interval
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $interval		harmonization thread pause interval in seconds
-	 * 
+	 *
+	 * @param string $interval harmonization thread pause interval in seconds
+	 *
 	 * @return void
 	 */
 	public function setHarmonizationThreadPause(int $interval): void {
@@ -578,11 +576,11 @@ class ConfigurationService {
 
 	/**
 	 * Gets harmonization thread id
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * 
+	 *
+	 * @param string $uid nextcloud user id
+	 *
 	 * @return string|null thread id if exists | null if does not exist
 	 */
 	public function getHarmonizationThreadId(string $uid): int {
@@ -592,8 +590,7 @@ class ConfigurationService {
 		// return thread id
 		if (is_numeric($tid)) {
 			return intval($tid);
-		}
-		else {
+		} else {
 			return 0;
 		}
 
@@ -601,28 +598,28 @@ class ConfigurationService {
 
 	/**
 	 * Sets harmonization thread id
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid		nextcloud user id
-	 * @param string $tid		thread id
-	 * 
+	 *
+	 * @param string $uid nextcloud user id
+	 * @param string $tid thread id
+	 *
 	 * @return void
 	 */
 	public function setHarmonizationThreadId(string $uid, int $tid): void {
 		
 		// update harmonization thread id
-		$this->depositUserValue($uid, 'account_harmonization_tid', (string) $tid);
+		$this->depositUserValue($uid, 'account_harmonization_tid', (string)$tid);
 
 	}
 
 	/**
 	 * Gets harmonization thread heart beat
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * 
+	 *
+	 * @param string $uid nextcloud user id
+	 *
 	 * @return int thread heart beat time stamp if exists | null if does not exist
 	 */
 	public function getHarmonizationThreadHeartBeat(string $uid): int {
@@ -631,9 +628,8 @@ class ConfigurationService {
 		$thb = $this->retrieveUserValue($uid, 'account_harmonization_thb');
 		// return thread heart beat
 		if (is_numeric($thb)) {
-			return (int) $thb;
-		}
-		else {
+			return (int)$thb;
+		} else {
 			return 0;
 		}
 
@@ -641,12 +637,12 @@ class ConfigurationService {
 
 	/**
 	 * Sets harmonization thread heart beat
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
-	 * @param string $uid	nextcloud user id
-	 * @param int $thb		thread heart beat time stamp
-	 * 
+	 *
+	 * @param string $uid nextcloud user id
+	 * @param int $thb thread heart beat time stamp
+	 *
 	 * @return void
 	 */
 	public function setHarmonizationThreadHeartBeat(string $uid, int $thb): void {
@@ -658,9 +654,9 @@ class ConfigurationService {
 
 	/**
 	 * retrieve contacts app status
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return bool
 	 */
 	public function isMailAppAvailable(): bool {
@@ -670,8 +666,7 @@ class ConfigurationService {
 		// evaluate status
 		if ($status == 'yes') {
 			return true;
-		}
-		else {
+		} else {
 			return false;
 		}
 
@@ -679,9 +674,9 @@ class ConfigurationService {
 
 	/**
 	 * retrieve contacts app status
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return bool
 	 */
 	public function isContactsAppAvailable(): bool {
@@ -691,8 +686,7 @@ class ConfigurationService {
 		// evaluate status
 		if ($status == 'yes') {
 			return true;
-		}
-		else {
+		} else {
 			return false;
 		}
 
@@ -700,9 +694,9 @@ class ConfigurationService {
 
 	/**
 	 * retrieve calendar app status
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return bool
 	 */
 	public function isCalendarAppAvailable(): bool {
@@ -712,8 +706,7 @@ class ConfigurationService {
 		// evaluate status
 		if ($status == 'yes') {
 			return true;
-		}
-		else {
+		} else {
 			return false;
 		}
 
@@ -721,9 +714,9 @@ class ConfigurationService {
 
 	/**
 	 * retrieve task app status
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return bool
 	 */
 	public function isTasksAppAvailable(): bool {
@@ -733,8 +726,7 @@ class ConfigurationService {
 		// evaluate status
 		if ($status == 'yes') {
 			return true;
-		}
-		else {
+		} else {
 			return false;
 		}
 
@@ -742,9 +734,9 @@ class ConfigurationService {
 
 	/**
 	 * encrypt string
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return string
 	 */
 	public function encrypt(string $value): string {
@@ -755,9 +747,9 @@ class ConfigurationService {
 
 	/**
 	 * decrypt string
-	 * 
+	 *
 	 * @since Release 1.0.0
-	 * 
+	 *
 	 * @return string
 	 */
 	public function decrypt(string $value): string {
@@ -765,5 +757,5 @@ class ConfigurationService {
 		return $this->_cs->decrypt($value);
 
 	}
-	
+
 }

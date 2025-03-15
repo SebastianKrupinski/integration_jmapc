@@ -1,39 +1,38 @@
 <?php
+
 declare(strict_types=1);
 
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 namespace OCA\JMAPC\Service\Remote;
 
+use DateInterval;
 use Datetime;
 use DateTimeZone;
-use DateInterval;
-use Psr\Log\LoggerInterface;
 
-use OCA\JMAPC\Service\Remote\RemoteCommonService;
+use OCA\JMAPC\Objects\TaskAttachmentObject;
 use OCA\JMAPC\Objects\TaskCollectionObject;
 use OCA\JMAPC\Objects\TaskObject;
-use OCA\JMAPC\Objects\TaskAttachmentObject;
 use OCA\JMAPC\Utile\Eas\EasClient;
 use OCA\JMAPC\Utile\Eas\EasCollection;
 use OCA\JMAPC\Utile\Eas\EasObject;
@@ -48,7 +47,7 @@ class RemoteTasksService {
 	public ?DateTimeZone $SystemTimeZone = null;
 	public ?DateTimeZone $UserTimeZone = null;
 
-	public function __construct (RemoteCommonService $RemoteCommonService) {
+	public function __construct(RemoteCommonService $RemoteCommonService) {
 		
 		$this->RemoteCommonService = $RemoteCommonService;
 
@@ -61,23 +60,23 @@ class RemoteTasksService {
 	}
 
 	/**
-     * retrieve properties for specific collection
-     * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $cht				Collections Hierarchy Synchronization Token
-	 * @param string $chl				Collections Hierarchy Location
-	 * @param string $cid				Collection Id
-	 * 
-	 * @return TaskCollectionObject  	TaskCollectionObject on success / Null on failure
+	 * retrieve properties for specific collection
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $cht Collections Hierarchy Synchronization Token
+	 * @param string $chl Collections Hierarchy Location
+	 * @param string $cid Collection Id
+	 *
+	 * @return TaskCollectionObject TaskCollectionObject on success / Null on failure
 	 */
 	public function collectionFetch(string $cht, string $chl, string $cid): ?TaskCollectionObject {
 
-        // execute command
+		// execute command
 		$cr = $this->RemoteCommonService->fetchFolder($this->DataStore, $cid, false, 'I', $this->constructDefaultCollectionProperties());
-        // process response
+		// process response
 		if (isset($cr) && (count($cr->TasksFolder) > 0)) {
-		    $ec = new TaskCollectionObject(
+			$ec = new TaskCollectionObject(
 				$cr->TasksFolder[0]->FolderId->Id,
 				$cr->TasksFolder[0]->DisplayName,
 				$cr->TasksFolder[0]->FolderId->ChangeKey,
@@ -90,27 +89,27 @@ class RemoteTasksService {
 		} else {
 			return null;
 		}
-        
-    }
+		
+	}
 
 	/**
-     * create collection in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $cht				Collections Hierarchy Synchronization Token
-	 * @param string $chl				Collections Hierarchy Location
-	 * @param string $name				Collection Name
-	 * 
-	 * @return TaskCollectionObject  	TaskCollectionObject on success / Null on failure
+	 * create collection in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $cht Collections Hierarchy Synchronization Token
+	 * @param string $chl Collections Hierarchy Location
+	 * @param string $name Collection Name
+	 *
+	 * @return TaskCollectionObject TaskCollectionObject on success / Null on failure
 	 */
 	public function collectionCreate(string $cht, string $chl, string $name): ?TaskCollectionObject {
-        
+		
 		// execute command
 		$rs = $RemoteCommonService->collectionCreate($this->DataStore, $cht, $chl, $name, EasTypes::COLLECTION_TYPE_USER_TASKS);
-        // process response
+		// process response
 		if (isset($rs->Status) && $rs->Status->getContents() == '1') {
-		    return new TaskCollectionObject(
+			return new TaskCollectionObject(
 				$rs->Id->getContents(),
 				$name,
 				$rs->SyncKey->getContents()
@@ -119,27 +118,27 @@ class RemoteTasksService {
 			return null;
 		}
 
-    }
+	}
 
-    /**
-     * update collection in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $cht				Collections Hierarchy Synchronization Token
-	 * @param string $chl				Collections Hierarchy Location
-	 * @param string $cid				Collection Id
-	 * @param string $name				Collection Name
-	 * 
-	 * @return TaskCollectionObject  	TaskCollectionObject on success / Null on failure
+	/**
+	 * update collection in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $cht Collections Hierarchy Synchronization Token
+	 * @param string $chl Collections Hierarchy Location
+	 * @param string $cid Collection Id
+	 * @param string $name Collection Name
+	 *
+	 * @return TaskCollectionObject TaskCollectionObject on success / Null on failure
 	 */
 	public function updateCollection(string $cht, string $chl, string $cid, string $name): ?TaskCollectionObject {
-        
+		
 		// execute command
 		$rs = $RemoteCommonService->updateCollection($this->DataStore, $cht, $chl, $cid, $name);
-        // process response
+		// process response
 		if (isset($rs->Status) && $rs->Status->getContents() == '1') {
-		    return new TaskCollectionObject(
+			return new TaskCollectionObject(
 				$rs->Id->getContents(),
 				$name,
 				$rs->SyncKey->getContents()
@@ -148,94 +147,93 @@ class RemoteTasksService {
 			return null;
 		}
 
-    }
+	}
 
-    /**
-     * delete collection in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param string $cht				Collections Hierarchy Synchronization Token
-	 * @param string $cid				Collection Id
-	 * 
-	 * @return bool 					True on success / Null on failure
+	/**
+	 * delete collection in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $cht Collections Hierarchy Synchronization Token
+	 * @param string $cid Collection Id
+	 *
+	 * @return bool True on success / Null on failure
 	 */
-    public function collectionDelete(string $cht, string $cid): bool {
-        
+	public function collectionDelete(string $cht, string $cid): bool {
+		
 		// execute command
-        $rs = $this->RemoteCommonService->collectionDelete($this->DataStore, $cht, $cid);
+		$rs = $this->RemoteCommonService->collectionDelete($this->DataStore, $cht, $cid);
 		// process response
-        if (isset($rs->CollectionDelete->Status) && $rs->CollectionDelete->Status->getContents() == '1') {
-            return true;
-        } else {
-            return false;
-        }
+		if (isset($rs->CollectionDelete->Status) && $rs->CollectionDelete->Status->getContents() == '1') {
+			return true;
+		} else {
+			return false;
+		}
 
-    }
+	}
 
-    /**
+	/**
 	 * retrieve alteration for specific collection
-     * 
-     * @since Release 1.0.0
-	 * 
-     * @param string $cid		Collection Id
-	 * @param string $cst		Collections Synchronization Token
-	 * 
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $cid Collection Id
+	 * @param string $cst Collections Synchronization Token
+	 *
 	 * @return object
 	 */
 	public function reconcileCollection(string $cid, string $cst): ?object {
 
-        // evaluate synchronization token, if empty or 0 retrieve initial synchronization token
-        if (empty($cst) || $cst == '0') {
-            // execute command
-            $rs1 = $this->RemoteCommonService->reconcileCollection($this->DataStore, '0', $cid, []);
-            // extract synchronization token
-            $cst = $rs1->SyncKey->getContents();
-        }
-        // execute command
-        $rs2 = $this->RemoteCommonService->reconcileCollection($this->DataStore, $cst, $cid, ['CHANGES' => 1, 'LIMIT' => 32, 'FILTER' => 0, 'BODY' => EasTypes::BODY_TYPE_TEXT]);
-        // evaluate response(s)
+		// evaluate synchronization token, if empty or 0 retrieve initial synchronization token
+		if (empty($cst) || $cst == '0') {
+			// execute command
+			$rs1 = $this->RemoteCommonService->reconcileCollection($this->DataStore, '0', $cid, []);
+			// extract synchronization token
+			$cst = $rs1->SyncKey->getContents();
+		}
+		// execute command
+		$rs2 = $this->RemoteCommonService->reconcileCollection($this->DataStore, $cst, $cid, ['CHANGES' => 1, 'LIMIT' => 32, 'FILTER' => 0, 'BODY' => EasTypes::BODY_TYPE_TEXT]);
+		// evaluate response(s)
 		// return collection delta response
 		if (isset($rs2->Status) && $rs2->Status->getContents() == '1') {
-		    return $rs2;
+			return $rs2;
 		}
 		// return initial response if normal response was null (work around for empty collection null responses)
 		elseif (isset($rs1->Status) && $rs1->Status->getContents() == '1') {
-		    return $rs1;
-		}
-		else {
+			return $rs1;
+		} else {
 			return null;
 		}
 
-    }
+	}
 
 	/**
-     * retrieve collection entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $cid			Collection ID
-     * @param string $cst           Collection Signature Token
-	 * @param string $eid			Entity ID
-	 * 
-	 * @return TaskObject       	TaskObject on success / Null on failure
+	 * retrieve collection entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $cid Collection ID
+	 * @param string $cst Collection Signature Token
+	 * @param string $eid Entity ID
+	 *
+	 * @return TaskObject TaskObject on success / Null on failure
 	 */
 	public function entityFetch(string $cid, string &$cst, string $eid): ?TaskObject {
 
-        // execute command
+		// execute command
 		$ro = $this->RemoteCommonService->entityFetch($this->DataStore, $cid, $eid, ['BODY' => EasTypes::BODY_TYPE_TEXT]);
-        // validate response
+		// validate response
 		if (isset($ro->Status) && $ro->Status->getContents() == '1') {
-            // convert to contact object
-            $to = $this->toTaskObject($ro->Properties);
-            $to->ID = ($ro->EntityId) ? $ro->EntityId->getContents() : $eid;
-            $to->CID = ($ro->CollectionId) ? $ro->CollectionId->getContents() : $cid;
-            $to->RCID = $to->CID;
-            $to->REID = $to->ID;
-            // generate a signature for the data
-            // this a crude but nessary as EAS does not transmit a harmonization signature for entities
-            $to->Signature = $this->generateSignature($to);
-            // retrieve attachment(s) from remote data store
+			// convert to contact object
+			$to = $this->toTaskObject($ro->Properties);
+			$to->ID = ($ro->EntityId) ? $ro->EntityId->getContents() : $eid;
+			$to->CID = ($ro->CollectionId) ? $ro->CollectionId->getContents() : $cid;
+			$to->RCID = $to->CID;
+			$to->REID = $to->ID;
+			// generate a signature for the data
+			// this a crude but nessary as EAS does not transmit a harmonization signature for entities
+			$to->Signature = $this->generateSignature($to);
+			// retrieve attachment(s) from remote data store
 			if (count($to->Attachments) > 0) {
 				// retrieve all attachments
 				$ro = $this->RemoteCommonService->fetchAttachment($this->DataStore, array_column($to->Attachments, 'Id'));
@@ -252,149 +250,149 @@ class RemoteTasksService {
 					}
 				}
 			}
-            // return object
-		    return $to;
-        } else {
-            // return null
-            return null;
-        }
+			// return object
+			return $to;
+		} else {
+			// return null
+			return null;
+		}
 
-    }
-    
+	}
+	
 	/**
-     * create collection entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $cid			Collection Id
-	 * @param string $cst			Collection Synchronization Token
-     * @param TaskObject $so     	Source Object
-	 * 
-	 * @return TaskObject        	TaskObject on success / Null on failure
+	 * create collection entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $cid Collection Id
+	 * @param string $cst Collection Synchronization Token
+	 * @param TaskObject $so Source Object
+	 *
+	 * @return TaskObject TaskObject on success / Null on failure
 	 */
 	public function entityCreate(string $cid, string &$cst, TaskObject $so): ?TaskObject {
 
-        // convert source TaskObject to EasObject
-        $to = $this->fromTaskObject($so);
-	    // execute command
-	    $ro = $this->RemoteCommonService->entityCreate($this->DataStore, $cid, $cst, EasTypes::ENTITY_TYPE_CALENDAR, $to);
-        // evaluate response
-        if (isset($ro->Status) && $ro->Status->getContents() == '1') {
-            // extract signature token
-            $cst = $ro->SyncKey->getContents();
-            //
+		// convert source TaskObject to EasObject
+		$to = $this->fromTaskObject($so);
+		// execute command
+		$ro = $this->RemoteCommonService->entityCreate($this->DataStore, $cid, $cst, EasTypes::ENTITY_TYPE_CALENDAR, $to);
+		// evaluate response
+		if (isset($ro->Status) && $ro->Status->getContents() == '1') {
+			// extract signature token
+			$cst = $ro->SyncKey->getContents();
+			//
 			$to = clone $so;
-            $to->Origin = 'R';
-            $to->ID = ($ro->Responses->Add->EntityId) ? $ro->Responses->Add->EntityId->getContents() : $eid;
-            $to->CID = ($ro->CollectionId) ? $ro->CollectionId->getContents() : $cid;
-            $to->RCID = $to->CID;
-            $to->REID = $to->ID;
+			$to->Origin = 'R';
+			$to->ID = ($ro->Responses->Add->EntityId) ? $ro->Responses->Add->EntityId->getContents() : $eid;
+			$to->CID = ($ro->CollectionId) ? $ro->CollectionId->getContents() : $cid;
+			$to->RCID = $to->CID;
+			$to->REID = $to->ID;
 			// deposit attachment(s)
 			if (count($to->Attachments) > 0) {
 				// create attachments in remote data store
 				$to->Attachments = $this->collectionCreateItemAttachment($to->ID, $to->Attachments);
 				$to->Signature = $to->Attachments[0]->AffiliateState;
 			}
-            // generate a signature for the entity
+			// generate a signature for the entity
 			// this a crude but nessary as EAS does not transmit a harmonization signature for entities
 			$to->Signature = $this->generateSignature($to);
-            return $to;
-        } else {
-            return null;
-        }
+			return $to;
+		} else {
+			return null;
+		}
 
-    }
+	}
 
-    /**
-     * update collection entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param string $cid			Collection ID
-	 * @param string $cst			Collection Signature Token
-     * @param string $eid           Entity ID
-     * @param TaskObject $so     	Source Object
-	 * 
-	 * @return TaskObject        	TaskObject on success / Null on failure
+	/**
+	 * update collection entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $cid Collection ID
+	 * @param string $cst Collection Signature Token
+	 * @param string $eid Entity ID
+	 * @param TaskObject $so Source Object
+	 *
+	 * @return TaskObject TaskObject on success / Null on failure
 	 */
 	public function entityModify(string $cid, string &$cst, string $eid, TaskObject $so): ?TaskObject {
 
-        // convert source TaskObject to EasObject
-        $to = $this->fromTaskObject($so);
-	    // execute command
-	    $ro = $this->RemoteCommonService->entityModify($this->DataStore, $cid, $cst, $eid, $ro);
-        // evaluate response
-        if (isset($ro->Status) && $ro->Status->getContents() == '1') {
-            // extract signature token
-            $cst = $ro->SyncKey->getContents();
-            //
+		// convert source TaskObject to EasObject
+		$to = $this->fromTaskObject($so);
+		// execute command
+		$ro = $this->RemoteCommonService->entityModify($this->DataStore, $cid, $cst, $eid, $ro);
+		// evaluate response
+		if (isset($ro->Status) && $ro->Status->getContents() == '1') {
+			// extract signature token
+			$cst = $ro->SyncKey->getContents();
+			//
 			$to = clone $so;
 			$to->Origin = 'R';
-            $to->ID = ($ro->Responses->Modify->EntityId) ? $ro->Responses->Modify->EntityId->getContents() : $eid;
-            $to->CID = ($ro->CollectionId) ? $ro->CollectionId->getContents() : $cid;
+			$to->ID = ($ro->Responses->Modify->EntityId) ? $ro->Responses->Modify->EntityId->getContents() : $eid;
+			$to->CID = ($ro->CollectionId) ? $ro->CollectionId->getContents() : $cid;
 			// deposit attachment(s)
 			if (count($so->Attachments) > 0) {
 				// create attachments in remote data store
 				$to->Attachments = $this->collectionCreateItemAttachment($to->ID, $to->Attachments);
 				$to->Signature = $to->Attachments[0]->AffiliateState;
 			}
-            // generate a signature for the entity
+			// generate a signature for the entity
 			// this a crude but nessary as EAS does not transmit a harmonization signature for entities
 			$to->Signature = $this->generateSignature($to);
-            return $to;
-        } else {
-            return null;
-        }
-        
-    }
-    
-    /**
-     * delete collection entity in remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param string $cid			Collection Id
-	 * @param string $cst			Collection Synchronization Token
-	 * @param string $eid			Entity Id
-	 * 
-	 * @return bool                 True on success / False on failure
+			return $to;
+		} else {
+			return null;
+		}
+		
+	}
+	
+	/**
+	 * delete collection entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $cid Collection Id
+	 * @param string $cst Collection Synchronization Token
+	 * @param string $eid Entity Id
+	 *
+	 * @return bool True on success / False on failure
 	 */
-    public function entityDelete(string $cid, string $cst, string $eid): bool {
-        
-        // execute command
-        $rs = $this->RemoteCommonService->entityDelete($this->DataStore, $cid, $cst, $eid);
-        // evaluate response
-        if ($rs) {
-            return true;
-        } else {
-            return false;
-        }
+	public function entityDelete(string $cid, string $cst, string $eid): bool {
+		
+		// execute command
+		$rs = $this->RemoteCommonService->entityDelete($this->DataStore, $cid, $cst, $eid);
+		// evaluate response
+		if ($rs) {
+			return true;
+		} else {
+			return false;
+		}
 
-    }
+	}
 
 	/**
-     * retrieve collection entity attachment from remote storage
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param array $batch		Batch of Attachment ID's
-	 * 
+	 * retrieve collection entity attachment from remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param array $batch Batch of Attachment ID's
+	 *
 	 * @return array
 	 */
 	public function fetchAttachment(array $batch): array {
 
 		// check to for entries in batch collection
-        if (count($batch) == 0) {
-            return array();
-        }
+		if (count($batch) == 0) {
+			return [];
+		}
 		// retrieve attachments
 		$rs = $this->RemoteCommonService->fetchAttachment($this->DataStore, $batch);
 		// construct response collection place holder
-		$rc = array();
+		$rc = [];
 		// check for response
 		if (isset($rs)) {
 			// process collection of objects
-			foreach($rs as $entry) {
+			foreach ($rs as $entry) {
 				if (!isset($entry->ContentType) || $entry->ContentType == 'application/octet-stream') {
 					$type = \OCA\JMAPC\Utile\MIME::fromFileName($entry->Name);
 				} else {
@@ -403,7 +401,7 @@ class RemoteTasksService {
 				// insert attachment object in response collection
 				$rc[] = new TaskAttachmentObject(
 					'D',
-					$entry->AttachmentId->Id, 
+					$entry->AttachmentId->Id,
 					$entry->Name,
 					$type,
 					'B',
@@ -415,26 +413,26 @@ class RemoteTasksService {
 		// return response collection
 		return $rc;
 
-    }
+	}
 
-    /**
-     * create collection item attachment in local storage
-     * 
-     * @since Release 1.0.0
-     * 
+	/**
+	 * create collection item attachment in local storage
+	 *
+	 * @since Release 1.0.0
+	 *
 	 * @param string $aid - Affiliation ID
-     * @param array $sc - Collection of TaskAttachmentObject(S)
-	 * 
+	 * @param array $sc - Collection of TaskAttachmentObject(S)
+	 *
 	 * @return string
 	 */
 	public function createAttachment(string $aid, array $batch): array {
 
 		// check to for entries in batch collection
-        if (count($batch) == 0) {
-            return array();
-        }
+		if (count($batch) == 0) {
+			return [];
+		}
 		// construct command collection place holder
-		$cc = array();
+		$cc = [];
 		// process batch
 		foreach ($batch as $key => $entry) {
 			// construct command object
@@ -460,11 +458,11 @@ class RemoteTasksService {
 		// execute command(s)
 		$rs = $this->RemoteCommonService->createAttachment($this->DataStore, $aid, $cc);
 		// construct results collection place holder
-		$rc = array();
+		$rc = [];
 		// check for response
 		if (isset($rs)) {
 			// process collection of objects
-			foreach($rs as $key => $entry) {
+			foreach ($rs as $key => $entry) {
 				$ro = clone $batch[$key];
 				$ro->Id = $entry->AttachmentId->Id;
 				$ro->Data = null;
@@ -473,41 +471,41 @@ class RemoteTasksService {
 				$rc[] = $ro;
 			}
 
-        }
+		}
 		// return response collection
 		return $rc;
-    }
+	}
 
-    /**
-     * delete collection item attachment from local storage
-     * 
-     * @since Release 1.0.0
-     * 
-     * @param string $aid - Attachment ID
-	 * 
+	/**
+	 * delete collection item attachment from local storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $aid - Attachment ID
+	 *
 	 * @return bool true - successfully delete / False - failed to delete
 	 */
 	public function deleteAttachment(array $batch): array {
 
 		// check to for entries in batch collection
-        if (count($batch) == 0) {
-            return array();
-        }
+		if (count($batch) == 0) {
+			return [];
+		}
 		// execute command
 		$data = $this->RemoteCommonService->deleteAttachment($this->DataStore, $batch);
 
 		return $data;
 
-    }
+	}
 
 	/**
-     * convert remote EasObject to local ContactObject
-     * 
-     * @since Release 1.0.0
-     * 
-	 * @param EasObject $so     entity as EasObject
-	 * 
-	 * @return TaskObject		entity as TaskObject
+	 * convert remote EasObject to local ContactObject
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param EasObject $so entity as EasObject
+	 *
+	 * @return TaskObject entity as TaskObject
 	 */
 	public function toTaskObject(EasObject $so): TaskObject {
 		// create object
@@ -519,44 +517,44 @@ class RemoteTasksService {
 			$to->StartsOn = new DateTime($so->UtcStartDate->getContents());
 		}
 		// Due Date/Time
-        if (!empty($so->UtcDueDate)) {
-            $to->DueOn = new DateTime($so->UtcDueDate->getContents());
-        }
+		if (!empty($so->UtcDueDate)) {
+			$to->DueOn = new DateTime($so->UtcDueDate->getContents());
+		}
 		// Completed Date/Time
-        if (!empty($so->DateCompleted)) {
-            $to->CompletedOn = new DateTime($so->DateCompleted->getContents());
-        }
+		if (!empty($so->DateCompleted)) {
+			$to->CompletedOn = new DateTime($so->DateCompleted->getContents());
+		}
 		// Label
-        if (!empty($so->Subject)) {
-            $to->Label = $so->Subject->getContents();
-        }
+		if (!empty($so->Subject)) {
+			$to->Label = $so->Subject->getContents();
+		}
 		// Notes
 		if (!empty($so->Body->Data)) {
 			$to->Notes = $so->Body->Data->getContents();
 		}
 		// Progress
-        if (!empty($so->Complete)) {
-            $to->Progress = $so->Complete->getContents();
-        }
+		if (!empty($so->Complete)) {
+			$to->Progress = $so->Complete->getContents();
+		}
 		// Priority
 		if (!empty($so->Importance)) {
-			$to->Priority = $this->fromImportance((int) $so->Importance->getContents());
+			$to->Priority = $this->fromImportance((int)$so->Importance->getContents());
 		}
 		// Sensitivity
 		if (!empty($so->Sensitivity)) {
 			$eo->Sensitivity = $this->fromSensitivity($so->Sensitivity->getContents());
 		}
 		// Tag(s)
-        if (isset($so->Categories)) {
-            if (!is_array($so->Categories->Category)) {
-                $so->Categories->Category = [$so->Categories->Category];
-            }
-			foreach($so->Categories->Category as $entry) {
+		if (isset($so->Categories)) {
+			if (!is_array($so->Categories->Category)) {
+				$so->Categories->Category = [$so->Categories->Category];
+			}
+			foreach ($so->Categories->Category as $entry) {
 				$to->addTag($entry->getContents());
 			}
-        }
+		}
 		// Notification(s)
-		if (isset($so->Reminder)) { 
+		if (isset($so->Reminder)) {
 			$w = new DateInterval('PT' . $so->Reminder->getContents() . 'M');
 			$w->invert = 1;
 			$to->addNotification(
@@ -566,7 +564,7 @@ class RemoteTasksService {
 			);
 		}
 		// Occurrence
-        if (isset($so->Recurrence)) {
+		if (isset($so->Recurrence)) {
 			// Interval
 			if (isset($so->Recurrence->Interval)) {
 				$to->Occurrence->Interval = $so->Recurrence->Interval->getContents();
@@ -585,7 +583,7 @@ class RemoteTasksService {
 				$to->Occurrence->Pattern = 'A';
 				$to->Occurrence->Precision = 'D';
 
-            }
+			}
 			// Weekly
 			if ($so->Recurrence->Type->getContents() == '1') {
 				
@@ -596,7 +594,7 @@ class RemoteTasksService {
 					$to->Occurrence->OnDayOfWeek = $this->fromDaysOfWeek($so->Recurrence->DayOfWeek->getContents());
 				}
 
-            }
+			}
 			// Monthly Absolute
 			if ($so->Recurrence->Type->getContents() == '2') {
 				
@@ -607,7 +605,7 @@ class RemoteTasksService {
 					$to->Occurrence->OnDayOfMonth = $this->fromDaysOfMonth($so->Recurrence->DayOfMonth->getContents());
 				}
 
-            }
+			}
 			// Monthly Relative
 			if ($so->Recurrence->Type->getContents() == '3') {
 				
@@ -621,7 +619,7 @@ class RemoteTasksService {
 					$to->Occurrence->OnWeekOfMonth = $this->fromWeekOfMonth($so->Recurrence->WeekOfMonth->getContents());
 				}
 
-            }
+			}
 			// Yearly Absolute
 			if ($so->Recurrence->Type->getContents() == '5') {
 				
@@ -635,7 +633,7 @@ class RemoteTasksService {
 					$to->Occurrence->OnDayOfMonth = $this->fromDaysOfMonth($so->Recurrence->DayOfMonth->getContents());
 				}
 
-            }
+			}
 			// Yearly Relative
 			if ($so->Recurrence->Type->getContents() == '6') {
 				
@@ -652,26 +650,26 @@ class RemoteTasksService {
 					$to->Occurrence->OnMonthOfYear = $this->fromMonthOfYear($so->Recurrence->MonthOfYear->getContents());
 				}
 
-            }
+			}
 			// Excludes
 			if (isset($so->DeletedOccurrences)) {
-				foreach($so->DeletedOccurrences->DeletedOccurrence as $entry) {
+				foreach ($so->DeletedOccurrences->DeletedOccurrence as $entry) {
 					if (isset($entry->Start)) {
 						$o->Occurrence->Excludes[] = new DateTime($entry->Start);
 					}
 				}
 			}
-        }
-        // Attachment(s)
+		}
+		// Attachment(s)
 		if (isset($so->Attachments)) {
 			if (!is_array($so->Attachments->Attachment)) {
 				$so->Attachments->Attachment = [$so->Attachments->Attachment];
 			}
-			foreach($so->Attachments->Attachment as $entry) {
+			foreach ($so->Attachments->Attachment as $entry) {
 				$type = \OCA\JMAPC\Utile\MIME::fromFileName($entry->DisplayName->getContents());
 				$to->addAttachment(
 					'D',
-					$entry->FileReference->getContents(), 
+					$entry->FileReference->getContents(),
 					$entry->DisplayName->getContents(),
 					$type,
 					'B',
@@ -679,19 +677,19 @@ class RemoteTasksService {
 				);
 			}
 		}
-        
+		
 		return $to;
 
-    }
+	}
 
 	/**
-     * convert remote TaskObject to remote EasObject
-     * 
-     * @since Release 1.0.0
-     * 
-	 * @param TaskObject $so		entity as EventObject
-	 * 
-	 * @return EasObject            entity as EasObject
+	 * convert remote TaskObject to remote EasObject
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param TaskObject $so entity as EventObject
+	 *
+	 * @return EasObject entity as EasObject
 	 */
 	public function fromTaskObject(TaskObject $so): EasObject {
 
@@ -714,45 +712,42 @@ class RemoteTasksService {
 			$to->DateCompleted = new EasProperty('Tasks', $dt->format('Ymd\\THisp')); // YYYYMMDDTHHMMSSZ
 		}
 		// Label
-        if (!empty($so->Label)) {
-            $to->Subject = new EasProperty('Tasks', $so->Label);
-        }
+		if (!empty($so->Label)) {
+			$to->Subject = new EasProperty('Tasks', $so->Label);
+		}
 		// Notes
-        if (!empty($so->Notes)) {
-            $to->Body = new EasObject('AirSyncBase');
-            $to->Body->Type = new EasProperty('AirSyncBase', EasTypes::BODY_TYPE_TEXT);
-            //$to->Body->EstimatedDataSize = new EasProperty('AirSyncBase', strlen($so->Notes));
-            $to->Body->Data = new EasProperty('AirSyncBase', $so->Notes);
-        }
-		else {
+		if (!empty($so->Notes)) {
 			$to->Body = new EasObject('AirSyncBase');
-            $to->Body->Type = new EasProperty('AirSyncBase', EasTypes::BODY_TYPE_TEXT);
-            $to->Body->Data = new EasProperty('AirSyncBase', ' ');
+			$to->Body->Type = new EasProperty('AirSyncBase', EasTypes::BODY_TYPE_TEXT);
+			//$to->Body->EstimatedDataSize = new EasProperty('AirSyncBase', strlen($so->Notes));
+			$to->Body->Data = new EasProperty('AirSyncBase', $so->Notes);
+		} else {
+			$to->Body = new EasObject('AirSyncBase');
+			$to->Body->Type = new EasProperty('AirSyncBase', EasTypes::BODY_TYPE_TEXT);
+			$to->Body->Data = new EasProperty('AirSyncBase', ' ');
 		}
 		// Progress
-        if (!empty($so->Progress)) {
-            $to->Complete = new EasProperty('Tasks', $so->Progress);
-        }
+		if (!empty($so->Progress)) {
+			$to->Complete = new EasProperty('Tasks', $so->Progress);
+		}
 		// Sensitivity
-        if (!empty($so->Sensitivity)) {
-            $to->Sensitivity = new EasProperty('Tasks', $this->toSensitivity($so->Sensitivity));
-        }
-		else {
+		if (!empty($so->Sensitivity)) {
+			$to->Sensitivity = new EasProperty('Tasks', $this->toSensitivity($so->Sensitivity));
+		} else {
 			$to->Sensitivity = new EasProperty('Tasks', '2');
 		}
 		// Tag(s)
-        if (count($so->Tags) > 0) {
-            $to->Categories = new EasObject('Tasks');
-            $to->Categories->Category = new EasCollection('Tasks');
-            foreach($so->Tags as $entry) {
-                $to->Categories->Category[] = new EasProperty('Tasks', $entry);
-            }
-        }
+		if (count($so->Tags) > 0) {
+			$to->Categories = new EasObject('Tasks');
+			$to->Categories->Category = new EasCollection('Tasks');
+			foreach ($so->Tags as $entry) {
+				$to->Categories->Category[] = new EasProperty('Tasks', $entry);
+			}
+		}
 		// Notifications
-        if (count($so->Notifications) > 0) {
+		if (count($so->Notifications) > 0) {
 			$to->Reminder = new \OCA\JMAPC\Utile\Eas\EasProperty('Tasks', 10);
-        }
-		else {
+		} else {
 			$to->Reminder = new \OCA\JMAPC\Utile\Eas\EasProperty('Tasks', 0);
 		}
 		// Occurrence
@@ -785,8 +780,7 @@ class RemoteTasksService {
 				if ($so->Occurrence->Pattern == 'A') {
 					$to->Recurrence->Type = new EasProperty('Tasks', 2);
 					$to->Recurrence->DayOfMonth = new EasProperty('Tasks', $this->toDaysOfMonth($so->Occurrence->OnDayOfMonth));
-				}
-				elseif ($so->Occurrence->Pattern == 'R') {
+				} elseif ($so->Occurrence->Pattern == 'R') {
 					$to->Recurrence->Type = new EasProperty('Tasks', 3);
 					$to->Recurrence->DayOfWeek = new EasProperty('Tasks', $this->toDaysOfWeek($so->Occurrence->OnDayOfWeek));
 					$to->Recurrence->DayOfMonth = new EasProperty('Tasks', $this->toDaysOfMonth($so->Occurrence->OnDayOfMonth));
@@ -798,8 +792,7 @@ class RemoteTasksService {
 					$to->Recurrence->Type = new EasProperty('Tasks', 5);
 					$to->Recurrence->DayOfMonth = new EasProperty('Tasks', $this->toDaysOfMonth($so->Occurrence->OnDayOfMonth));
 					$to->Recurrence->MonthOfYear = new EasProperty('Tasks', $this->toMonthOfYear($so->Occurrence->OnMonthOfYear));
-				}
-				elseif ($so->Occurrence->Pattern == 'R') {
+				} elseif ($so->Occurrence->Pattern == 'R') {
 					$to->Recurrence->Type = new EasProperty('Tasks', 6);
 					$to->Recurrence->DayOfWeek = new EasProperty('Tasks', $this->toDaysOfWeek($so->Occurrence->OnDayOfWeek));
 					$to->Recurrence->WeekOfMonth = new EasProperty('Tasks', $this->toDaysOfMonth($so->Occurrence->OnWeekOfMonth));
@@ -807,40 +800,40 @@ class RemoteTasksService {
 				}
 			}
 		}
-        
+		
 		return $to;
 
-    }
+	}
 
 	public function generateSignature(TaskObject $to): string {
-        
-        // clone self
-        $o = clone $to;
-        // remove non needed values
-        unset($o->ID, $o->CID, $o->UUID, $o->RCID, $o->REID, $o->Origin, $o->Signature, $o->CreatedOn, $o->ModifiedOn);
-        // generate signature
-        return md5(json_encode($o));
+		
+		// clone self
+		$o = clone $to;
+		// remove non needed values
+		unset($o->ID, $o->CID, $o->UUID, $o->RCID, $o->REID, $o->Origin, $o->Signature, $o->CreatedOn, $o->ModifiedOn);
+		// generate signature
+		return md5(json_encode($o));
 
-    }
+	}
 
 	/**
-     * convert remote sensitivity status to event object sensitivity status
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $value		remote sensitivity status value
-	 * 
-	 * @return string			event object sensitivity status value
+	 * convert remote sensitivity status to event object sensitivity status
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $value remote sensitivity status value
+	 *
+	 * @return string event object sensitivity status value
 	 */
 	private function fromSensitivity(?string $value): string {
 		
 		// transposition matrix
-		$_tm = array(
+		$_tm = [
 			'0' => 'N', // Normal
 			'1' => 'I',	// Personal/Individual
 			'2' => 'P',	// Private
 			'3' => 'C',	// Confidential
-		);
+		];
 		// evaluate if value exists
 		if (isset($_tm[$value])) {
 			// return transposed value
@@ -853,23 +846,23 @@ class RemoteTasksService {
 	}
 
 	/**
-     * convert event object sensitivity status to remote sensitivity status
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param string $value		event object sensitivity status value
-	 * 
-	 * @return string	 			remote sensitivity status value
+	 * convert event object sensitivity status to remote sensitivity status
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $value event object sensitivity status value
+	 *
+	 * @return string remote sensitivity status value
 	 */
 	private function toSensitivity(?string $value): string {
 		
 		// transposition matrix
-		$_tm = array(
+		$_tm = [
 			'N' => '0', // Normal
 			'I' => '1',	// Personal/Individual
 			'P' => '2',	// Private
 			'C' => '3',	// Confidential
-		);
+		];
 		// evaluate if value exists
 		if (isset($_tm[$value])) {
 			// return transposed value
@@ -882,13 +875,13 @@ class RemoteTasksService {
 	}
 
 	/**
-     * convert remote importance value to task object priority value
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param int $value		remote importance value
-	 * 
-	 * @return int 				task object priority value
+	 * convert remote importance value to task object priority value
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param int $value remote importance value
+	 *
+	 * @return int task object priority value
 	 */
 	private function fromImportance(?int $value): int {
 		
@@ -898,24 +891,22 @@ class RemoteTasksService {
 		// evaluate remote level and return local equvialent
 		if ($value == 2) {
 			return 2;		// high priority
-		}
-		elseif ($value == 0) {
+		} elseif ($value == 0) {
 			return 8;		// low priority
-		}
-		else {
+		} else {
 			return 5;		// normal priority
 		}
 		
 	}
 
 	/**
-     * convert task object priority value to remote importance value
-	 * 
-     * @since Release 1.0.0
-     * 
-	 * @param int $value		task object priority value
-	 * 
-	 * @return int				remote importance value
+	 * convert task object priority value to remote importance value
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param int $value task object priority value
+	 *
+	 * @return int remote importance value
 	 */
 	private function toImportance(?int $value): int {
 
@@ -925,24 +916,22 @@ class RemoteTasksService {
 		// evaluate local level and return remote equvialent
 		if ($value > 0 && $value < 4) {
 			return 2;		// high priority
-		}
-		elseif ($value > 6 && $value < 10) {
+		} elseif ($value > 6 && $value < 10) {
 			return 0;		// low priority
-		}
-		else {
+		} else {
 			return 1;		// normal priority
 		}
 
 	}
 
 	/**
-     * convert remote days of the week to event object days of the week
-	 * 
-     * @since Release 1.0.0
-     * 
+	 * convert remote days of the week to event object days of the week
+	 *
+	 * @since Release 1.0.0
+	 *
 	 * @param int $days - remote days of the week values(s)
 	 * @param bool $group - flag to check if days are grouped
-	 * 
+	 *
 	 * @return array event object days of the week values(s)
 	 */
 	private function fromDaysOfWeek(int $days, bool $group = false): array {
@@ -951,8 +940,7 @@ class RemoteTasksService {
 		if ($group) {
 			if ($days == 65) {
 				return [6,7];		// Weekend Days
-			}
-			elseif ($days == 62) {
+			} elseif ($days == 62) {
 				return [1,2,3,4,5];	// Week Days
 			}
 		}
@@ -994,13 +982,13 @@ class RemoteTasksService {
 	}
 
 	/**
-     * convert event object days of the week to remote days of the week
-	 * 
-     * @since Release 1.0.0
-     * 
+	 * convert event object days of the week to remote days of the week
+	 *
+	 * @since Release 1.0.0
+	 *
 	 * @param array $days - event object days of the week values(s)
-	 * @param bool $group - flag to check if days can be grouped 
-	 * 
+	 * @param bool $group - flag to check if days can be grouped
+	 *
 	 * @return string remote days of the week values(s)
 	 */
 	private function toDaysOfWeek(array $days, bool $group = false): int {
@@ -1010,14 +998,13 @@ class RemoteTasksService {
 			sort($days);
 			if ($days == [1,2,3,4,5]) {
 				return 62;		// Week	Days
-			}
-			elseif ($days == [6,7]) {
+			} elseif ($days == [6,7]) {
 				return 65;		// Weekend Days
 			}
 		}
-        // convert day values
+		// convert day values
 		$dow = 0;
-        foreach ($days as $key => $entry) {
+		foreach ($days as $key => $entry) {
 			switch ($entry) {
 				case 1:
 					$dow += 2;	// Monday
@@ -1041,19 +1028,19 @@ class RemoteTasksService {
 					$dow += 1;	// Sunday
 					break;
 			}
-        }
-        // return converted days
-        return $dow;
+		}
+		// return converted days
+		return $dow;
 
 	}
 
 	/**
-     * convert remote days of the month to event object days of the month
-	 * 
-     * @since Release 1.0.0
-     * 
+	 * convert remote days of the month to event object days of the month
+	 *
+	 * @since Release 1.0.0
+	 *
 	 * @param sting $days - remote days of the month values(s)
-	 * 
+	 *
 	 * @return array event object days of the month values(s)
 	 */
 	private function fromDaysOfMonth(string $days): array {
@@ -1064,40 +1051,40 @@ class RemoteTasksService {
 	}
 
 	/**
-     * convert event object days of the month to remote days of the month
-	 * 
-     * @since Release 1.0.0
-     * 
+	 * convert event object days of the month to remote days of the month
+	 *
+	 * @since Release 1.0.0
+	 *
 	 * @param array $days - event object days of the month values(s)
-	 * 
+	 *
 	 * @return string remote days of the month values(s)
 	 */
 	private function toDaysOfMonth(array $days): string {
 
-        // return converted days
-        return $days[0];
+		// return converted days
+		return $days[0];
 
 	}
 
 	/**
-     * convert remote week of the month to event object week of the month
-	 * 
-     * @since Release 1.0.0
-     * 
+	 * convert remote week of the month to event object week of the month
+	 *
+	 * @since Release 1.0.0
+	 *
 	 * @param sting $weeks - remote week of the month values(s)
-	 * 
+	 *
 	 * @return array event object week of the month values(s)
 	 */
 	private function fromWeekOfMonth(string $weeks): array {
 
 		// weeks conversion reference
-		$_tm = array(
+		$_tm = [
 			'1' => 1,
 			'2' => 2,
 			'3' => 3,
 			'4' => 4,
 			'5' => -1
-		);
+		];
 		// convert week values
 		foreach ($weeks as $key => $entry) {
 			if (isset($_tm[$entry])) {
@@ -1110,45 +1097,45 @@ class RemoteTasksService {
 	}
 
 	/**
-     * convert event object week of the month to remote week of the month
-	 * 
-     * @since Release 1.0.0
-     * 
+	 * convert event object week of the month to remote week of the month
+	 *
+	 * @since Release 1.0.0
+	 *
 	 * @param array $weeks - event object week of the month values(s)
-	 * 
+	 *
 	 * @return string remote week of the month values(s)
 	 */
 	private function toWeekOfMonth(array $weeks): string {
 
 		// weeks conversion reference
-		$_tm = array(
+		$_tm = [
 			1 => '1',
 			2 => '2',
 			3 => '3',
 			4 => '4',
 			-1 => '5',
 			-2 => '4'
-		);
+		];
 		// convert week values
-        foreach ($weeks as $key => $entry) {
-            if (isset($_tm[$entry])) {
-                $weeks[$key] = $_tm[$entry];
-            }
-        }
-        // convert weeks to string
-        $weeks = implode(',', $weeks);
-        // return converted weeks
-        return $weeks;
+		foreach ($weeks as $key => $entry) {
+			if (isset($_tm[$entry])) {
+				$weeks[$key] = $_tm[$entry];
+			}
+		}
+		// convert weeks to string
+		$weeks = implode(',', $weeks);
+		// return converted weeks
+		return $weeks;
 
 	}
 
 	/**
-     * convert remote month of the year to event object month of the year
-	 * 
-     * @since Release 1.0.0
-     * 
+	 * convert remote month of the year to event object month of the year
+	 *
+	 * @since Release 1.0.0
+	 *
 	 * @param sting $months - remote month of the year values(s)
-	 * 
+	 *
 	 * @return array event object month of the year values(s)
 	 */
 	private function fromMonthOfYear(string $months): array {
@@ -1159,18 +1146,18 @@ class RemoteTasksService {
 	}
 
 	/**
-     * convert event object month of the year to remote month of the year
-	 * 
-     * @since Release 1.0.0
-     * 
+	 * convert event object month of the year to remote month of the year
+	 *
+	 * @since Release 1.0.0
+	 *
 	 * @param array $weeks - event object month of the year values(s)
-	 * 
+	 *
 	 * @return string remote month of the year values(s)
 	 */
 	private function toMonthOfYear(array $months): string {
 
-        // return converted months
-        return $months[0];
+		// return converted months
+		return $months[0];
 
 	}
 

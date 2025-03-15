@@ -1,27 +1,28 @@
 <?php
+
 declare(strict_types=1);
 
 /**
-* @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @author Sebastian Krupinski <krupinski01@gmail.com>
-*
-* @license AGPL-3.0-or-later
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @author Sebastian Krupinski <krupinski01@gmail.com>
+ *
+ * @license AGPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 namespace OCA\JMAPC\Notification;
 
@@ -32,7 +33,6 @@ use OCP\L10N\IFactory;
 use OCP\Notification\IManager as INotificationManager;
 use OCP\Notification\INotification;
 use OCP\Notification\INotifier;
-use OCA\JMAPC\AppInfo\Application;
 
 class Notifier implements INotifier {
 
@@ -55,9 +55,9 @@ class Notifier implements INotifier {
 	 * @param IURLGenerator $urlGenerator
 	 */
 	public function __construct(IFactory $factory,
-								IUserManager $userManager,
-								INotificationManager $notificationManager,
-								IURLGenerator $urlGenerator) {
+		IUserManager $userManager,
+		INotificationManager $notificationManager,
+		IURLGenerator $urlGenerator) {
 		$this->factory = $factory;
 		$this->userManager = $userManager;
 		$this->notificationManager = $notificationManager;
@@ -99,80 +99,116 @@ class Notifier implements INotifier {
 		$l = $this->factory->get('integration_jmapc', $languageCode);
 
 		switch ($notification->getSubject()) {
-		case 'contacts_harmonized':
-			$p = $notification->getSubjectParameters();
-			$content = "The following changes where performed ";
-			if ($p['LocalCreated'] > 0 || $p['RemoteCreated'] > 0) {
-				$content .= "\n Created: ";
-				if ($p['LocalCreated'] > 0) { $content .= $p['LocalCreated'] . " - Local "; }
-				if ($p['RemoteCreated'] > 0) { $content .= $p['RemoteCreated'] . " - Remote "; }
-			}
-			if ($p['LocalUpdated'] > 0 || $p['RemoteUpdated'] > 0) {
-				$content .= "\n Updated: ";
-				if ($p['LocalUpdated'] > 0) { $content .= $p['LocalUpdated'] . " - Local "; }
-				if ($p['RemoteUpdated'] > 0) { $content .= $p['RemoteUpdated'] . " - Remote "; }
-			}
-			if ($p['LocalDeleted'] > 0 || $p['RemoteDeleted'] > 0) {
-				$content .= "\n Deleted: ";
-				if ($p['LocalDeleted'] > 0) { $content .= $p['LocalDeleted'] . " - Local "; }
-				if ($p['RemoteDeleted'] > 0) { $content .= $p['RemoteDeleted'] . " - Remote "; }
-			}
+			case 'contacts_harmonized':
+				$p = $notification->getSubjectParameters();
+				$content = 'The following changes where performed ';
+				if ($p['LocalCreated'] > 0 || $p['RemoteCreated'] > 0) {
+					$content .= "\n Created: ";
+					if ($p['LocalCreated'] > 0) {
+						$content .= $p['LocalCreated'] . ' - Local ';
+					}
+					if ($p['RemoteCreated'] > 0) {
+						$content .= $p['RemoteCreated'] . ' - Remote ';
+					}
+				}
+				if ($p['LocalUpdated'] > 0 || $p['RemoteUpdated'] > 0) {
+					$content .= "\n Updated: ";
+					if ($p['LocalUpdated'] > 0) {
+						$content .= $p['LocalUpdated'] . ' - Local ';
+					}
+					if ($p['RemoteUpdated'] > 0) {
+						$content .= $p['RemoteUpdated'] . ' - Remote ';
+					}
+				}
+				if ($p['LocalDeleted'] > 0 || $p['RemoteDeleted'] > 0) {
+					$content .= "\n Deleted: ";
+					if ($p['LocalDeleted'] > 0) {
+						$content .= $p['LocalDeleted'] . ' - Local ';
+					}
+					if ($p['RemoteDeleted'] > 0) {
+						$content .= $p['RemoteDeleted'] . ' - Remote ';
+					}
+				}
 
-			$notification->setParsedSubject("Contacts Syncronized \n");
-			$notification->setRichMessage($content);
+				$notification->setParsedSubject("Contacts Syncronized \n");
+				$notification->setRichMessage($content);
 
-			return $notification;
+				return $notification;
 
-		case 'events_harmonized':
-			$p = $notification->getSubjectParameters();
-			$content = "The following changes where performed \n";
-			if ($p['LocalCreated'] > 0 || $p['RemoteCreated'] > 0) {
-				$content .= "\n Created: ";
-				if ($p['LocalCreated'] > 0) { $content .= $p['LocalCreated'] . " - Local "; }
-				if ($p['RemoteCreated'] > 0) { $content .= $p['RemoteCreated'] . " - Remote "; }
-			}
-			if ($p['LocalUpdated'] > 0 || $p['RemoteUpdated'] > 0) {
-				$content .= "\n Updated: ";
-				if ($p['LocalUpdated'] > 0) { $content .= $p['LocalUpdated'] . " - Local "; }
-				if ($p['RemoteUpdated'] > 0) { $content .= $p['RemoteUpdated'] . " - Remote "; }
-			}
-			if ($p['LocalDeleted'] > 0 || $p['RemoteDeleted'] > 0) {
-				$content .= "\n Deleted: ";
-				if ($p['LocalDeleted'] > 0) { $content .= $p['LocalDeleted'] . " - Local "; }
-				if ($p['RemoteDeleted'] > 0) { $content .= $p['RemoteDeleted'] . " - Remote "; }
-			}
+			case 'events_harmonized':
+				$p = $notification->getSubjectParameters();
+				$content = "The following changes where performed \n";
+				if ($p['LocalCreated'] > 0 || $p['RemoteCreated'] > 0) {
+					$content .= "\n Created: ";
+					if ($p['LocalCreated'] > 0) {
+						$content .= $p['LocalCreated'] . ' - Local ';
+					}
+					if ($p['RemoteCreated'] > 0) {
+						$content .= $p['RemoteCreated'] . ' - Remote ';
+					}
+				}
+				if ($p['LocalUpdated'] > 0 || $p['RemoteUpdated'] > 0) {
+					$content .= "\n Updated: ";
+					if ($p['LocalUpdated'] > 0) {
+						$content .= $p['LocalUpdated'] . ' - Local ';
+					}
+					if ($p['RemoteUpdated'] > 0) {
+						$content .= $p['RemoteUpdated'] . ' - Remote ';
+					}
+				}
+				if ($p['LocalDeleted'] > 0 || $p['RemoteDeleted'] > 0) {
+					$content .= "\n Deleted: ";
+					if ($p['LocalDeleted'] > 0) {
+						$content .= $p['LocalDeleted'] . ' - Local ';
+					}
+					if ($p['RemoteDeleted'] > 0) {
+						$content .= $p['RemoteDeleted'] . ' - Remote ';
+					}
+				}
 			
-			$notification->setParsedSubject("Events Syncronized \n");
-			$notification->setRichMessage($content);
+				$notification->setParsedSubject("Events Syncronized \n");
+				$notification->setRichMessage($content);
 
-			return $notification;
+				return $notification;
 
-		case 'tasks_harmonized':
-			$p = $notification->getSubjectParameters();
-			$content = "The following changes where performed \n";
-			if ($p['LocalCreated'] > 0 || $p['RemoteCreated'] > 0) {
-				$content .= "\n Created: ";
-				if ($p['LocalCreated'] > 0) { $content .= $p['LocalCreated'] . " - Local "; }
-				if ($p['RemoteCreated'] > 0) { $content .= $p['RemoteCreated'] . " - Remote "; }
-			}
-			if ($p['LocalUpdated'] > 0 || $p['RemoteUpdated'] > 0) {
-				$content .= "\n Updated: ";
-				if ($p['LocalUpdated'] > 0) { $content .= $p['LocalUpdated'] . " - Local "; }
-				if ($p['RemoteUpdated'] > 0) { $content .= $p['RemoteUpdated'] . " - Remote "; }
-			}
-			if ($p['LocalDeleted'] > 0 || $p['RemoteDeleted'] > 0) {
-				$content .= "\n Deleted: ";
-				if ($p['LocalDeleted'] > 0) { $content .= $p['LocalDeleted'] . " - Local "; }
-				if ($p['RemoteDeleted'] > 0) { $content .= $p['RemoteDeleted'] . " - Remote "; }
-			}
+			case 'tasks_harmonized':
+				$p = $notification->getSubjectParameters();
+				$content = "The following changes where performed \n";
+				if ($p['LocalCreated'] > 0 || $p['RemoteCreated'] > 0) {
+					$content .= "\n Created: ";
+					if ($p['LocalCreated'] > 0) {
+						$content .= $p['LocalCreated'] . ' - Local ';
+					}
+					if ($p['RemoteCreated'] > 0) {
+						$content .= $p['RemoteCreated'] . ' - Remote ';
+					}
+				}
+				if ($p['LocalUpdated'] > 0 || $p['RemoteUpdated'] > 0) {
+					$content .= "\n Updated: ";
+					if ($p['LocalUpdated'] > 0) {
+						$content .= $p['LocalUpdated'] . ' - Local ';
+					}
+					if ($p['RemoteUpdated'] > 0) {
+						$content .= $p['RemoteUpdated'] . ' - Remote ';
+					}
+				}
+				if ($p['LocalDeleted'] > 0 || $p['RemoteDeleted'] > 0) {
+					$content .= "\n Deleted: ";
+					if ($p['LocalDeleted'] > 0) {
+						$content .= $p['LocalDeleted'] . ' - Local ';
+					}
+					if ($p['RemoteDeleted'] > 0) {
+						$content .= $p['RemoteDeleted'] . ' - Remote ';
+					}
+				}
 			
-			$notification->setParsedSubject("Tasks Syncronized \n");
-			$notification->setRichMessage($content);
+				$notification->setParsedSubject("Tasks Syncronized \n");
+				$notification->setRichMessage($content);
 
-			return $notification;
-		default:
-			// Unknown subject => Unknown notification => throw
-			throw new InvalidArgumentException();
+				return $notification;
+			default:
+				// Unknown subject => Unknown notification => throw
+				throw new InvalidArgumentException();
 		}
 	}
 }
