@@ -28,12 +28,12 @@ namespace OCA\JMAPC\Service;
 
 use JmapClient\Client as JmapClient;
 use OCA\JMAPC\AppInfo\Application;
-
 use OCA\JMAPC\Exceptions\JmapUnknownMethod;
 use OCA\JMAPC\Objects\DeltaObject;
 use OCA\JMAPC\Objects\Event\EventObject;
 use OCA\JMAPC\Objects\HarmonizationStatisticsObject;
 use OCA\JMAPC\Service\Local\LocalEventsService;
+use OCA\JMAPC\Service\Local\LocalService;
 use OCA\JMAPC\Service\Remote\RemoteEventsService;
 use OCA\JMAPC\Service\Remote\RemoteService;
 use OCA\JMAPC\Store\Local\CollectionEntity;
@@ -43,7 +43,6 @@ use OCP\Files\IRootFolder;
 use Psr\Log\LoggerInterface;
 
 class EventsService {
-	
 	private bool $debug;
 	private string $userId;
 	private ServiceEntity $Configuration;
@@ -71,11 +70,11 @@ class EventsService {
 		$this->Configuration = $service;
 		$this->RemoteStore = $RemoteStore;
 		// assign service defaults
-		$this->debug = $service->getDebug();
+		$this->debug = (bool)$service->getDebug();
 		// initialize service remote and local services
 		$this->RemoteEventsService = RemoteService::eventsService($RemoteStore);
-		$this->RemoteEventsService->initialize($this->RemoteStore);
-		$this->LocalEventsService->initialize($this->LocalStore, $this->LocalFileStore->getUserFolder($this->userId));
+		$this->LocalEventsService = LocalService::eventsService($uid);
+		$this->LocalStore = LocalService::eventsStore($uid);
 
 		// retrieve list of collections
 		$collections = $this->LocalStore->collectionListByService($this->Configuration->getId());
@@ -121,7 +120,7 @@ class EventsService {
 	 * @return HarmonizationStatisticsObject
 	 */
 	public function harmonizeCollection(CollectionEntity $collection): HarmonizationStatisticsObject {
-		
+
 		// define statistics object
 		$statistics = new HarmonizationStatisticsObject();
 		// determine that the correlation belongs to the initialized user
@@ -141,7 +140,7 @@ class EventsService {
 			return $statistics;
 		}
 		// delete and skip collection if remote collection is missing
-		$remoteCollection = $this->RemoteEventsService->collectionFetch('', $rcid);
+		$remoteCollection = $this->RemoteEventsService->collectionFetch($rcid);
 		if (!isset($remoteCollection)) {
 			$this->LocalEventsService->collectionDeleteById($lcid);
 			$this->logger->debug(Application::APP_TAG . ' - Deleted cached events collection for ' . $this->userId . ' due to missing external collection');
@@ -175,7 +174,7 @@ class EventsService {
 					break;
 			}
 		}
-	
+
 		// process remote modifications
 		foreach ($remoteEntityDelta->modifications as $reid) {
 			// process modification
@@ -193,7 +192,7 @@ class EventsService {
 					break;
 			}
 		}
-	
+
 		// process remote deletions
 		foreach ($remoteEntityDelta->deletions as $reid) {
 			// process delete
@@ -203,7 +202,7 @@ class EventsService {
 				$statistics->LocalDeleted += 1;
 			}
 		}
-	
+
 		// update and deposit remote harmonization signature
 		$collection->setHesn((string)$remoteEntityDelta->signature);
 		$collection = $this->LocalStore->collectionModify($collection);
@@ -264,7 +263,7 @@ class EventsService {
 			// clean up
 			unset($localEntityDelta);
 		}
-		
+
 		// return statistics
 		return $statistics;
 
@@ -313,7 +312,7 @@ class EventsService {
 
 		return $delta;
 	}
-	
+
 	/**
 	 * harmonize locally altered entity
 	 *
@@ -403,13 +402,13 @@ class EventsService {
 
 		// destroy remote entity
 		$rs = $this->RemoteEventsService->entityDelete($lo->CCID, $lo->CEID);
-		
+
 		if ($rs) {
 			return 'RD';
 		} else {
 			return 'NA';
 		}
-			
+
 	}
 
 	/**
@@ -426,14 +425,14 @@ class EventsService {
 	 * @return string what action was performed
 	 */
 	public function harmonizeRemoteAltered(string $uid, int $sid, string $rcid, string $reid, int $lcid): string {
-		
+
 		// define default operation status
 		$status = 'NA'; // no action
 		// define entity place holders
 		$ro = null;
 		$lo = null;
 		// retrieve remote entity
-		$ro = $this->RemoteEventsService->entityFetch($rcid, $reid);
+		$ro = $this->RemoteEventsService->entityFetch($reid);
 		// evaluate, if remote entity was returned
 		if (!($ro instanceof EventObject)) {
 			return $status;
@@ -488,7 +487,7 @@ class EventsService {
 
 		// destroy local entity
 		$rs = $this->LocalEventsService->entityDeleteByCorrelation($lcid, $rcid, $reid);
-		
+
 		if ($rs) {
 			return 'LD';
 		} else {

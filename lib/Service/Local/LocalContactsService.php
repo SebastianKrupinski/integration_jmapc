@@ -41,6 +41,7 @@ use OCA\JMAPC\Objects\Contact\ContactOrganizationObject;
 use OCA\JMAPC\Objects\Contact\ContactPhoneObject;
 use OCA\JMAPC\Objects\Contact\ContactPhysicalLocationObject;
 use OCA\JMAPC\Objects\Contact\ContactPronounObject;
+use OCA\JMAPC\Objects\Contact\ContactTagCollection;
 use OCA\JMAPC\Objects\Contact\ContactTitleObject;
 use OCA\JMAPC\Objects\Contact\ContactTitleTypes;
 use OCA\JMAPC\Objects\OriginTypes;
@@ -52,7 +53,6 @@ use Sabre\VObject\Component\VCard;
 use Sabre\VObject\Reader;
 
 class LocalContactsService {
-	
 	protected string $DateFormatUTC = 'Ymd\THis\Z';
 	protected string $DateFormatDateTime = 'Ymd\THis';
 	protected string $DateFormatDateOnly = 'Ymd';
@@ -62,7 +62,7 @@ class LocalContactsService {
 
 	public function __construct() {
 	}
-	
+
 	public function initialize(ContactStore $Store) {
 
 		$this->_Store = $Store;
@@ -106,7 +106,7 @@ class LocalContactsService {
 	 * @return void
 	 */
 	public function collectionDeleteById(int $cid): void {
-		
+
 		// delete entities from data store
 		$this->_Store->entityDeleteByCollection($cid);
 		$this->_Store->collectionDeleteById($cid);
@@ -141,7 +141,7 @@ class LocalContactsService {
 		$lcc = $this->_Store->chronicleReminisce($cid, $signature);
 		// return collection differences
 		return $lcc;
-		
+
 	}
 
 	/**
@@ -221,7 +221,7 @@ class LocalContactsService {
 		}
 
 	}
-	
+
 	/**
 	 * modify entity in local storage
 	 *
@@ -259,7 +259,7 @@ class LocalContactsService {
 		}
 
 	}
-	
+
 	/**
 	 * delete entity from local storage
 	 *
@@ -318,7 +318,7 @@ class LocalContactsService {
 		// prase vData
 		$vObject = Reader::read($so->getData());
 		// convert entity
-		$to = $this->fromVObject($vObject);
+		$to = $this->toContactObject($vObject);
 		$to->ID = (string)$so->getId();
 		$to->CID = (string)$so->getCid();
 		$to->Signature = $so->getSignature();
@@ -351,7 +351,7 @@ class LocalContactsService {
 		// construct entity
 		$to = new ContactEntity();
 		// convert source object to entity
-		$to->setData($this->toVObject($so)->serialize());
+		$to->setData($this->fromContactObject($so)->serialize());
 		$to->setUuid($so->UUID);
 		$to->setSignature($this->generateSignature($so));
 		$to->setCcid($so->CCID);
@@ -376,8 +376,8 @@ class LocalContactsService {
 	 *
 	 * @return ContactObject
 	 */
-	public function fromVObject(VCard $so): ContactObject {
-		
+	public function toContactObject(VCard $so): ContactObject {
+
 		// construct target object
 		$do = new ContactObject();
 		// Origin
@@ -593,10 +593,7 @@ class LocalContactsService {
 		}
 		// tag(s)
 		if (isset($so->CATEGORIES)) {
-			foreach ($so->CATEGORIES as $entry) {
-				$tags = explode(',', $entry->getValue());
-				$do->Tags = array_merge($do->Tags, $tags);
-			}
+			$do->Tags = new ContactTagCollection($so->CATEGORIES->getParts());
 		}
 		// note(s)
 		if (isset($so->NOTE)) {
@@ -661,7 +658,7 @@ class LocalContactsService {
 
 		// return event object
 		return $do;
-		
+
 	}
 
 	/**
@@ -673,7 +670,7 @@ class LocalContactsService {
 	 *
 	 * @return VCard
 	 */
-	public function toVObject(ContactObject $so): VCard {
+	public function fromContactObject(ContactObject $so): VCard {
 
 		// construct target object
 		$do = new VCard();
@@ -862,7 +859,8 @@ class LocalContactsService {
 		// physical location(s)
 		foreach ($so->PhysicalLocations as $index => $entry) {
 			/** @var \Sabre\VObject\Property $property */
-			$property = $do->add('ADR',
+			$property = $do->add(
+				'ADR',
 				[
 					(string)$entry->Box,
 					(string)$entry->Unit,
@@ -1042,7 +1040,7 @@ class LocalContactsService {
 	}
 
 	public function generateSignature(ContactObject $eo): string {
-		
+
 		// clone self
 		$o = clone $eo;
 		// remove non needed values

@@ -29,10 +29,6 @@ use JmapClient\Responses\ResponseParameters;
 
 class ContactParameters extends ResponseParameters {
 	
-	public function __construct(array $response = []) {
-		parent::__construct($response);
-	}
-
 	/* Metadata Properties */
 
 	public function in(): ?array {

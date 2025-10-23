@@ -28,10 +28,6 @@ namespace OCA\JMAPC\Jmap\FM\Response;
 use JmapClient\Responses\ResponseParameters;
 
 class ContactLocationParameters extends ResponseParameters {
-	
-	public function __construct(array $response = []) {
-		parent::__construct($response);
-	}
 
 	public function type(): ?string {
 		return $this->parameter('type') ?? 'home';

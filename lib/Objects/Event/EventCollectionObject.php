@@ -34,5 +34,6 @@ class EventCollectionObject {
 	public ?int $Priority = null;
 	public ?bool $Visibility = null;
 	public ?string $Color = null;
+	public ?string $Signature = null;
 
 }

@@ -26,60 +26,16 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Objects\Event;
 
-use DateInterval;
-use DateTimeInterface;
-use DateTimeZone;
 use OCA\JMAPC\Objects\OriginTypes;
 
-class EventObject {
+class EventObject extends EventBaseObject {
 
-	public ?OriginTypes $Origin = null;        // System
-	public ?string $ID = null;                      // System Entity Id
-	public ?string $CID = null;                     // System Collection Id
-	public ?string $Signature = null;               // System Entity Signature
-	public ?string $CCID = null;                    // Correlation Collection Id
-	public ?string $CEID = null;                    // Correlation Entity Id
-	public ?string $CESN = null;                    // Correlation Signature
-	public ?string $UUID = null;
-	public ?DateTimeInterface $CreatedOn = null;
-	public ?DateTimeInterface $ModifiedOn = null;
-	public ?int $Sequence = null;
-	public ?DateTimeZone $TimeZone = null;
-	public ?DateTimeInterface $StartsOn = null;
-	public ?DateTimeZone $StartsTZ = null;
-	public ?DateTimeInterface $EndsOn = null;
-	public ?DateTimeZone $EndsTZ = null;
-	public ?DateInterval $Duration = null;
-	public ?bool $Timeless = false;
-	public ?string $Label = null;
-	public ?string $Description = null;
-	public EventLocationPhysicalCollection $LocationsPhysical;
-	public EventLocationVirtualCollection $LocationsVirtual;
-	public ?EventAvailabilityTypes $Availability = null;
-	public ?int $Priority = null;
-	public ?EventSensitivityTypes $Sensitivity = null;
-	public ?string $Color = null;
-	public EventTagCollection $Categories;
-	public EventTagCollection $Tags;
-	public EventOrganizerObject $Organizer;
-	public EventParticipantCollection $Participants;
-	public EventOccurrenceCollection $OccurrencePatterns;
-	public EventOccurrenceCollection $OccurrenceExceptions;
-	public array $OccurrenceMutations;
-	public EventNotificationCollection $Notifications;
-	public EventAttachmentCollection $Attachments;
-	public ?array $Other = [];
-	
-	public function __construct() {
-		$this->Attachments = new EventAttachmentCollection();
-		$this->Participants = new EventParticipantCollection();
-		$this->LocationsPhysical = new EventLocationPhysicalCollection();
-		$this->LocationsVirtual = new EventLocationVirtualCollection();
-		$this->Notifications = new EventNotificationCollection();
-		$this->Organizer = new EventOrganizerObject();
-		$this->OccurrencePatterns = new EventOccurrenceCollection();
-		$this->OccurrenceExceptions = new EventOccurrenceCollection();
-		$this->Tags = new EventTagCollection();
-	}
+	public ?OriginTypes $Origin = null;		// System
+	public ?string $ID = null;              // System Entity Id
+	public ?string $CID = null;             // System Collection Id
+	public ?string $Signature = null;       // System Entity Signature
+	public ?string $CCID = null;            // Correlation Collection Id
+	public ?string $CEID = null;            // Correlation Entity Id
+	public ?string $CESN = null;            // Correlation Signature
 
 }

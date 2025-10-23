@@ -23,6 +23,7 @@ declare(strict_types=1);
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 namespace OCA\JMAPC\Providers;
 
 //use OCP\Mail\Provider\IServiceLocationUri;
@@ -35,7 +36,7 @@ class ServiceLocation implements IServiceLocationUri {
 	private ?int $_port = null;
 
 	public function __construct(
-		string $host,
+		string $host = '',
 		string $path = '/',
 		?int $port = null,
 		string $scheme = 'https://',

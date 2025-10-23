@@ -56,4 +56,5 @@ class BaseCollection extends \ArrayObject {
 		}
 		parent::offsetSet($key, $value);
 	}
+
 }

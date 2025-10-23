@@ -27,6 +27,7 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Commands;
 
 use OCA\JMAPC\Service\HarmonizationService;
+use OCA\JMAPC\Service\ServicesService;
 use OCP\IUserManager;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -37,19 +38,20 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class Harmonize extends Command {
 
-	public function __construct(IUserManager $userManager, HarmonizationService $HarmonizationService) {
+	public function __construct(
+		private IUserManager $userManager,
+		private ServicesService $servicesService,
+		private HarmonizationService $HarmonizationService
+	) {
 		parent::__construct();
-		$this->userManager = $userManager;
-		$this->HarmonizationService = $HarmonizationService;
 	}
 
 	protected function configure() {
 		$this
 			->setName('jmapc:harmonize')
 			->setDescription('Harmonizies a users contacts and calendar correlations')
-			->addArgument('user',
-				InputArgument::REQUIRED,
-				'User whom to harmonize');
+			->addArgument('user', InputArgument::REQUIRED, 'User whom to harmonize')
+			->addArgument('service', InputArgument::OPTIONAL, 'Service to harmonize');
 	}
 
 	/**
@@ -58,19 +60,20 @@ class Harmonize extends Command {
 	 */
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$uid = $input->getArgument('user');
+		$sid = (int)$input->getArgument('service');
 
 		if (!$this->userManager->userExists($uid)) {
 			$output->writeln("<error>User $uid does not exist</error>");
-			return 1;
+			return self::INVALID;
 		}
 
 		$output->writeln("<info>Starting harmonization for User $uid</info>");
 
-		$this->HarmonizationService->performHarmonization($uid, 'M');
+		$this->HarmonizationService->performHarmonization($uid, $sid);
 
 		$output->writeln("<info>Ended harmonization for User $uid</info>");
 
-		return 0;
+		return self::SUCCESS;
 
 	}
 }

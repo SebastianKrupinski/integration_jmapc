@@ -26,15 +26,20 @@
         <database>sqlite</database>
         <database>mysql</database>
         <command>php</command>
-        <command>ps</command>
-        <command>kill</command>
         <lib>curl</lib>
         <nextcloud min-version="26" max-version="32"/>
     </dependencies>
+    <repair-steps>
+		<post-migration>
+			<step>OCA\JMAPC\Migration\DefaultServiceTemplates</step>
+		</post-migration>
+	</repair-steps>
     <commands>
 		<command>OCA\JMAPC\Commands\Connect</command>
 		<command>OCA\JMAPC\Commands\Disconnect</command>
 		<command>OCA\JMAPC\Commands\Harmonize</command>
+        <command>OCA\JMAPC\Commands\Show</command>
+        <command>OCA\JMAPC\Commands\Test</command>
 	</commands>
     <settings>
         <admin>OCA\JMAPC\Settings\AdminSettings</admin>
@@ -44,10 +49,12 @@
     </settings>
     <sabre>
         <address-book-plugins>
-			<plugin>OCA\JMAPC\Providers\DAV\Contacts\Provider</plugin>
+			<plugin>OCA\JMAPC\Providers\DAV\Contacts\Cached\Provider</plugin>
+            <plugin>OCA\JMAPC\Providers\DAV\Contacts\Live\Provider</plugin>
 		</address-book-plugins>
 		<calendar-plugins>
-			<plugin>OCA\JMAPC\Providers\DAV\Calendar\Provider</plugin>
+			<plugin>OCA\JMAPC\Providers\DAV\Calendar\Cached\Provider</plugin>
+			<plugin>OCA\JMAPC\Providers\DAV\Calendar\Live\Provider</plugin>
 		</calendar-plugins>
 	</sabre>
 </info>

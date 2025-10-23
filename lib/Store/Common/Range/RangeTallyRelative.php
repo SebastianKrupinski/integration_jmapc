@@ -28,14 +28,9 @@ namespace OCA\JMAPC\Store\Common\Range;
 class RangeTallyRelative implements IRangeTally {
 
 	public function __construct(
-		protected string|int $start = 0,
+		protected string|int $position = 0,
 		protected string|int $count = 32,
-	) {
-
-		$this->start = $start;
-		$this->count = $count;
-
-	}
+	) {	}
 
 	/**
 	 *
@@ -57,16 +52,16 @@ class RangeTallyRelative implements IRangeTally {
 	 *
 	 * @since 1.0.0
 	 */
-	public function getStart(): string|int {
-		return $this->start;
+	public function getPosition(): string|int {
+		return $this->position;
 	}
 
 	/**
 	 *
 	 * @since 1.0.0
 	 */
-	public function setStart(string|int $value): void {
-		$this->start = $value;
+	public function setPosition(string|int $value): void {
+		$this->position = $value;
 	}
 
 	/**

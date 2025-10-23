@@ -25,44 +25,15 @@ declare(strict_types=1);
  */
 namespace OCA\JMAPC\Store\Remote\Sort;
 
-use OCA\JMAPC\Store\Common\Sort\ISort;
+use OCA\JMAPC\Store\Common\Sort\SortBase;
 
-class ContactSort implements ISort {
+class ContactSort extends SortBase {
 
-	private array $conditions = [];
-
-	/**
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string>
-	 */
-	public function comparators(): array {
-		return [
-			'created',
-			'modified',
-			'nameGiven',
-			'nameSurname',
-		];
-	}
-
-	/**
-	 *
-	 * @since 1.0.0
-	 *
-	 */
-	public function condition(string $property, bool $direction): void {
-		$this->conditions[$property] = ['property' => $property, 'direction' => $direction];
-	}
-
-	/**
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string,array{property: string, direction: bool}>
-	 */
-	public function conditions(): array {
-		return $this->conditions;
-	}
+	protected array $attributes = [
+		'created' => true,
+		'modified' => true,
+		'nameGiven' => true,
+		'nameSurname' => true,
+	];
 
 }

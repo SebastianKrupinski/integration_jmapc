@@ -23,6 +23,7 @@ declare(strict_types=1);
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 namespace OCA\JMAPC\Providers;
 
 /**
@@ -32,7 +33,6 @@ namespace OCA\JMAPC\Providers;
  * @since 30.0.0
  */
 interface IServiceIdentityBAuth extends IServiceIdentity {
-
 	/**
 	 *
 	 * @since 30.0.0

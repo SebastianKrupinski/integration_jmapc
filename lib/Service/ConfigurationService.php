@@ -31,7 +31,6 @@ use OCP\IConfig;
 use OCP\Security\ICrypto;
 
 class ConfigurationService {
-
 	/**
 	 * Default System Configuration
 	 * @var array
@@ -89,7 +88,7 @@ class ConfigurationService {
 		// define parameters place holder
 		$parameters = [];
 		// evaluate if we are looking for specific parameters
-		
+
 		if (!isset($keys) || count($keys) == 0) {
 			// retrieve all user configuration keys
 			$keys = array_keys(self::_USER);
@@ -139,7 +138,7 @@ class ConfigurationService {
 	 * @return void
 	 */
 	public function depositUser($uid, array $parameters): void {
-		
+
 		// deposit system configuration parameters
 		foreach ($parameters as $key => $value) {
 			$this->depositUserValue($uid, $key, $value);
@@ -211,7 +210,7 @@ class ConfigurationService {
 	 * @return void
 	 */
 	public function depositUserValue(string $uid, string $key, string $value): void {
-		
+
 		// trim whitespace
 		$value = trim($value);
 		// evaluate if parameter is on the secure list
@@ -275,7 +274,7 @@ class ConfigurationService {
 	 * @return void
 	 */
 	public function depositSystem(array $parameters): void {
-		
+
 		// deposit system configuration parameters
 		foreach ($parameters as $key => $value) {
 			$this->depositSystemValue($key, $value);
@@ -343,7 +342,7 @@ class ConfigurationService {
 	 * @return void
 	 */
 	public function depositSystemValue(string $key, string $value): void {
-		
+
 		// trim whitespace
 		$value = trim($value);
 		// evaluate if parameter is on the secure list
@@ -366,101 +365,6 @@ class ConfigurationService {
 
 		// destroy system configuration parameter
 		$this->_ds->deleteAppValue(Application::APP_ID, $key);
-
-	}
-
-	/**
-	 * Converts key/value paired attribute array to object properties
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param string $parameters collection of key/value paired attributes
-	 *
-	 * @return ConfigurationObject
-	 */
-	public function toUserConfigurationObject(array $parameters): \OCA\JMAPC\Objects\ConfigurationObject {
-
-		// construct configuration object
-		$o = new \OCA\JMAPC\Objects\ConfigurationObject();
-
-		foreach ($parameters as $key => $value) {
-			switch ($key) {
-				case 'system_timezone':
-					if (!empty($value)) {
-						$tz = @timezone_open($value);
-						if ($tz instanceof \DateTimeZone) {
-							$o->SystemTimeZone = $tz;
-						}
-					}
-					unset($tz);
-					break;
-				case 'user_id':
-					$o->UserId = $value;
-					break;
-				case 'user_timezone':
-					if (!empty($value)) {
-						$tz = @timezone_open($value);
-						if ($tz instanceof \DateTimeZone) {
-							$o->UserTimeZone = $tz;
-						}
-					}
-					unset($tz);
-					break;
-				case 'contacts_harmonize':
-					$o->ContactsHarmonize = $value;
-					break;
-				case 'contacts_prevalence':
-					$o->ContactsPrevalence = $value;
-					break;
-				case 'contacts_presentation':
-					$o->ContactsPresentation = $value;
-					break;
-				case 'events_harmonize':
-					$o->EventsHarmonize = $value;
-					break;
-				case 'events_prevalence':
-					$o->EventsPrevalence = $value;
-					break;
-				case 'events_timezone':
-					if (!empty($value)) {
-						$tz = @timezone_open($value);
-						if ($tz instanceof \DateTimeZone) {
-							$o->EventsTimezone = $tz;
-						}
-					}
-					unset($tz);
-					break;
-				case 'events_attachment_path':
-					$o->EventsAttachmentPath = $value;
-					break;
-				case 'tasks_harmonize':
-					$o->TasksHarmonize = $value;
-					break;
-				case 'tasks_prevalence':
-					$o->TasksPrevalence = $value;
-					break;
-				case 'tasks_attachment_path':
-					$o->TasksAttachmentPath = $value;
-					break;
-				case 'account_provider':
-					$o->AccountProvider = $value;
-					break;
-				case 'account_server':
-					$o->AccountServer = $value;
-					break;
-				case 'account_id':
-					$o->AccountId = $value;
-					break;
-				case 'account_protocol':
-					$o->AccountProtocol = $value;
-					break;
-				case 'account_connected':
-					$o->AccountConnected = $value;
-					break;
-			}
-		}
-		// return configuration object
-		return $o;
 
 	}
 
@@ -494,7 +398,7 @@ class ConfigurationService {
 	 * @return void
 	 */
 	public function setHarmonizationMode(string $mode): void {
-		
+
 		// set harmonization mode
 		$this->depositSystemValue('harmonization_mode', $mode);
 
@@ -511,7 +415,7 @@ class ConfigurationService {
 
 		// retrieve value
 		$interval = $this->retrieveSystemValue('harmonization_thread_duration');
-		
+
 		// return value or default
 		if (is_numeric($interval)) {
 			return intval($interval);
@@ -531,7 +435,7 @@ class ConfigurationService {
 	 * @return void
 	 */
 	public function setHarmonizationThreadDuration(int $interval): void {
-		
+
 		// set value
 		$this->depositSystemValue('harmonization_thread_duration', $interval);
 
@@ -548,7 +452,7 @@ class ConfigurationService {
 
 		// retrieve value
 		$interval = $this->retrieveSystemValue('harmonization_thread_pause');
-		
+
 		// return value or default
 		if (is_numeric($interval)) {
 			return intval($interval);
@@ -568,7 +472,7 @@ class ConfigurationService {
 	 * @return void
 	 */
 	public function setHarmonizationThreadPause(int $interval): void {
-		
+
 		// set value
 		$this->depositSystemValue('harmonization_thread_pause', $interval);
 
@@ -607,7 +511,7 @@ class ConfigurationService {
 	 * @return void
 	 */
 	public function setHarmonizationThreadId(string $uid, int $tid): void {
-		
+
 		// update harmonization thread id
 		$this->depositUserValue($uid, 'account_harmonization_tid', (string)$tid);
 
@@ -646,7 +550,7 @@ class ConfigurationService {
 	 * @return void
 	 */
 	public function setHarmonizationThreadHeartBeat(string $uid, int $thb): void {
-		
+
 		// update harmonization thread id
 		$this->depositUserValue($uid, 'account_harmonization_thb', $thb);
 

@@ -2,9 +2,9 @@
 /js/
 /node_modules/
 /vendor/
-/.php_cs.cache
 .vscode
 .idea
+*.cache
 *.iml
 *.log
 *.log.*

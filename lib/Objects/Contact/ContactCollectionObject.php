@@ -32,6 +32,8 @@ class ContactCollectionObject {
 	public ?string $Label = null;
 	public ?string $Description = null;
 	public ?int $Priority = null;
-	public ?int $EntityCount = null;
+	public ?bool $Visibility = null;
+	public ?string $Color = null;
+	public ?string $Signature = null;
 
 }

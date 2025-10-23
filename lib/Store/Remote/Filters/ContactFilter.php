@@ -25,58 +25,28 @@ declare(strict_types=1);
  */
 namespace OCA\JMAPC\Store\Remote\Filters;
 
-use OCA\JMAPC\Store\Common\Filters\FilterOperator;
-use OCA\JMAPC\Store\Common\Filters\IFilter;
+use OCA\JMAPC\Store\Common\Filters\FilterBase;
 
-class ContactFilter implements IFilter {
+class ContactFilter extends FilterBase {
 
-	private array $conditions = [];
-
-	/**
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string>
-	 */
-	public function comparators(): array {
-		return [
-			'createBefore',
-			'createAfter',
-			'modifiedBefore',
-			'modifiedAfter',
-			'uid',
-			'kind',
-			'member',
-			'text',
-			'name',
-			'nameGiven',
-			'nameSurname',
-			'nameAlias',
-			'organization',
-			'email',
-			'phone',
-			'address',
-			'note',
-		];
-	}
-
-	/**
-	 *
-	 * @since 1.0.0
-	 *
-	 */
-	public function condition(string $property, mixed $value, FilterOperator $operator = FilterOperator::AND): void {
-		$this->conditions[$property] = ['operator' => $operator, 'property' => $property, 'value' => $value];
-	}
-
-	/**
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array{operator: FilterOperator, property: string, value: mixed}>
-	 */
-	public function conditions(): array {
-		return $this->conditions;
-	}
+	protected array $attributes = [
+		'createBefore' => true,
+		'createAfter' => true,
+		'modifiedBefore' => true,
+		'modifiedAfter' => true,
+		'uid' => true,
+		'kind' => true,
+		'member' => true,
+		'text' => true,
+		'name' => true,
+		'nameGiven' => true,
+		'nameSurname' => true,
+		'nameAlias' => true,
+		'organization' => true,
+		'email' => true,
+		'phone' => true,
+		'address' => true,
+		'note' => true,
+	];
 
 }

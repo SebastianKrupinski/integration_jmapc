@@ -23,13 +23,13 @@ declare(strict_types=1);
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 namespace OCA\JMAPC\Providers;
 
 //use OCP\Mail\Provider\IServiceIdentity;
 //use OCP\Mail\Provider\IServiceIdentityBAuth;
 
 class ServiceIdentityBAuth implements IServiceIdentityBAuth {
-
 	private string $_identity = '';
 	private string $_secret = '';
 
@@ -48,7 +48,7 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	 * @since 1.0.0
 	 */
 	public function type(): string {
-		
+
 		return 'BAUTH';
 
 	}
@@ -58,7 +58,7 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	 * @since 1.0.0
 	 */
 	public function label(): string {
-		
+
 		return 'Basic Authentication';
 
 	}
@@ -68,7 +68,7 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	 * @since 1.0.0
 	 */
 	public function getIdentity(): string {
-		
+
 		return $this->_identity;
 
 	}

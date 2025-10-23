@@ -23,15 +23,11 @@ declare(strict_types=1);
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 namespace OCA\JMAPC\Providers\Mail;
 
-use OCA\JMAPC\Account;
-use OCA\JMAPC\Providers\ServiceIdentityBAuth;
-use OCA\JMAPC\Providers\ServiceIdentityOAuth;
-use OCA\JMAPC\Providers\ServiceLocation;
 use OCA\JMAPC\Service\ServicesService;
-
-use OCP\Mail\Provider\Address as MailAddress;
+use OCA\JMAPC\Store\Local\ServiceEntity;
 use OCP\Mail\Provider\IProvider;
 use OCP\Mail\Provider\IService;
 
@@ -39,7 +35,7 @@ use Psr\Container\ContainerInterface;
 
 class Provider implements IProvider {
 
-	private ?array $ServiceCollection = [];
+	private ?array $servicesCache = [];
 
 	public function __construct(
 		protected ContainerInterface $container,
@@ -55,39 +51,33 @@ class Provider implements IProvider {
 	 * @return string id of this provider (e.g. UUID or 'IMAP/SMTP' or anything else)
 	 */
 	public function id(): string {
-
 		return 'jmapc';
-
 	}
 
 	/**
-	 * The localized human frendly name of this provider
+	 * The localized human friendly name of this provider
 	 *
 	 * @since 2024.06.25
 	 *
 	 * @return string label/name of this provider (e.g. Plain Old IMAP/SMTP)
 	 */
 	public function label(): string {
-
 		return 'JMAP Connector';
-
 	}
 
 	/**
-	 * Determain if any services are configured for a specific user
+	 * Determine if any services are configured for a specific user
 	 *
 	 * @since 2024.06.25
 	 *
 	 * @return bool true if any services are configure for the user
 	 */
 	public function hasServices(string $uid): bool {
-
 		return (count($this->listServices($uid)) > 0);
-
 	}
 
 	/**
-	 * retrieve collection of services for a specific user
+	 * Retrieve collection of services for a specific user
 	 *
 	 * @since 2024.06.25
 	 *
@@ -95,21 +85,22 @@ class Provider implements IProvider {
 	 */
 	public function listServices(string $uid): array {
 
+		// check if services are cached
+		if (isset($this->servicesCache[$uid])) {
+			return $this->servicesCache[$uid];
+		}
+		// retrieve services from store
 		try {
-			// retrieve service(s) details from data store
-			$accounts = $this->ServicesService->fetchByUserId($uid);
+			$collection = $this->ServicesService->fetchByUserId($uid);
 		} catch (\Throwable $th) {
 			return [];
 		}
-		// construct temporary collection
-		$services = [];
-		// add services to collection
-		foreach ($accounts as $entry) {
-			// add service to collection
-			$services[$entry['id']] = $this->instanceService($uid, $entry);
+		// convert to service objects
+		foreach ($collection as $entry) {
+			$this->servicesCache[$uid][$entry->getId()] = $this->instanceService($uid, $entry);
 		}
-		// return list of services for user
-		return $services;
+
+		return $this->servicesCache[$uid];
 
 	}
 
@@ -125,23 +116,25 @@ class Provider implements IProvider {
 	 */
 	public function findServiceById(string $uid, string $id): ?IService {
 
-		// evaluate if id is a number
+		// check if services are cached
+		if (isset($this->servicesCache[$uid][$id])) {
+			return $this->servicesCache[$uid][$id];
+		}
+		// retrieve service from store
 		if (is_numeric($id)) {
 			try {
-				// retrieve service details from data store
-				$account = $this->ServicesService->fetchByUserIdAndServiceId($uid, (int)$id);
+				$service = $this->ServicesService->fetchByUserIdAndServiceId($uid, (int)$id);
 			} catch (\Throwable $th) {
 				return null;
 			}
 		}
-		// evaliate if service details where found
-		if ($account instanceof Account) {
-			// return mail service instance
-			return $this->instanceService($uid, $account);
+		// convert to service object
+		if ($service instanceof ServiceEntity) {
+			$this->servicesCache[$uid][$id] = $this->instanceService($uid, $service);
 		}
 
-		return null;
-		
+		return $this->servicesCache[$uid][$id];
+
 	}
 
 	/**
@@ -157,14 +150,12 @@ class Provider implements IProvider {
 	public function findServiceByAddress(string $uid, string $address): ?IService {
 
 		try {
-			// retrieve service details from data store
 			$accounts = $this->ServicesService->fetchByUserIdAndAddress($uid, $address);
 		} catch (\Throwable $th) {
 			return null;
 		}
-		// evaliate if service details where found
+
 		if (is_array($accounts) && count($accounts) > 0 && is_array($accounts[0])) {
-			// return mail service instance
 			return $this->instanceService($uid, $accounts[0]);
 		}
 
@@ -172,32 +163,8 @@ class Provider implements IProvider {
 
 	}
 
-	protected function instanceService(string $uid, array $entry): Service {
-		// extract values
-		$id = (string)$entry['id'];
-		$label = $entry['label'];
-		$address = new MailAddress($entry['address_primary'], '');
-		$location = new ServiceLocation(
-			$entry['location_host'],
-			$entry['location_path'],
-			$entry['location_port'],
-			$entry['location_protocol']
-		);
-
-		if ($entry['auth'] == 'OA') {
-			$identity = new ServiceIdentityOAuth(
-				$entry['oauth_id'],
-				$entry['oauth_access_token'],
-				$entry['oauth_access_expiry'],
-				$entry['oauth_refresh_token'],
-			);
-		} else {
-			$identity = new ServiceIdentityBAuth(
-				$entry['bauth_id'],
-				$entry['bauth_secret'],
-			);
-		}
-		return new Service($this->container, $uid, $id, $label, $address, $identity, $location);
+	protected function instanceService(string $uid, ServiceEntity $service): Service {
+		return new Service($this->container, $uid, $service);
 	}
 
 	/**
@@ -208,8 +175,19 @@ class Provider implements IProvider {
 	 * @return IService blank service instance
 	 */
 	public function initiateService(): IService {
+		return $this->freshService();
+	}
 
-		return new Service($this->container);
+	/**
+	 * construct and new blank service instance
+	 *
+	 * @since 30.0.0
+	 *
+	 * @return IService blank service instance
+	 */
+	public function freshService(string $uid = ''): IService {
+
+		return new Service($this->container, $uid, null);
 
 	}
 
@@ -237,7 +215,7 @@ class Provider implements IProvider {
 	 * @param string $uid user id of user to configure service for
 	 * @param IService $service service configuration object
 	 *
-	 * @return string id of modifided service
+	 * @return string id of modified service
 	 */
 	public function modifyService(string $uid, IService $service): string {
 
@@ -257,7 +235,7 @@ class Provider implements IProvider {
 	 */
 	public function deleteService(string $uid, IService $service): bool {
 
-		return false;
+		$this->ServicesService->deleteBy;
 
 	}
 

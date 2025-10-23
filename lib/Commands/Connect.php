@@ -37,10 +37,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class Connect extends Command {
 
-	public function __construct(IUserManager $userManager, CoreService $CoreService) {
+	public function __construct(
+		private IUserManager $userManager,
+		private CoreService $CoreService
+	) {
 		parent::__construct();
-		$this->userManager = $userManager;
-		$this->CoreService = $CoreService;
 	}
 
 	protected function configure() {
@@ -78,7 +79,7 @@ class Connect extends Command {
 
 		if (!$this->userManager->userExists($uid)) {
 			$output->writeln("<error>User $uid does not exist</error>");
-			return 1;
+			return self::INVALID;
 		}
 
 		if ($validate) {
@@ -89,7 +90,7 @@ class Connect extends Command {
 
 		$output->writeln("<info>User $uid connected to $account_provider as $account_bauth_id</info>");
 
-		return 0;
+		return self::SUCCESS;
 
 	}
 }

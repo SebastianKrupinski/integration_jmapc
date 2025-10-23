@@ -34,6 +34,7 @@ use OCA\DAV\CalDAV\EventReader;
 use OCA\JMAPC\Objects\Event\EventAvailabilityTypes;
 use OCA\JMAPC\Objects\Event\EventCollectionObject;
 use OCA\JMAPC\Objects\Event\EventLocationPhysicalObject;
+use OCA\JMAPC\Objects\Event\EventMutationObject;
 use OCA\JMAPC\Objects\Event\EventNotificationAnchorTypes;
 use OCA\JMAPC\Objects\Event\EventNotificationObject;
 use OCA\JMAPC\Objects\Event\EventNotificationPatterns;
@@ -51,12 +52,13 @@ use OCA\JMAPC\Objects\OriginTypes;
 use OCA\JMAPC\Store\Local\CollectionEntity;
 use OCA\JMAPC\Store\Local\EventEntity;
 use OCA\JMAPC\Store\Local\EventStore;
-use OCA\JMAPC\Utile\UUID;
+use Sabre\VObject\Component\VCalendar;
 use Sabre\VObject\Component\VEvent;
+use Sabre\VObject\Property;
 use Sabre\VObject\Reader;
 
 class LocalEventsService {
-	
+	protected string $ProductionId = '-//IDN nextcloud.com//JMAP Client//EN';
 	protected string $DateFormatUTC = 'Ymd\THis\Z';
 	protected string $DateFormatDateTime = 'Ymd\THis';
 	protected string $DateFormatDateOnly = 'Ymd';
@@ -68,7 +70,7 @@ class LocalEventsService {
 
 	public function __construct() {
 	}
-	
+
 	public function initialize(EventStore $Store) {
 
 		$this->_Store = $Store;
@@ -114,7 +116,7 @@ class LocalEventsService {
 	 * @return void
 	 */
 	public function collectionDeleteById(int $cid): void {
-		
+
 		// delete entities from data store
 		$this->_Store->entityDeleteByCollection($cid);
 		$this->_Store->collectionDeleteById($cid);
@@ -149,7 +151,7 @@ class LocalEventsService {
 		$lcc = $this->_Store->chronicleReminisce($cid, $signature);
 		// return collection differences
 		return $lcc;
-		
+
 	}
 
 	/**
@@ -225,7 +227,7 @@ class LocalEventsService {
 		}
 
 	}
-	
+
 	/**
 	 * modify entity in local storage
 	 *
@@ -259,7 +261,7 @@ class LocalEventsService {
 		}
 
 	}
-	
+
 	/**
 	 * delete entity from local storage
 	 *
@@ -318,7 +320,7 @@ class LocalEventsService {
 		// prase vData
 		$vObject = Reader::read($so->getData());
 		// convert entity
-		$to = $this->fromVObject($vObject->VEVENT);
+		$to = $this->toEventObject($vObject);
 		$to->ID = (string)$so->getId();
 		$to->CID = (string)$so->getCid();
 		$to->Signature = $so->getSignature();
@@ -350,9 +352,9 @@ class LocalEventsService {
 
 		// construct entity
 		$to = new EventEntity();
-		$vo = $this->toVObject($so);
+		$vo = $this->fromEventObject($so);
 		// convert source object to entity
-		$to->setData("BEGIN:VCALENDAR\nVERSION:2.0\n" . $vo->serialize() . "\nEND:VCALENDAR");
+		$to->setData($vo->serialize());
 		$to->setUuid($so->UUID);
 		$to->setSignature($this->generateSignature($so));
 		$to->setCcid($so->CCID);
@@ -371,7 +373,7 @@ class LocalEventsService {
 		} else {
 			$to->setEndson($so->EndsOn->setTimezone(new DateTimeZone('UTC'))->format('U'));
 		}
-		
+
 		// override / assign additional values
 		foreach ($additional as $key => $value) {
 			$method = 'set' . ucfirst($key);
@@ -386,60 +388,83 @@ class LocalEventsService {
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param VEvent $so
+	 * @param VCalendar $so
 	 *
 	 * @return EventObject
 	 */
-	public function fromVObject(VEvent $so): EventObject {
-		
+	public function toEventObject(VCalendar $so): EventObject {
+
 		// construct target object
-		$to = new EventObject();
+		$do = new EventObject();
 		// Origin
-		$to->Origin = OriginTypes::Internal;
+		$do->Origin = OriginTypes::Internal;
 		// universal id
 		if (isset($so->UID)) {
-			$to->UUID = trim($so->UID->getValue());
+			$do->UUID = trim($so->UID->getValue());
 		}
+
+		foreach ($so->getComponents() as $vComponent) {
+			if ($vComponent->name !== 'VEVENT') {
+				continue;
+			}
+			if ($vComponent->{'RECURRENCE-ID'}) {
+				$id = $vComponent->{'RECURRENCE-ID'}->getDateTime();
+				$instance = new EventMutationObject();
+				$instance->mutationId = $id;
+				$this->toEventInstanceObject($vComponent, $instance, $so->VEVENT);
+				$do->OccurrenceMutations[$id->format('Y-m-d\TH:i:s')] = $instance;
+			} else {
+				$do = $this->toEventInstanceObject($vComponent, $do);
+			}
+		}
+
+		// return event object
+		return $do;
+
+	}
+
+	public function toEventInstanceObject(VEvent $so, EventObject|EventMutationObject $do, ?VEvent $bo = null): EventObject|EventMutationObject {
+
 		// creation date time
 		if (isset($so->CREATED)) {
-			$to->CreatedOn = $so->CREATED->getDateTime();
+			$do->CreatedOn = $so->CREATED->getDateTime();
 		}
 		// modification date time
 		if (isset($so->{'LAST-MODIFIED'})) {
-			$to->ModifiedOn = $so->{'LAST-MODIFIED'}->getDateTime();
+			$do->ModifiedOn = $so->{'LAST-MODIFIED'}->getDateTime();
 		}
 		// sequence
 		if (isset($so->SEQUENCE)) {
-			$to->Sequence = (int)$so->SEQUENCE->getValue();
+			$do->Sequence = (int)$so->SEQUENCE->getValue();
 		}
 		// time zone
 		if (isset($so->{'X-TIMEZONE'})) {
-			$to->TimeZone = new DateTimeZone($so->{'X-TIMEZONE'}->getValue());
+			$do->TimeZone = new DateTimeZone($so->{'X-TIMEZONE'}->getValue());
 		}
 		// Starts Date/Time
 		// Starts Time Zone
 		if (isset($so->DTSTART)) {
-			$to->StartsOn = $so->DTSTART->getDateTime();
-			$to->StartsTZ = $to->StartsOn->getTimezone();
+			$do->StartsOn = $so->DTSTART->getDateTime();
+			$do->StartsTZ = $do->StartsOn->getTimezone();
 		}
 		// Ends Date/Time
 		// Ends Time Zone
 		if (isset($so->DTEND)) {
-			$to->EndsOn = $so->DTEND->getDateTime();
-			$to->EndsTZ = $to->EndsOn->getTimezone();
+			$do->EndsOn = $so->DTEND->getDateTime();
+			$do->EndsTZ = $do->EndsOn->getTimezone();
 		}
 		// duration
 		if (isset($so->DURATION)) {
-			$to->Duration = $so->DURATION->getDateInterval();
+			$do->Duration = $so->DURATION->getDateInterval();
 		}
 		// label
-		if (isset($so->SUMMARY)) {
-			$to->Label = trim($so->SUMMARY->getValue());
+		if (isset($so->SUMMARY) && !($bo && isset($bo->SUMMARY) && $bo->SUMMARY->getValue() === $so->SUMMARY->getValue())) {
+			$do->Label = trim($so->SUMMARY->getValue());
 		}
 		// description
-		if (isset($so->DESCRIPTION)) {
+		if (isset($so->DESCRIPTION) && !($bo && isset($bo->SUMMARY) && $bo->SUMMARY->getValue() === $so->SUMMARY->getValue())) {
 			if (!empty(trim($so->DESCRIPTION->getValue()))) {
-				$to->Description = trim($so->DESCRIPTION->getValue());
+				$do->Description = trim($so->DESCRIPTION->getValue());
 			}
 		}
 		// location
@@ -450,23 +475,23 @@ class LocalEventsService {
 				$entity->Id = $parameters['X-ID']?->getValue();
 				$entity->Name = trim($entry->getValue());
 				//$location->Description = $entry->description();
-				$to->LocationsPhysical[$entity->Id] = $entity;
+				$do->LocationsPhysical[$entity->Id] = $entity;
 			}
 		}
 		// availability
 		if (isset($so->TRANSP)) {
-			$to->Availability = match (strtoupper($so->TRANSP->getValue())) {
+			$do->Availability = match (strtoupper($so->TRANSP->getValue())) {
 				'FREE' => EventAvailabilityTypes::Free,
 				default => EventAvailabilityTypes::Busy,
 			};
 		}
 		// priority
 		if (isset($so->PRIORITY)) {
-			$to->Priority = (int)trim($so->PRIORITY->getValue());
+			$do->Priority = (int)trim($so->PRIORITY->getValue());
 		}
 		// sensitivity
 		if (isset($so->CLASS)) {
-			$to->Sensitivity = match (strtoupper($so->CLASS->getValue())) {
+			$do->Sensitivity = match (strtoupper($so->CLASS->getValue())) {
 				'PRIVATE' => EventSensitivityTypes::Private,
 				'CONFIDENTIAL' => EventSensitivityTypes::Secret,
 				default => EventSensitivityTypes::Public,
@@ -474,11 +499,11 @@ class LocalEventsService {
 		}
 		// color
 		if (isset($so->COLOR)) {
-			$to->Color = trim($so->COLOR->getValue());
+			$do->Color = trim($so->COLOR->getValue());
 		}
 		// tag(s)
 		if (isset($so->CATEGORIES)) {
-			$to->Tags = new EventTagCollection($so->CATEGORIES->getParts());
+			$do->Tags = new EventTagCollection($so->CATEGORIES->getParts());
 		}
 		// participant(s)
 		foreach (['ORGANIZER', 'ATTENDEE'] as $name) {
@@ -507,7 +532,7 @@ class LocalEventsService {
 						'NON-PARTICIPANT' => EventParticipantRoleTypes::Informational,
 						default => ($name === 'ORGANIZER') ? EventParticipantRoleTypes::Owner : EventParticipantRoleTypes::Attendee,
 					};
-					$to->Participants[$entity->Id] = $entity;
+					$do->Participants[$entity->Id] = $entity;
 				}
 			}
 		}
@@ -533,7 +558,7 @@ class LocalEventsService {
 					};
 					$entity->Offset = $entry->TRIGGER->getDateInterval();
 				}
-				$to->Notifications[$entity->Id] = $entity;
+				$do->Notifications[$entity->Id] = $entity;
 			}
 		}
 		// occurrence
@@ -596,7 +621,7 @@ class LocalEventsService {
 						$entity->OnPosition = $this->convertToInt([$parts['BYSETPOS']]);
 					}
 				}
-				$to->OccurrencePatterns[] = $entity;
+				$do->OccurrencePatterns[] = $entity;
 			}
 		}
 		// Attachment(s)
@@ -610,7 +635,7 @@ class LocalEventsService {
 					$ft = $parameters['FMTTYPE']->getValue();
 					$fd = $parameters['FILENAME']->getValue();
 
-					$to->addAttachment(
+					$do->addAttachment(
 						$fs,
 						$fi,
 						$fn,
@@ -623,9 +648,9 @@ class LocalEventsService {
 			}
 		}
 		*/
-		// return event object
-		return $to;
-		
+
+		return $do;
+
 	}
 
 	/**
@@ -635,96 +660,175 @@ class LocalEventsService {
 	 *
 	 * @param EventObject $so
 	 *
-	 * @return VEvent
+	 * @return VCalendar
 	 */
-	public function toVObject(EventObject $so): VEvent {
-
+	public function fromEventObject(EventObject $so): VCalendar {
 		// construct target object
-		$to = (new \Sabre\VObject\Component\VCalendar())->createComponent('VEVENT');
-		// UID
-		if ($so->UUID) {
-			$to->UID->setValue($so->UUID);
+		$do = new VCalendar();
+		// base instance
+		/** @var VEvent $vComponent */
+		$vComponent = $do->add('VEVENT');
+		// universal id
+		if ($vComponent->UID) {
+			$vComponent->UID->setValue($so->UUID);
 		} else {
-			$to->add('UUID', $so->UUID);
+			$vComponent->add('UID', $so->UUID);
 		}
+		// product id
+		if ($vComponent->PRODID) {
+			$vComponent->PRODID->setValue($this->ProductionId);
+		} else {
+			$vComponent->add('PRODID', $this->ProductionId);
+		}
+		// common properties
+		$this->fromEventInstanceObject($so, $vComponent);
+		// mutated instances
+		foreach ($so->OccurrenceMutations as $id => $mutation) {
+			// Exclusion Mutations
+			if ($mutation->mutationExclusion === true) {
+				/** @var VEvent $vComponent */
+				$vComponent = $do->add('VEVENT');
+				$vComponent->add('EXDATE', $mutation->mutationId);
+				if ($mutation->mutationTz) {
+					$vComponent->{'EXDATE'}->add('TZID', $mutation->mutationTz);
+				}
+				continue;
+			}
+
+			// Standard Mutations
+			/** @var VEvent $vComponent */
+			$vComponent = $do->add('VEVENT');
+			// universal id
+			if ($vComponent->UID) {
+				$vComponent->UID->setValue($so->UUID);
+			} else {
+				$vComponent->add('UID', $so->UUID);
+			}
+			// recurrence id
+			if ($mutation->mutationTz !== null) {
+				$mutationTz = $mutation->mutationTz;
+			} elseif ($mutation->mutationId->getTimezone()->getName() !== 'UTC') {
+				$mutationTz = $mutation->mutationId->getTimezone()->getName();
+			} elseif ($so->StartsTZ) {
+				$mutationTz = $so->StartsTZ->getName();
+			} else {
+				$mutationTz = null;
+			}
+			if ($mutationTz) {
+				$mutationId = $mutation->mutationId->format($this->DateFormatDateTime);
+			} else {
+				$mutationId = $mutation->mutationId->format($this->DateFormatUTC);
+			}
+			if ($vComponent->{'RECURRENCE-ID'}) {
+				$vComponent->{'RECURRENCE-ID'}->setValue($mutationId);
+			} else {
+				$vComponent->add('RECURRENCE-ID', $mutationId);
+			}
+			if ($mutationTz) {
+				$vComponent->{'RECURRENCE-ID'}->add('TZID', $mutationTz);
+			}
+			// common properties
+			$this->fromEventInstanceObject($mutation, $vComponent, $so);
+		}
+
+		return $do;
+	}
+
+	public function fromEventInstanceObject(EventObject|EventMutationObject $so, VEvent $do, ?EventObject $bo = null): VEvent {
 		// creation date
 		if ($so->CreatedOn) {
-			$to->add('CREATED', $so->CreatedOn->format($this->DateFormatUTC));
-			if ($to->DTSTAMP) {
-				$to->DTSTAMP->setValue($so->CreatedOn->format($this->DateFormatUTC));
+			$do->add('CREATED', $so->CreatedOn->format($this->DateFormatUTC));
+			if ($do->DTSTAMP) {
+				$do->DTSTAMP->setValue($so->CreatedOn->format($this->DateFormatUTC));
 			} else {
-				$to->add('DTSTAMP', $so->CreatedOn->format($this->DateFormatUTC));
+				$do->add('DTSTAMP', $so->CreatedOn->format($this->DateFormatUTC));
 			}
 		}
 		// modification date
 		if ($so->ModifiedOn) {
-			$to->add('LAST-MODIFIED', $so->ModifiedOn->format($this->DateFormatUTC));
+			$do->add('LAST-MODIFIED', $so->ModifiedOn->format($this->DateFormatUTC));
 		}
 		// sequence
 		if ($so->Sequence) {
-			$to->add('SEQUENCE', $so->Sequence);
+			$do->add('SEQUENCE', $so->Sequence);
+		} else {
+			$do->add('SEQUENCE', 0);
 		}
 		// time zone
 		if ($so->TimeZone) {
-			$to->add('X-TIMEZONE', $so->TimeZone->getName());
+			$do->add('X-TIMEZONE', $so->TimeZone->getName());
 		}
 		// Starts Date, Time and Zone
 		if ($so->StartsOn) {
 			if ($so->Timeless) {
-				$to->add('DTSTART', $so->StartsOn->format($this->DateFormatDateOnly));
+				$do->add('DTSTART', $so->StartsOn->format($this->DateFormatDateOnly));
 			} else {
-				$to->add('DTSTART', $so->StartsOn->format($this->DateFormatDateTime));
+				$do->add('DTSTART', $so->StartsOn->format($this->DateFormatDateTime));
 			}
 			if ($so->StartsTZ) {
-				$to->DTSTART->add('TZID', $so->StartsTZ->getName());
+				$do->DTSTART->add('TZID', $so->StartsTZ->getName());
 			} elseif ($so->TimeZone) {
-				$to->DTSTART->add('TZID', $so->TimeZone->getName());
+				$do->DTSTART->add('TZID', $so->TimeZone->getName());
+			} elseif ($bo && $bo->StartsTZ) {
+				$do->DTSTART->add('TZID', $bo->StartsTZ->getName());
+			}
+		} elseif ($so->mutationId) {
+			$do->add('DTSTART', $so->mutationId->format($this->DateFormatDateTime));
+			if ($so->mutationTz) {
+				$do->DTSTART->add('TZID', $so->mutationTz);
+			} elseif ($bo && $bo->StartsTZ) {
+				$do->DTSTART->add('TZID', $bo->StartsTZ->getName());
 			}
 		}
 		// End Date, Time and Zone
 		if ($so->EndsOn) {
 			if ($so->Timeless) {
-				$to->add('DTEND', $so->EndsOn->format($this->DateFormatDateOnly));
+				$do->add('DTEND', $so->EndsOn->format($this->DateFormatDateOnly));
 			} else {
-				$to->add('DTEND', $so->EndsOn->format($this->DateFormatDateTime));
+				$do->add('DTEND', $so->EndsOn->format($this->DateFormatDateTime));
 			}
 			if ($so->EndsTZ) {
-				$to->DTEND->add('TZID', $so->EndsTZ->getName());
+				$do->DTEND->add('TZID', $so->EndsTZ->getName());
 			} elseif ($so->TimeZone) {
-				$to->DTEND->add('TZID', $so->TimeZone->getName());
+				$do->DTEND->add('TZID', $so->TimeZone->getName());
 			}
 		}
 		// Duration
 		if ($so->Duration) {
-			//$to->add('DURATION',$so->Duration);
+			//$do->add('DURATION',$so->Duration);
 		}
 		// Label
 		if ($so->Label) {
-			$to->add('SUMMARY', $so->Label);
+			$do->add('SUMMARY', $so->Label);
+		} elseif ($bo && $bo->Label) {
+			$do->add('SUMMARY', $bo->Label);
 		}
 		// Notes
 		if ($so->Description) {
-			$to->add('DESCRIPTION', $so->Description);
+			$do->add('DESCRIPTION', $so->Description);
+		} elseif ($bo && $bo->Description) {
+			$do->add('DESCRIPTION', $bo->Description);
 		}
 		// Physical Location(s)
 		foreach ($so->LocationsPhysical as $entry) {
-			$entity = $to->add('LOCATION', trim($entry->Name));
+			/** @var Property $entity */
+			$entity = $do->add('LOCATION', trim($entry->Name));
 			$entity->add('X-ID', $entry->Id);
 		}
 		// Availability
 		if ($so->Availability) {
-			$to->add('TRANSP', match ($so->Availability) {
+			$do->add('TRANSP', match ($so->Availability) {
 				EventAvailabilityTypes::Free => 'TRANSPARENT',
 				default => 'OPAQUE',
 			});
 		}
 		// Priority
 		if ($so->Priority) {
-			$to->add('PRIORITY', $so->Priority);
+			$do->add('PRIORITY', $so->Priority);
 		}
 		// Sensitivity
 		if (isset($so->Sensitivity)) {
-			$to->add('CLASS', match ($so->Sensitivity) {
+			$do->add('CLASS', match ($so->Sensitivity) {
 				EventSensitivityTypes::Private => 'PRIVATE',
 				EventSensitivityTypes::Secret => 'CONFIDENTIAL',
 				default => 'PUBLIC',
@@ -732,18 +836,18 @@ class LocalEventsService {
 		}
 		// Color
 		if ($so->Color) {
-			$to->add('COLOR', trim($so->Color));
+			$do->add('COLOR', trim($so->Color));
 		}
 		// Tag(s)
 		if (count($so->Tags) > 0) {
-			$to->add('CATEGORIES', implode(', ', (array)$so->Tags));
+			$do->add('CATEGORIES', implode(', ', (array)$so->Tags));
 		}
 		// Participant(s)
 		foreach ($so->Participants as $entry) {
-			if (in_array(EventParticipantRoleTypes::Owner, $entry->Roles, true)) {
-				$entity = $to->add('ORGANIZER', 'mailto:' . $entry->Address);
+			if (in_array(EventParticipantRoleTypes::Owner, iterator_to_array($entry->Roles), true)) {
+				$entity = $do->add('ORGANIZER', 'mailto:' . $entry->Address);
 			} else {
-				$entity = $to->add('ATTENDEE', 'mailto:' . $entry->address);
+				$entity = $do->add('ATTENDEE', 'mailto:' . $entry->address);
 			}
 			/** @var Property $entity */
 			$entity->add('X-ID', $entry->Id);
@@ -770,7 +874,7 @@ class LocalEventsService {
 		}
 		// Notifications
 		foreach ($so->Notifications as $entry) {
-			$entity = $to->add('VALARM');
+			$entity = $do->add('VALARM');
 			/** @var Property $entity */
 			$entity->add('X-ID', $entry->Id);
 			// Notifications Type
@@ -842,7 +946,7 @@ class LocalEventsService {
 				$pattern['BYSETPOS'] = implode(',', $entry->OnPosition);
 			}
 
-			$to->add('RRULE', $pattern)->add('X-ID', $entry->Id);
+			$do->add('RRULE', $pattern);
 		}
 
 		// Attachment(s)
@@ -855,14 +959,14 @@ class LocalEventsService {
 					$p['X-NC-FILE-ID'] = $entry->Id;
 					$p['FILENAME'] = $entry->Data;
 					$p['FMTTYPE'] = $entry->Type;
-					$to->add('ATTACH', "/f/" . $entry->Id, $p);
+					$do->add('ATTACH', "/f/" . $entry->Id, $p);
 					unset($p);
 				}
 				// Referance
 				elseif ($entry->Store == 'R' && !empty($entry->Data)) {
 					$p = array();
 					$p['FMTTYPE'] = $entry->Type;
-					$to->add('ATTACH', $entry->Data, $p);
+					$do->add('ATTACH', $entry->Data, $p);
 					unset($p);
 				}
 				// Enclosed
@@ -873,14 +977,14 @@ class LocalEventsService {
 					$p['VALUE'] = 'BINARY';
 					unset($p);
 					if ($entry->Encoding == 'B64') {
-						$to->add(
+						$do->add(
 							'ATTACH',
 							'X-FILENAME="' . $entry->Name . '":' . $entry->Data,
 							$p
 						);
 					}
 					else {
-						$to->add(
+						$do->add(
 							'ATTACH',
 							'X-FILENAME="' . $entry->Name . '":' .  base64_encode($entry->Data),
 							$p
@@ -892,14 +996,13 @@ class LocalEventsService {
 		}
 		*/
 
-		return $to;
-
+		return $do;
 	}
 
-	public function generateSignature(EventObject $eo): string {
-		
+	public function generateSignature(EventObject $to): string {
+
 		// clone self
-		$o = clone $eo;
+		$o = clone $to;
 		// remove non needed values
 		unset(
 			$o->Origin,
@@ -941,7 +1044,7 @@ class LocalEventsService {
 	}
 
 	private function convertToInt(array $values): array {
-	   
+
 		foreach ($values as $key => $value) {
 			$values[$key] = (int)$value;
 		}

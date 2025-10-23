@@ -28,33 +28,29 @@ namespace OCA\JMAPC\Service;
 
 use JmapClient\Client as JmapClient;
 use OCA\JMAPC\AppInfo\Application;
-
 use OCA\JMAPC\Exceptions\JmapUnknownMethod;
 use OCA\JMAPC\Objects\Contact\ContactObject;
 use OCA\JMAPC\Objects\DeltaObject;
 use OCA\JMAPC\Objects\HarmonizationStatisticsObject;
 use OCA\JMAPC\Service\Local\LocalContactsService;
+use OCA\JMAPC\Service\Local\LocalService;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
 use OCA\JMAPC\Service\Remote\RemoteService;
 use OCA\JMAPC\Store\Local\CollectionEntity;
 use OCA\JMAPC\Store\Local\ContactStore;
 use OCA\JMAPC\Store\Local\ServiceEntity;
-use OCP\Files\IRootFolder;
 use Psr\Log\LoggerInterface;
 
 class ContactsService {
-	
 	private bool $debug;
 	private string $userId;
 	private ServiceEntity $Configuration;
-	private JmapClient $RemoteStore;
 	private RemoteContactsService $RemoteContactsService;
+	private LocalContactsService $LocalContactsService;
+	private ContactStore $LocalStore;
 
 	public function __construct(
 		private LoggerInterface $logger,
-		private LocalContactsService $LocalContactsService,
-		private ContactStore $LocalStore,
-		private IRootFolder $LocalFileStore,
 	) {
 	}
 
@@ -69,14 +65,13 @@ class ContactsService {
 
 		$this->userId = $uid;
 		$this->Configuration = $service;
-		$this->RemoteStore = $RemoteStore;
 		// assign service defaults
-		$this->debug = $service->getDebug();
+		$this->debug = (bool)$service->getDebug();
 		// initialize service remote and local services
 		$this->RemoteContactsService = RemoteService::contactsService($RemoteStore);
-		$this->RemoteContactsService->initialize($this->RemoteStore);
-		$this->LocalContactsService->initialize($this->LocalStore, $this->LocalFileStore->getUserFolder($this->userId));
-		
+		$this->LocalContactsService = LocalService::contactsService($uid);
+		$this->LocalStore = LocalService::contactsStore();
+
 		// retrieve list of collections
 		$collections = $this->LocalStore->collectionListByService($this->Configuration->getId());
 		// iterate through collections
@@ -121,7 +116,7 @@ class ContactsService {
 	 * @return HarmonizationStatisticsObject
 	 */
 	public function harmonizeCollection(CollectionEntity $collection): HarmonizationStatisticsObject {
-		
+
 		// define statistics object
 		$statistics = new HarmonizationStatisticsObject();
 		// determine that the correlation belongs to the initialized user
@@ -197,7 +192,7 @@ class ContactsService {
 					break;
 			}
 		}
-		
+
 		// process remote deletions
 		foreach ($remoteEntityDelta->deletions as $reid) {
 			// process delete
@@ -268,7 +263,7 @@ class ContactsService {
 			// clean up
 			unset($localEntityDelta);
 		}
-		
+
 		// return statistics
 		return $statistics;
 
@@ -317,7 +312,7 @@ class ContactsService {
 
 		return $delta;
 	}
-	
+
 	/**
 	 * harmonize locally altered entity
 	 *
@@ -407,13 +402,13 @@ class ContactsService {
 
 		// destroy remote entity
 		$rs = $this->RemoteContactsService->entityDelete($lo->CCID, $lo->CEID);
-		
+
 		if ($rs) {
 			return 'RD';
 		} else {
 			return 'NA';
 		}
-			
+
 	}
 
 	/**
@@ -430,7 +425,7 @@ class ContactsService {
 	 * @return string what action was performed
 	 */
 	public function harmonizeRemoteAltered(string $uid, int $sid, string $rcid, string $reid, int $lcid): string {
-		
+
 		// define default operation status
 		$status = 'NA'; // no action
 		// define entity place holders
@@ -492,7 +487,7 @@ class ContactsService {
 
 		// destroy local entity
 		$rs = $this->LocalContactsService->entityDeleteByCorrelation($lcid, $rcid, $reid);
-		
+
 		if ($rs) {
 			return 'LD';
 		} else {

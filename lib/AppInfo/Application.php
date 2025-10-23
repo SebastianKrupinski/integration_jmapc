@@ -52,9 +52,7 @@ class Application extends App implements IBootstrap {
 		if ((@include_once __DIR__ . '/../../vendor/autoload.php') === false) {
 			throw new \Exception('Cannot include autoload. Did you run install dependencies using composer?');
 		}
-		
 		parent::__construct(self::APP_ID, $urlParams);
-
 	}
 
 	public function register(IRegistrationContext $context): void {
@@ -70,6 +68,19 @@ class Application extends App implements IBootstrap {
 		if (method_exists($context, 'registerMailProvider')) {
 			$context->registerMailProvider(MailProvider::class);
 		}
+
+		/*
+		try {
+			if (class_exists('\OCA\ContactsService\ContactsManager', true)) {
+				\OCA\ContactsService\ContactsManager::registerProvider(
+					'jmapc',
+					\OCA\JMAPC\Providers\Contacts\Provider::class
+				);
+			}
+		} catch (\Exception $e) {
+			// Handle the exception if needed
+		}
+		*/
 	}
 
 	public function boot(IBootContext $context): void {

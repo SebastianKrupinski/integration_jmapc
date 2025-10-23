@@ -31,6 +31,7 @@ use Exception;
 
 use JmapClient\Client;
 use JmapClient\Requests\Contacts\AddressBookGet;
+use JmapClient\Requests\Contacts\AddressBookParameters as AddressBookParametersRequest;
 use JmapClient\Requests\Contacts\AddressBookSet;
 use JmapClient\Requests\Contacts\ContactChanges;
 use JmapClient\Requests\Contacts\ContactGet;
@@ -39,6 +40,7 @@ use JmapClient\Requests\Contacts\ContactQuery;
 use JmapClient\Requests\Contacts\ContactQueryChanges;
 use JmapClient\Requests\Contacts\ContactSet;
 use JmapClient\Responses\Contacts\AddressBookParameters as AddressBookParametersResponse;
+use JmapClient\Responses\Contacts\ContactParameters as ContactParametersResponse;
 use JmapClient\Responses\ResponseException;
 use OCA\JMAPC\Exceptions\JmapUnknownMethod;
 use OCA\JMAPC\Objects\BaseStringCollection;
@@ -48,10 +50,10 @@ use OCA\JMAPC\Objects\DeltaObject;
 use OCA\JMAPC\Objects\OriginTypes;
 use OCA\JMAPC\Store\Common\Filters\IFilter;
 use OCA\JMAPC\Store\Common\Range\IRangeTally;
+use OCA\JMAPC\Store\Common\Range\RangeAnchorType;
 use OCA\JMAPC\Store\Common\Sort\ISort;
 
 class RemoteContactsService {
-
 	protected Client $dataStore;
 	protected string $dataAccount;
 
@@ -90,99 +92,6 @@ class RemoteContactsService {
 	}
 
 	/**
-	 * retrieve properties for specific collection
-	 *
-	 * @since Release 1.0.0
-	 */
-	public function collectionFetch(string $id): ?ContactCollectionObject {
-		// construct request
-		$r0 = new AddressBookGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
-		if (!empty($id)) {
-			$r0->target($id);
-		}
-		// transceive
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// convert jmap object to collection object
-		if ($response->object(0) instanceof AddressBookParametersResponse) {
-			$co = $response->object(0);
-			$collection = new ContactCollectionObject();
-			$collection->Id = $co->id();
-			$collection->Label = $co->label();
-			$collection->Description = $co->description();
-			$collection->Priority = $co->priority();
-			return $collection;
-		} else {
-			return null;
-		}
-	}
-
-	/**
-	 * create collection in remote storage
-	 *
-	 * @since Release 1.0.0
-	 */
-	public function collectionCreate(ContactCollectionObject $collection): string {
-		// construct request
-		$r0 = new AddressBookSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
-		$m0 = $r0->create('1');
-		if ($collection->Label !== null) {
-			$m0->label($collection->Label);
-		}
-		if ($collection->Description !== null) {
-			$m0->description($collection->Description);
-		}
-		if ($collection->Priority !== null) {
-			$m0->priority($collection->Priority);
-		}
-		// transceive
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// return collection id
-		return (string)$response->created()['1']['id'];
-	}
-
-	/**
-	 * update collection in remote storage
-	 *
-	 * @since Release 1.0.0
-	 */
-	public function collectionUpdate(string $id, ContactCollectionObject $collection): string {
-		// construct request
-		$r0 = new AddressBookSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
-		$m0 = $r0->update($id);
-		$m0->label($collection->Label);
-		$m0->description($collection->Description);
-		$m0->priority($collection->Priority);
-		// transceive
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// return collection id
-		return array_key_exists($id, $response->updated()) ? (string)$id : '';
-	}
-
-	/**
-	 * delete collection in remote storage
-	 *
-	 * @since Release 1.0.0
-	 *
-	 */
-	public function collectionDelete(string $id): string {
-		// construct request
-		$r0 = new AddressBookSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
-		$r0->delete($id);
-		// transceive
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// return collection id
-		return (string)$response->deleted()[0];
-	}
-
-	/**
 	 * list of collections in remote storage
 	 *
 	 * @since Release 1.0.0
@@ -195,7 +104,7 @@ class RemoteContactsService {
 	 */
 	public function collectionList(?string $location = null, ?string $granularity = null, ?int $depth = null): array {
 		// construct request
-		$r0 = new AddressBookGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceCollectionLabel);
+		$r0 = new AddressBookGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceCollectionLabel);
 		// set target to query request
 		if ($location !== null) {
 			$r0->target($location);
@@ -214,16 +123,97 @@ class RemoteContactsService {
 		}
 		// convert jmap objects to collection objects
 		$list = [];
-		foreach ($response->objects() as $co) {
-			$collection = new ContactCollectionObject();
-			$collection->Id = $co->id();
-			$collection->Label = $co->label();
-			$collection->Description = $co->description();
-			$collection->Priority = $co->priority();
-			$list[] = $collection;
+		foreach ($response->objects() as $so) {
+			if (!$so instanceof AddressBookParametersResponse) {
+				continue;
+			}
+			$to = $this->toContactCollection($so);
+			$to->Signature = $response->state();
+			$list[] = $to;
 		}
 		// return collection of collections
 		return $list;
+	}
+
+	/**
+	 * retrieve properties for specific collection
+	 *
+	 * @since Release 1.0.0
+	 */
+	public function collectionFetch(string $id): ?ContactCollectionObject {
+		// construct request
+		$r0 = new AddressBookGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceCollectionLabel);
+		if (!empty($id)) {
+			$r0->target($id);
+		}
+		// transceive
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// convert jmap object to collection object
+		$so = $response->object(0);
+		$to = null;
+		if ($so instanceof AddressBookParametersResponse) {
+			$to = $this->toContactCollection($so);
+			$to->Signature = $response->state();
+		}
+		return $to;
+	}
+
+	/**
+	 * create collection in remote storage
+	 *
+	 * @since Release 1.0.0
+	 */
+	public function collectionCreate(ContactCollectionObject $so): string {
+		// convert entity
+		$to = $this->fromContactCollection($so);
+		// construct request
+		$r0 = new AddressBookSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceCollectionLabel);
+		$r0->create('1', $to);
+		// transceive
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection id
+		return (string)$response->created()['1']['id'];
+	}
+
+	/**
+	 * modify collection in remote storage
+	 *
+	 * @since Release 1.0.0
+	 */
+	public function collectionModify(string $id, ContactCollectionObject $so): string {
+		// convert entity
+		$to = $this->fromContactCollection($so);
+		// construct request
+		$r0 = new AddressBookSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceCollectionLabel);
+		$r0->update($id, $to);
+		// transceive
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection id
+		return array_key_exists($id, $response->updated()) ? (string)$id : '';
+	}
+
+	/**
+	 * delete collection in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 */
+	public function collectionDelete(string $id): string {
+		// construct request
+		$r0 = new AddressBookSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceCollectionLabel);
+		$r0->delete($id);
+		// transceive
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection id
+		return (string)$response->deleted()[0];
 	}
 
 	/**
@@ -231,10 +221,15 @@ class RemoteContactsService {
 	 *
 	 * @since Release 1.0.0
 	 *
+	 * @param string $location Id of collection
+	 * @param string $identifier Id of entity
+	 * @param string $granularity Amount of detail to return
+	 *
+	 * @return EventObject|null
 	 */
-	public function entityFetch(string $location, string $id, string $granularity = 'D'): ContactObject {
+	public function entityFetch(string $location, string $id, string $granularity = 'D'): ?ContactObject {
 		// construct request
-		$r0 = new ContactGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0 = new ContactGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		$r0->target($id);
 		// select properties to return
 		if ($granularity === 'B') {
@@ -245,12 +240,52 @@ class RemoteContactsService {
 		// extract response
 		$response = $bundle->response(0);
 		// convert jmap object to event object
-		$eo = $this->toContactObject($response->object(0));
-		$eo->Signature = $this->generateSignature($eo);
+		$so = $response->object(0);
+		if ($so instanceof ContactParametersResponse) {
+			$to = $this->toContactObject($so);
+			$to->Signature = $this->generateSignature($to);
+		}
 
-		return $eo;
+		return $to ?? null;
 	}
-	
+
+	/**
+	 * retrieve entity(ies) from remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $location Id of collection
+	 * @param array<string> $identifiers Id of entity
+	 * @param string $granularity Amount of detail to return
+	 *
+	 * @return array<string,ContactObject>
+	 */
+	public function entityFetchMultiple(string $location, array $identifiers, string $granularity = 'D'): array {
+		// construct request
+		$r0 = new ContactGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0->target(...$identifiers);
+		// select properties to return
+		if ($granularity === 'B') {
+			$r0->property(...$this->entityPropertiesBasic);
+		}
+		// transceive
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// convert jmap object(s) to event object
+		$list = $response->objects();
+		foreach ($list as $id => $so) {
+			if (!$so instanceof ContactParametersResponse) {
+				continue;
+			}
+			$to = $this->toContactObject($so);
+			$to->Signature = $this->generateSignature($to);
+			$list[$id] = $so;
+		}
+		// return object(s)
+		return $list;
+	}
+
 	/**
 	 * create entity in remote storage
 	 *
@@ -261,7 +296,7 @@ class RemoteContactsService {
 		// convert entity
 		$entity = $this->fromContactObject($so);
 		// construct set request
-		$r0 = new ContactSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		$r0->create('1', $entity)->in($location);
 		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
@@ -291,7 +326,7 @@ class RemoteContactsService {
 		// convert entity
 		$entity = $this->fromContactObject($so);
 		// construct set request
-		$r0 = new ContactSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		$r0->update($id, $entity)->in($location);
 		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
@@ -310,7 +345,7 @@ class RemoteContactsService {
 		// return entity information
 		return $ro;
 	}
-	
+
 	/**
 	 * delete entity from remote storage
 	 *
@@ -319,7 +354,7 @@ class RemoteContactsService {
 	 */
 	public function entityDelete(string $location, string $id): string {
 		// construct set request
-		$r0 = new ContactSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		// construct object
 		$r0->delete($id);
 		// transmit request and receive response
@@ -348,7 +383,7 @@ class RemoteContactsService {
 	 */
 	public function entityMove(string $sourceLocation, string $id, string $destinationLocation): string {
 		// construct set request
-		$r0 = new ContactSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		// construct object
 		$m0 = $r0->update($id);
 		$m0->in($destinationLocation);
@@ -372,21 +407,13 @@ class RemoteContactsService {
 	 * @param ISort|null $sort Properties to sort by
 	 */
 	public function entityList(?string $location = null, ?string $granularity = null, ?IRangeTally $range = null, ?IFilter $filter = null, ?ISort $sort = null, ?int $depth = null): array {
-		// construct query request
-		$r0 = new ContactQuery($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
-		// set location constraint
+		// construct request
+		$r0 = new ContactQuery($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+		// define location
 		if (!empty($location)) {
 			$r0->filter()->in($location);
 		}
-		// range constraint(s)
-		if ($range !== null) {
-			match($range->type()->value) {
-				'absolute' => $r0->startAbsolute($range->getStart())->limitAbsolute($range->getCount()),
-				'relative' => $r0->startRelative($range->getStart())->limitRelative($range->getCount()),
-				default => null
-			};
-		}
-		// filter constraint(s)
+		// define filter
 		if ($filter !== null) {
 			foreach ($filter->conditions() as $condition) {
 				[$operator, $property, $value] = $condition;
@@ -412,7 +439,7 @@ class RemoteContactsService {
 				};
 			}
 		}
-		// sort constraint(s)
+		// define sort
 		if ($sort !== null) {
 			foreach ($sort->conditions() as $condition) {
 				[$property, $direction] = $condition;
@@ -425,8 +452,17 @@ class RemoteContactsService {
 				};
 			}
 		}
+		// define range
+		if ($range !== null) {
+			if ($range->anchor() === RangeAnchorType::ABSOLUTE) {
+				$r0->limitAbsolute($range->getPosition(), $range->getCount());
+			}
+			if ($range->anchor() === RangeAnchorType::RELATIVE) {
+				$r0->limitRelative($range->getPosition(), $range->getCount());
+			}
+		}
 		// construct get request
-		$r1 = new ContactGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r1 = new ContactGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		// set target to query request
 		$r1->targetFromRequest($r0, '/ids');
 		// select properties to return
@@ -480,7 +516,7 @@ class RemoteContactsService {
 	 */
 	public function entityDeltaSpecific(?string $location, string $state): DeltaObject {
 		// construct set request
-		$r0 = new ContactQueryChanges($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0 = new ContactQueryChanges($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		// set location constraint
 		if (!empty($location)) {
 			$r0->filter()->in($location);
@@ -521,7 +557,7 @@ class RemoteContactsService {
 	 */
 	public function entityDeltaDefault(string $state, string $granularity = 'D'): DeltaObject {
 		// construct set request
-		$r0 = new ContactChanges($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0 = new ContactChanges($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		// set state constraint
 		if (!empty($state)) {
 			$r0->state($state);
@@ -546,8 +582,34 @@ class RemoteContactsService {
 		$delta->additions = new BaseStringCollection($response->created());
 		$delta->modifications = new BaseStringCollection($response->updated());
 		$delta->deletions = new BaseStringCollection($response->deleted());
-		
+
 		return $delta;
+	}
+
+	private function toContactCollection(AddressBookParametersResponse $so): ContactCollectionObject {
+		$to = new ContactCollectionObject();
+		$to->Id = $so->id();
+		$to->Label = $so->label();
+		$to->Description = $so->description();
+		$to->Priority = $so->priority();
+		return $to;
+	}
+
+	public function fromContactCollection(ContactCollectionObject $so): AddressBookParametersRequest {
+		// create object
+		$to = new AddressBookParametersRequest();
+
+		if ($so->Label !== null) {
+			$to->label($so->Label);
+		}
+		if ($so->Description !== null) {
+			$to->description($so->Description);
+		}
+		if ($so->Priority !== null) {
+			$to->priority($so->Priority);
+		}
+
+		return $to;
 	}
 
 	/**
@@ -591,7 +653,7 @@ class RemoteContactsService {
 	}
 
 	public function generateSignature(ContactObject $eo): string {
-		
+
 		// clone self
 		$o = clone $eo;
 		// remove non needed values

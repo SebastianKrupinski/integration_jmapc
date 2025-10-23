@@ -26,14 +26,15 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Store\Local;
 
+use OCA\JMAPC\Store\Common\Filters\IFilter;
 use OCA\JMAPC\Store\Common\Range\IRange;
 use OCA\JMAPC\Store\Common\Range\IRangeDate;
+use OCA\JMAPC\Store\Common\Sort\ISort;
 use OCP\IDBConnection;
 
 class EventStore extends BaseStore {
 
 	public function __construct(IDBConnection $store) {
-		
 		$this->_Store = $store;
 		$this->_CollectionTable = 'jmapc_collections';
 		$this->_CollectionIdentifier = 'EC';
@@ -42,22 +43,21 @@ class EventStore extends BaseStore {
 		$this->_EntityIdentifier = 'EE';
 		$this->_EntityClass = 'OCA\JMAPC\Store\Local\EventEntity';
 		$this->_ChronicleTable = 'jmapc_chronicle';
-
 	}
 
 	/**
-	 * retrieve entities for specific user, collection and search parameters from data store
+	 * retrieve entities from data store
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param int $cid collection id
-	 * @param array $filter filter options
 	 * @param array $elements data fields
+	 * @param IFilter $filter filter options
+	 * @param IRange $range range options
+	 * @param ISort $sort sort options
 	 *
 	 * @return array of entities
 	 */
-	public function entityFind(string $cid, array $elements = [], ?array $filter = null, ?IRange $range = null, $sort): array {
-		
+	public function entityList(?IFilter $filter = null, ?ISort $sort = null, ?IRange $range = null, ?array $elements = null): array {
 		// evaluate if specific elements where requested
 		if (!is_array($elements)) {
 			$elements = ['*'];
@@ -65,9 +65,8 @@ class EventStore extends BaseStore {
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select($elements)
-			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)));
-
+			->from($this->_EntityTable);
+		// apply range
 		if ($range instanceof IRangeDate) {
 			// date range filter
 			// case 1: event starts and ends within range
@@ -101,32 +100,14 @@ class EventStore extends BaseStore {
 				)
 			));
 		}
-
-		foreach ($filter as $entry) {
-			if (is_array($entry) && count($entry) == 3) {
-				switch ($entry[1]) {
-					case '=':
-						$cmd->andWhere($cmd->expr()->eq($entry[0], $cmd->createNamedParameter($entry[2])));
-						break;
-					case '!=':
-						$cmd->andWhere($cmd->expr()->neq($entry[0], $cmd->createNamedParameter($entry[2])));
-						break;
-					case '>':
-						$cmd->andWhere($cmd->expr()->gt($entry[0], $cmd->createNamedParameter($entry[2])));
-						break;
-					case '>=':
-						$cmd->andWhere($cmd->expr()->gte($entry[0], $cmd->createNamedParameter($entry[2])));
-						break;
-					case '<':
-						$cmd->andWhere($cmd->expr()->lt($entry[0], $cmd->createNamedParameter($entry[2])));
-						break;
-					case '<=':
-						$cmd->andWhere($cmd->expr()->lte($entry[0], $cmd->createNamedParameter($entry[2])));
-						break;
-				}
-			}
+		// apply filters
+		if ($filter instanceof IFilter) {
+			$this->fromFilter($cmd, $filter);
 		}
-
+		// apply sort
+		if ($sort instanceof ISort) {
+			$this->fromSort($cmd, $sort);
+		}
 		// execute command
 		$rsl = $cmd->executeQuery();
 		$entities = [];
@@ -138,7 +119,6 @@ class EventStore extends BaseStore {
 		} finally {
 			$rsl->closeCursor();
 		}
-
 	}
 
 }
