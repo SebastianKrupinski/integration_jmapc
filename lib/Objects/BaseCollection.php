@@ -45,15 +45,20 @@ class BaseCollection extends \ArrayObject {
 
 	public function append($value): void {
 		if (!$this->validate($value)) {
-			throw new \InvalidArgumentException('Type error');
+			throw new \InvalidArgumentException(
+				sprintf('Cannot append value of type %s to collection expecting %s', gettype($value), $this->type)
+			);
 		}
 		parent::append($value);
 	}
 
 	public function offsetSet($key, $value): void {
 		if (!$this->validate($value)) {
-			throw new \InvalidArgumentException('Type error');
+			throw new \InvalidArgumentException(
+				sprintf('Cannot set offset %s with value of type %s in collection expecting %s', var_export($key, true), gettype($value), $this->type)
+			);
 		}
 		parent::offsetSet($key, $value);
 	}
+
 }

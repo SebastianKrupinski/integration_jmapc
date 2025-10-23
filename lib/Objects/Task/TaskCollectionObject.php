@@ -28,13 +28,11 @@ namespace OCA\JMAPC\Objects\Task;
 
 class TaskCollectionObject {
 
-	public function __construct(
-		public string $id,
-		public ?string $name = null,
-		public ?string $signature = null,
-		public ?int $count = null,
-		public ?string $aid = null,
-	) {
-	}
+	public string $Id;
+	public ?string $Label = null;
+	public ?string $Description = null;
+	public ?int $Priority = null;
+	public ?bool $Visibility = null;
+	public ?string $Color = null;
 
 }

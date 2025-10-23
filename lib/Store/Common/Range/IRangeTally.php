@@ -37,13 +37,13 @@ interface IRangeTally extends IRange {
 	 *
 	 * @since 1.0.0
 	 */
-	public function getStart(): string|int;
+	public function getPosition(): string|int;
 
 	/**
 	 *
 	 * @since 1.0.0
 	 */
-	public function setStart(string|int $value): void;
+	public function setPosition(string|int $value): void;
 
 	/**
 	 *

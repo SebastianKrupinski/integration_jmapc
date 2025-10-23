@@ -26,19 +26,21 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Store\Common\Sort;
 
 interface ISort {
-
+	
 	/**
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return array<string>
+	 * @return array<string,bool>
 	 */
-	public function comparators(): array;
+	public function attributes(): array;
 
 	/**
 	 *
 	 * @since 1.0.0
-	 *
+	 * 
+	 * @param string $attribute attribute name
+	 * @param bool $direction true for ascending, false for descending
 	 */
 	public function condition(string $property, bool $direction): void;
 
@@ -46,7 +48,7 @@ interface ISort {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return array<string,array{property: string, direction: bool}>
+	 * @return array<string,array{attribute:string,direction:bool}>
 	 */
 	public function conditions(): array;
 

@@ -29,7 +29,6 @@ namespace OCA\JMAPC\Service;
 use Psr\Log\LoggerInterface;
 
 class HarmonizationThreadService {
-
 	/**
 	 * @var LoggerInterface
 	 */
@@ -54,7 +53,7 @@ class HarmonizationThreadService {
 	 * @return string|null thread id on success | null on failure
 	 */
 	public function launch(string $uid): int {
-		
+
 		// construct command
 		$command = 'php --define apc.enable_cli=1 ' .
 			dirname(__DIR__) . '/Tasks/HarmonizationThread.php ' .
@@ -88,7 +87,7 @@ class HarmonizationThreadService {
 	 * @return int quantity of threads terminated
 	 */
 	public function terminate(string $uid, int $tid = 0): int {
-		
+
 		$tc = [];
 		// evaluate if thread id exists
 		if ($tid > 0) {
@@ -128,7 +127,7 @@ class HarmonizationThreadService {
 	 * @return array thread of thread id's
 	 */
 	public function list(?string $uid = null): array {
-		
+
 		// caputre
 		$pattern = '/(?<ThreadUser>[a-zA-Z0-9-_+]+)\s+(?<ThreadId>\d{1,10000}+).*HarmonizationThread\.php\s+-u(?<NcUser>[a-zA-Z0-9-_+@.]+)[\s|$]+/iu';
 		// construct command
@@ -151,7 +150,7 @@ class HarmonizationThreadService {
 		} else {
 			return [];
 		}
-		
+
 	}
 
 	/**
@@ -161,7 +160,7 @@ class HarmonizationThreadService {
 	 *
 	 * @param string $uid nextcloud user id
 	 *
-	 * @return string|null thread id if exists | null if does not exist
+	 * @return int thread id if exists | null if does not exist
 	 */
 	public function getId(string $uid): int {
 
@@ -182,12 +181,12 @@ class HarmonizationThreadService {
 	 * @since Release 1.0.0
 	 *
 	 * @param string $uid nextcloud user id
-	 * @param string $tid thread id
+	 * @param int $tid thread id
 	 *
 	 * @return void
 	 */
 	public function setId(string $uid, int $tid): void {
-		
+
 		// update harmonization thread id
 		$this->ConfigurationService->setHarmonizationThreadId($uid, $tid);
 
@@ -226,7 +225,7 @@ class HarmonizationThreadService {
 	 * @return void
 	 */
 	public function setHeartBeat(string $uid, int $thb): void {
-		
+
 		// update harmonization thread id
 		$this->ConfigurationService->setHarmonizationThreadHeartBeat($uid, $thb);
 
@@ -238,6 +237,7 @@ class HarmonizationThreadService {
 	 * @since Release 1.0.0
 	 *
 	 * @param string $uid nextcloud user id
+	 * @param int $tid thread id
 	 *
 	 * @return bool true - if active thread found | false - if no active thread found
 	 */
@@ -250,7 +250,7 @@ class HarmonizationThreadService {
 			$rs = shell_exec($command);
 		}
 		// evaluate if we have the correct thread
-		if (!empty($rs) && str_contains($rs, $tid) && str_contains($rs, $uid)) {
+		if (!empty($rs) && str_contains($rs, (string)$tid) && str_contains($rs, $uid)) {
 			return true;
 		} else {
 			return false;

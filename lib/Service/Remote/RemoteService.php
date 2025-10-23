@@ -29,33 +29,24 @@ namespace OCA\JMAPC\Service\Remote;
 use JmapClient\Authentication\Basic;
 use JmapClient\Authentication\Bearer;
 use JmapClient\Authentication\JsonBasic;
+use JmapClient\Authentication\JsonBasicCookie;
 use JmapClient\Client as JmapClient;
-use OCA\JMAPC\Providers\IServiceIdentity;
-use OCA\JMAPC\Providers\IServiceLocation;
 use OCA\JMAPC\Service\Remote\FM\RemoteContactsServiceFM;
+use OCA\JMAPC\Service\Remote\FM\RemoteCoreServiceFM;
 use OCA\JMAPC\Service\Remote\FM\RemoteEventsServiceFM;
 use OCA\JMAPC\Store\Local\ServiceEntity;
 
 class RemoteService {
-
-	//static string $clientTransportAgent = 'NextcloudJMAP/1.0 (1.0; x64)';
-	public static string $clientTransportAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0';
-
-	public function __construct() {
-
-	}
+	static string $clientTransportAgent = 'NextcloudJMAP/1.0 (1.0; x64)';
+	//public static string $clientTransportAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0';
 
 	/**
 	 * Initialize remote data store client
 	 *
 	 * @since Release 1.0.0
-	 *
-	 * @param ServiceEntity $service
-	 *
-	 * @return JmapClient
 	 */
-	public static function initializeStoreFromEntity(ServiceEntity $service): JmapClient {
-		
+	public static function freshClient(ServiceEntity $service): JmapClient {
+
 		// defaults
 		$client = new JmapClient();
 		$client->setTransportAgent(self::$clientTransportAgent);
@@ -68,19 +59,37 @@ class RemoteService {
 		$client->configureTransportVerification((bool)$service->getLocationSecurity());
 		// authentication
 		if ($service->getAuth() == 'OA') {
-			$client->setAuthentication(new Bearer($service->getOauthId(), $service->getOauthAccessToken(), 0));
+			$client->setAuthentication(new Bearer(
+				$service->getOauthId(),
+				$service->getOauthAccessToken(),
+				(int)$service->getOauthExpiry(),
+				$service->getOauthAccessLocation(),
+			));
 		}
 		if ($service->getAuth() == 'BA') {
-			$client->setAuthentication(new Basic($service->getBauthId(), $service->getBauthSecret()));
+			$client->setAuthentication(new Basic(
+				$service->getBauthId(),
+				$service->getBauthSecret(),
+				$service->getBauthLocation(),
+			));
 		}
 		if ($service->getAuth() == 'JB') {
 			$client->setAuthentication(new JsonBasic(
 				$service->getBauthId(),
 				$service->getBauthSecret(),
-				$service->getLocationProtocol() . $service->getLocationHost() . ':' . $service->getLocationPort() . '/auth/sessions',
-				true
+				$service->getBauthLocation(),
 			));
-			$client->configureTransportCookieJar(sys_get_temp_dir() . '/' . $service->getLocationHost() . '-' . $service->getAddressPrimary() . '.jmapc');
+		}
+		if ($service->getAuth() == 'JBC') {
+			$client->setAuthentication(new JsonBasicCookie(
+				$service->getBauthId(),
+				$service->getBauthSecret(),
+				$service->getBauthLocation(),
+				$service->getCauthLocation(),
+				md5((string)$service->getId()),
+				self::cookieStoreRetrieve(...),
+				self::cookieStoreDeposit(...),
+			));
 		}
 		// debugging
 		if ($service->getDebug()) {
@@ -95,107 +104,138 @@ class RemoteService {
 	}
 
 	/**
-	 * Initialize remote data store client
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param string $uid
-	 *
-	 * @return Client
-	 */
-	public static function initializeStoreFromService(IServiceLocation $location, IServiceIdentity $identity): JmapClient {
-
-		$client = new JmapClient();
-		$client->configureTransportMode($location->getScheme());
-		$client->setHost($location->getHost() . ':' . $location->getPort());
-
-		if ($identity->type() == 'OA') {
-			$client->setAuthentication(new Bearer($identity->getAccessId(), $identity->getAccessToken(), $identity->getAccessExpiry()));
-		}
-
-		if ($identity->type() == 'BA') {
-			$client->setAuthentication(new Basic($identity->getIdentity(), $identity->getSecret()));
-		}
-
-		return $client;
-	}
-
-	/**
 	 * Destroys remote data store client (Jmap Client)
 	 *
 	 * @since Release 1.0.0
-	 *
-	 * @param JmapClient $Client
-	 *
-	 * @return void
 	 */
-	public static function storeDestroy(JmapClient $Client): void {
-		
+	public static function destroyClient(JmapClient $Client): void {
+
 		// destroy remote data store client
 		$Client = null;
 
 	}
 
 	/**
-	 * Appropriate Contacts Service for Connection
+	 * Appropriate Mail Service for Connection
 	 *
 	 * @since Release 1.0.0
-	 *
-	 * @param JmapClient $Client
-	 *
-	 * @return void
 	 */
-	public static function contactsService(JmapClient $Client): RemoteContactsService {
-
-		// evaluate if client is connected
+	public static function coreService(JmapClient $Client, ?string $dataAccount = null): RemoteCoreService {
+		// determine if client is connected
 		if (!$Client->sessionStatus()) {
 			$Client->connect();
 		}
-		// determine capabilities
-		if ($Client->sessionCapable('https://www.fastmail.com/dev/contacts', false)) {
-			return new RemoteContactsServiceFM();
+		// construct service based on capabilities
+		if ($Client->sessionCapable('https://www.fastmail.com/dev/user', false)) {
+			$service = new RemoteCoreServiceFM();
+		} else {
+			$service = new RemoteCoreService();
 		}
+		$service->initialize($Client, $dataAccount);
+		return $service;
+	}
 
-		return new RemoteContactsService();
+	/**
+	 * Appropriate Mail Service for Connection
+	 *
+	 * @since Release 1.0.0
+	 */
+	public static function mailService(JmapClient $Client, ?string $dataAccount = null): RemoteMailService {
+		// determine if client is connected
+		if (!$Client->sessionStatus()) {
+			$Client->connect();
+		}
+		$service = new RemoteMailService();
+		$service->initialize($Client, $dataAccount);
+		return $service;
+	}
 
+	/**
+	 * Appropriate Contacts Service for Connection
+	 *
+	 * @since Release 1.0.0
+	 */
+	public static function contactsService(JmapClient $Client, ?string $dataAccount = null): RemoteContactsService {
+		// determine if client is connected
+		if (!$Client->sessionStatus()) {
+			$Client->connect();
+		}
+		// construct service based on capabilities
+		if ($Client->sessionCapable('https://www.fastmail.com/dev/contacts', false)) {
+			$service = new RemoteContactsServiceFM();
+		} else {
+			$service = new RemoteContactsService();
+		}
+		$service->initialize($Client, $dataAccount);
+		return $service;
 	}
 
 	/**
 	 * Appropriate Events Service for Connection
 	 *
 	 * @since Release 1.0.0
-	 *
-	 * @param JmapClient $Client
-	 *
-	 * @return void
 	 */
-	public static function eventsService(JmapClient $Client): RemoteEventsService {
-
-		// evaluate if client is connected
+	public static function eventsService(JmapClient $Client, ?string $dataAccount = null): RemoteEventsService {
+		// determine if client is connected
 		if (!$Client->sessionStatus()) {
 			$Client->connect();
 		}
-		// determine capabilities
+		// construct service based on capabilities
 		if ($Client->sessionCapable('https://www.fastmail.com/dev/calendars', false)) {
-			return new RemoteEventsServiceFM();
+			$service = new RemoteEventsServiceFM();
+		} else {
+			$service = new RemoteEventsService();
 		}
-
-		return new RemoteEventsService();
-
+		$service->initialize($Client, $dataAccount);
+		return $service;
 	}
 
 	/**
 	 * Appropriate Tasks Service for Connection
 	 *
 	 * @since Release 1.0.0
-	 *
-	 * @param JmapClient $Client
-	 *
-	 * @return void
 	 */
-	public static function tasksService(JmapClient $Client): RemoteTasksService {
+	public static function tasksService(JmapClient $Client, ?string $dataAccount = null): RemoteTasksService {
+		// determine if client is connected
+		if (!$Client->sessionStatus()) {
+			$Client->connect();
+		}
+		$service = new RemoteTasksService();
+		$service->initialize($Client, $dataAccount);
+		return $service;
+	}
 
-		return new RemoteTasksService();
+	public static function cookieStoreRetrieve(mixed $id): ?array {
+
+		$file = sys_get_temp_dir() . DIRECTORY_SEPARATOR . (string)$id . '.jmapc';
+
+		if (!file_exists($file)) {
+			return null;
+		}
+
+		$data = file_get_contents($file);
+		$crypto = \OC::$server->get(\OCP\Security\ICrypto::class);
+		$data = $crypto->decrypt($data);
+
+		if (!empty($data)) {
+			return json_decode($data, true);
+		}
+
+		return null;
+
+	}
+
+	public static function cookieStoreDeposit(mixed $id, array $value): void {
+
+		if (empty($value)) {
+			return;
+		}
+
+		$crypto = \OC::$server->get(\OCP\Security\ICrypto::class);
+		$data = $crypto->encrypt(json_encode($value));
+
+		$file = sys_get_temp_dir() . DIRECTORY_SEPARATOR . (string)$id . '.jmapc';
+		file_put_contents($file, $data);
 
 	}
 

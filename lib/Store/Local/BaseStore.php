@@ -27,8 +27,22 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Store\Local;
 
 use OC\DB\QueryBuilder\Literal;
+use OCA\JMAPC\Store\Common\Filters\FilterBase;
+use OCA\JMAPC\Store\Common\Filters\FilterComparisonOperator;
+use OCA\JMAPC\Store\Common\Filters\FilterConjunctionOperator;
+use OCA\JMAPC\Store\Common\Filters\IFilter;
 use OCA\JMAPC\Store\Common\Range\IRange;
+use OCA\JMAPC\Store\Common\Range\RangeAnchorType;
+use OCA\JMAPC\Store\Common\Range\RangeDate;
+use OCA\JMAPC\Store\Common\Range\RangeTallyAbsolute;
+use OCA\JMAPC\Store\Common\Range\RangeTallyRelative;
+use OCA\JMAPC\Store\Common\Range\RangeType;
+use OCA\JMAPC\Store\Common\Sort\ISort;
+use OCA\JMAPC\Store\Common\Sort\SortBase;
+use OCA\JMAPC\Store\Local\Filters\CollectionFilter;
+use OCA\JMAPC\Store\Local\Sort\CollectionSort;
 use OCP\AppFramework\Db\Entity;
+use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 class BaseStore {
@@ -52,20 +66,60 @@ class BaseStore {
 		return \call_user_func($this->_EntityClass . '::fromRow', $row);
 	}
 
+	protected function fromFilter(IQueryBuilder $cmd, IFilter $filter): void {
+		foreach ($filter->conditions() as $entry) {
+			$comparison = match ($entry['comparator']) {
+				FilterComparisonOperator::EQ => $cmd->expr()->eq($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::GT => $cmd->expr()->gt($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::LT => $cmd->expr()->lt($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::GTE => $cmd->expr()->gte($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::LTE => $cmd->expr()->lte($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::NEQ => $cmd->expr()->neq($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::IN => $cmd->expr()->in($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::NIN => $cmd->expr()->notIn($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::LIKE => $cmd->expr()->like($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::NLIKE => $cmd->expr()->notLike($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+			};
+			if ($entry['conjunction'] === FilterConjunctionOperator::AND) {
+				$cmd->andWhere($comparison);
+			} elseif ($entry['conjunction'] === FilterConjunctionOperator::OR) {
+				$cmd->orWhere($comparison);
+			} else {
+				$cmd->where($comparison);
+			}
+		}
+	}
+
+	protected function fromSort(IQueryBuilder $cmd, ISort $sort): void {
+		foreach ($sort->conditions() as $entry) {
+			$cmd->addOrderBy($entry['attribute'], $entry['direction'] ? 'ASC' : 'DESC');
+		}
+	}
+
 	/**
 	 * retrieve collections from data store
 	 *
 	 * @since Release 1.0.0
+	 * 
+	 * @param IFilter $filter filter options
+	 * @param ISort $sort sort options
 	 *
 	 * @return array<int, CollectionEntity>
 	 */
-	public function collectionList(): array {
-		
+	public function collectionList(?IFilter $filter = null, ?ISort $sort = null): array {
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select('*')
 			->from($this->_CollectionTable)
 			->where($cmd->expr()->eq('type', $cmd->createNamedParameter($this->_CollectionIdentifier)));
+		// apply filters
+		if ($filter instanceof IFilter) {
+			$this->fromFilter($cmd, $filter);
+		}
+		// apply sort
+		if ($sort instanceof ISort) {
+			$this->fromSort($cmd, $sort);
+		}
 		// execute command
 		$rsl = $cmd->executeQuery();
 		$entities = [];
@@ -77,6 +131,28 @@ class BaseStore {
 		} finally {
 			$rsl->closeCursor();
 		}
+	}
+
+	/**
+	 * retrieve instance of collection filter
+	 * 
+	 * @since 1.0.0
+	 * 
+	 * @return CollectionFilter
+	 */
+	public function collectionListFilter(): IFilter {
+		return new CollectionFilter();
+	}
+
+	/**
+	 * retrieve instance of collection sort
+	 * 
+	 * @since 1.0.0
+	 * 
+	 * @return CollectionSort
+	 */
+	public function collectionListSort(): ISort {
+		return new CollectionSort();
 	}
 
 	/**
@@ -89,25 +165,11 @@ class BaseStore {
 	 * @return array<int, CollectionEntity>
 	 */
 	public function collectionListByUser(string $uid): array {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_CollectionTable)
-			->where($cmd->expr()->eq('type', $cmd->createNamedParameter($this->_CollectionIdentifier)))
-			->andWhere($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)));
-		// execute command
-		$rsl = $cmd->executeQuery();
-		$entities = [];
-		try {
-			while ($data = $rsl->fetch()) {
-				$entities[] = $this->toCollection($data);
-			}
-			return $entities;
-		} finally {
-			$rsl->closeCursor();
-		}
-
+		// construct filter
+		$filter = $this->collectionListFilter();
+		$filter->condition('uid', $uid, FilterComparisonOperator::EQ, FilterConjunctionOperator::AND);
+		// fetch collections
+		return $this->collectionList($filter);
 	}
 
 	/**
@@ -120,83 +182,11 @@ class BaseStore {
 	 * @return array<int, CollectionEntity>
 	 */
 	public function collectionListByService(int $sid): array {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_CollectionTable)
-			->where($cmd->expr()->eq('type', $cmd->createNamedParameter($this->_CollectionIdentifier)))
-			->andWhere($cmd->expr()->eq('sid', $cmd->createNamedParameter($sid)));
-		// execute command
-		$rsl = $cmd->executeQuery();
-		$entities = [];
-		try {
-			while ($data = $rsl->fetch()) {
-				$entities[] = $this->toCollection($data);
-			}
-			return $entities;
-		} finally {
-			$rsl->closeCursor();
-		}
-
-	}
-
-	/*
-	 * confirm collection exists in data store
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param int $id			collection id
-	 *
-	 * @return int|bool			collection id on success / false on failure
-	 */
-	public function collectionConfirm(int $cid): int|bool {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('id')
-			->from($this->_CollectionTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($cid)));
-		// execute command
-		$data = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// evaluate if anything was found
-		if (is_array($data) && count($data) > 0) {
-			return (int)$data['id'];
-		} else {
-			return false;
-		}
-
-	}
-
-	/**
-	 * confirm collection exists in data store
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param string $uid user id
-	 * @param string $uuid collection uuid
-	 *
-	 * @return int|bool collection id on success / false on failure
-	 */
-	public function collectionConfirmByUUID(string $uid, string $uuid): int|bool {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('id')
-			->from($this->_CollectionTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('uuid', $cmd->createNamedParameter($uuid)));
-		// execute command
-		$data = $cmd->executeQuery()->fetch();
-		$cmd->executeQuery()->closeCursor();
-		// evaluate if anything was found
-		if (is_array($data) && count($data) > 0) {
-			return (int)$data['id'];
-		} else {
-			return false;
-		}
-
+		// construct filter
+		$filter = $this->collectionListFilter();
+		$filter->condition('sid', $sid, FilterComparisonOperator::EQ, FilterConjunctionOperator::AND);
+		// fetch collections
+		return $this->collectionList($filter);
 	}
 
 	/**
@@ -208,49 +198,17 @@ class BaseStore {
 	 *
 	 * @return CollectionEntity
 	 */
-	public function collectionFetch(int $id): CollectionEntity {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_CollectionTable)
-			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
-		// execute command
-		$rsl = $cmd->executeQuery();
-		try {
-			return $this->toCollection($rsl->fetch());
-		} finally {
-			$rsl->closeCursor();
+	public function collectionFetch(int $id): ?CollectionEntity {
+		// construct filter
+		$filter = $this->collectionListFilter();
+		$filter->condition('id', $id, FilterComparisonOperator::EQ, FilterConjunctionOperator::AND);
+		// fetch collections
+		$collection = $this->collectionList($filter);
+		if (count($collection) > 0) {
+			return $collection[0];
+		} else {
+			return null;
 		}
-
-	}
-
-	/**
-	 * retrieve collection from data store
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param string $uid user id
-	 * @param string $uuid collection uuid
-	 *
-	 * @return CollectionEntity
-	 */
-	public function collectionFetchByUUID(string $uid, string $uuid): CollectionEntity {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_CollectionTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('uuid', $cmd->createNamedParameter($uuid)));
-		// execute command
-		$rsl = $cmd->executeQuery();
-		try {
-			return $this->toCollection($rsl->fetch());
-		} finally {
-			$rsl->closeCursor();
-		}
-
 	}
 
 	/**
@@ -261,9 +219,7 @@ class BaseStore {
 	 * @return CollectionEntity
 	 */
 	public function collectionFresh(): CollectionEntity {
-
 		return new $this->_CollectionClass;
-		
 	}
 
 	/**
@@ -276,7 +232,6 @@ class BaseStore {
 	 * @return CollectionEntity
 	 */
 	public function collectionCreate(CollectionEntity $entity): CollectionEntity {
-
 		// force type
 		$entity->setType($this->_CollectionIdentifier);
 		// construct data store command
@@ -299,7 +254,6 @@ class BaseStore {
 		$entity->resetUpdatedFields();
 
 		return $entity;
-		
 	}
 	
 	/**
@@ -312,7 +266,6 @@ class BaseStore {
 	 * @return CollectionEntity
 	 */
 	public function collectionModify(CollectionEntity $entity): CollectionEntity {
-
 		// force type
 		$entity->setType($this->_CollectionIdentifier);
 		// construct command
@@ -338,7 +291,6 @@ class BaseStore {
 		$entity->resetUpdatedFields();
 
 		return $entity;
-
 	}
 
 	/**
@@ -351,7 +303,6 @@ class BaseStore {
 	 * @return CollectionEntity
 	 */
 	public function collectionDelete(CollectionEntity $entity): CollectionEntity {
-
 		// remove entities
 		$this->entityDeleteByCollection($entity->getId());
 		// remove chronicle
@@ -365,7 +316,6 @@ class BaseStore {
 		$cmd->executeStatement();
 		
 		return $entity;
-		
 	}
 
 	/**
@@ -378,7 +328,6 @@ class BaseStore {
 	 * @return mixed
 	 */
 	public function collectionDeleteById(int $id): mixed {
-
 		// remove entities
 		$this->entityDeleteByCollection($id);
 		// remove chronicle
@@ -390,7 +339,6 @@ class BaseStore {
 			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
 		// execute command and return result
 		return $cmd->executeStatement();
-
 	}
 
 	/**
@@ -403,7 +351,6 @@ class BaseStore {
 	 * @return mixed
 	 */
 	public function collectionDeleteByUser(string $id): mixed {
-
 		// remove entities
 		$this->entityDeleteByUser($id);
 		// remove chronicle
@@ -416,7 +363,6 @@ class BaseStore {
 			->andWhere($cmd->expr()->eq('type', $cmd->createNamedParameter($this->_CollectionIdentifier)));
 		// execute command and return result
 		return $cmd->executeStatement();
-
 	}
 
 	/**
@@ -429,7 +375,6 @@ class BaseStore {
 	 * @return mixed
 	 */
 	public function collectionDeleteByService(int $id): mixed {
-
 		// remove entities
 		$this->entityDeleteByService($id);
 		// remove chronicle
@@ -442,6 +387,91 @@ class BaseStore {
 			->andWhere($cmd->expr()->eq('type', $cmd->createNamedParameter($this->_CollectionIdentifier)));
 		// execute command and return result
 		return $cmd->executeStatement();
+	}
+
+	/**
+	 * retrieve entities from data store
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param array $elements data fields
+	 * @param IFilter $filter filter options
+	 * @param IRange $range range options
+	 * @param ISort $sort sort options
+	 *
+	 * @return array of entities
+	 */
+	public function entityList(?IFilter $filter = null, ?ISort $sort = null, ?IRange $range = null, ?array $elements = null): array {
+		// evaluate if specific elements where requested
+		if (!is_array($elements)) {
+			$elements = ['*'];
+		}
+		// construct data store command
+		$cmd = $this->_Store->getQueryBuilder();
+		$cmd->select($elements)
+			->from($this->_EntityTable);
+		// apply filters
+		if ($filter instanceof IFilter) {
+			$this->fromFilter($cmd, $filter);
+		}
+		// apply sort
+		if ($sort instanceof ISort) {
+			$this->fromSort($cmd, $sort);
+		}
+		// execute command
+		$rsl = $cmd->executeQuery();
+		$entities = [];
+		try {
+			while ($data = $rsl->fetch()) {
+				$entities[] = $this->toEntity($data);
+			}
+			return $entities;
+		} finally {
+			$rsl->closeCursor();
+		}
+	}
+
+	/**
+	 * retrieve instance of entity filter
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @return IFilter
+	 */
+	public function entityListFilter(): IFilter {
+		return new FilterBase();
+	}
+
+	/**
+	 * retrieve instance of entity sort
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @return ISort
+	 */
+	public function entityListSort(): ISort {
+		return new SortBase();
+	}
+
+	/**
+	 * retrieve instance of entity range
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param RangeType $type range type
+	 * @param RangeAnchorType $anchor range anchor type
+	 *
+	 * @return IRange
+	 */
+	public function entityListRange(?RangeType $type = null, ?RangeAnchorType $anchor = null): IRange {
+		if ($type === RangeType::DATE) {
+			return new RangeDate();
+		}
+		if ($anchor === RangeAnchorType::RELATIVE) {
+			return new RangeTallyRelative();
+		} else {
+			return new RangeTallyAbsolute();
+		}
 
 	}
 
@@ -454,25 +484,12 @@ class BaseStore {
 	 *
 	 * @return array of entities
 	 */
-	public function entityList(string $uid): array {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)));
-		// execute command
-		$rsl = $cmd->executeQuery();
-		$entities = [];
-		try {
-			while ($data = $rsl->fetch()) {
-				$entities[] = $this->toEntity($data);
-			}
-			return $entities;
-		} finally {
-			$rsl->closeCursor();
-		}
-
+	public function entityListByUser(string $uid): array {
+		// construct filter
+		$filter = $this->entityListFilter();
+		$filter->condition('uid', $uid, FilterComparisonOperator::EQ, FilterConjunctionOperator::NONE);
+		// fetch entities
+		return $this->entityList($filter);
 	}
 
 	/**
@@ -485,24 +502,11 @@ class BaseStore {
 	 * @return array of entities
 	 */
 	public function entityListByCollection(int $cid): array {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)));
-		// execute command
-		$rsl = $cmd->executeQuery();
-		$entities = [];
-		try {
-			while ($data = $rsl->fetch()) {
-				$entities[] = $this->toEntity($data);
-			}
-			return $entities;
-		} finally {
-			$rsl->closeCursor();
-		}
-
+		// construct filter
+		$filter = $this->entityListFilter();
+		$filter->condition('cid', $cid, FilterComparisonOperator::EQ, FilterConjunctionOperator::NONE);
+		// fetch entities
+		return $this->entityList($filter);
 	}
 
 	/**
@@ -559,67 +563,6 @@ class BaseStore {
 			return (int)$data['id'];
 		} else {
 			return false;
-		}
-
-	}
-
-	/**
-	 * retrieve entities for specific user, collection and search parameters from data store
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param int $cid collection id
-	 * @param array $filter filter options
-	 * @param array $elements data fields
-	 *
-	 * @return array of entities
-	 */
-	public function entityFind(string $cid, array $elements = [], ?array $filter = null, ?IRange $range = null, $sort): array {
-		
-		// evaluate if specific elements where requested
-		if (!is_array($elements)) {
-			$elements = ['*'];
-		}
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select($elements)
-			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)));
-		
-		foreach ($filter as $entry) {
-			if (is_array($entry) && count($entry) == 3) {
-				switch ($entry[1]) {
-					case '=':
-						$cmd->andWhere($cmd->expr()->eq($entry[0], $cmd->createNamedParameter($entry[2])));
-						break;
-					case '!=':
-						$cmd->andWhere($cmd->expr()->neq($entry[0], $cmd->createNamedParameter($entry[2])));
-						break;
-					case '>':
-						$cmd->andWhere($cmd->expr()->gt($entry[0], $cmd->createNamedParameter($entry[2])));
-						break;
-					case '>=':
-						$cmd->andWhere($cmd->expr()->gte($entry[0], $cmd->createNamedParameter($entry[2])));
-						break;
-					case '<':
-						$cmd->andWhere($cmd->expr()->lt($entry[0], $cmd->createNamedParameter($entry[2])));
-						break;
-					case '<=':
-						$cmd->andWhere($cmd->expr()->lte($entry[0], $cmd->createNamedParameter($entry[2])));
-						break;
-				}
-			}
-		}
-		// execute command
-		$rsl = $cmd->executeQuery();
-		$entities = [];
-		try {
-			while ($data = $rsl->fetch()) {
-				$entities[] = $this->toEntity($data);
-			}
-			return $entities;
-		} finally {
-			$rsl->closeCursor();
 		}
 
 	}

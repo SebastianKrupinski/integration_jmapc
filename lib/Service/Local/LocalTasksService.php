@@ -26,30 +26,31 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Service\Local;
 
-use DateInterval;
-use Datetime;
 use DateTimeZone;
 use OC\Files\Node\LazyUserFolder;
-
-use OCA\JMAPC\Objects\TaskAttachmentObject;
-use OCA\JMAPC\Objects\TaskCollectionObject;
-use OCA\JMAPC\Objects\TaskObject;
+use OCA\DAV\CalDAV\EventReader;
+use OCA\JMAPC\Objects\OriginTypes;
+use OCA\JMAPC\Objects\Task\TaskCollectionObject;
+use OCA\JMAPC\Objects\Task\TaskObject;
+use OCA\JMAPC\Store\Local\CollectionEntity;
+use OCA\JMAPC\Store\Local\TaskEntity;
 use OCA\JMAPC\Store\Local\TaskStore;
-
 use Sabre\VObject\Component\VTodo;
 use Sabre\VObject\Reader;
 
 class LocalTasksService {
-	
-	private TaskStore $_Store;
-	public ?DateTimeZone $SystemTimeZone = null;
-	public ?DateTimeZone $UserTimeZone = null;
-	public string $UserAttachmentPath = '';
-	public ?LazyUserFolder $FileStore = null;
+	protected string $DateFormatUTC = 'Ymd\THis\Z';
+	protected string $DateFormatDateTime = 'Ymd\THis';
+	protected string $DateFormatDateOnly = 'Ymd';
+	protected TaskStore $_Store;
+	protected ?DateTimeZone $SystemTimeZone = null;
+	protected ?DateTimeZone $UserTimeZone = null;
+	protected string $UserAttachmentPath = '';
+	protected ?LazyUserFolder $FileStore = null;
 
 	public function __construct() {
 	}
-	
+
 	public function initialize(TaskStore $Store) {
 
 		$this->_Store = $Store;
@@ -57,23 +58,26 @@ class LocalTasksService {
 	}
 
 	/**
-	 * retrieve collection object from local storage
+	 * retrieve collection from local storage
 	 *
-	 * @param string $id Collection ID
+	 * @param int $cid Collection ID
 	 *
-	 * @return TaskCollectionObject TaskCollectionObject on success / null on fail
+	 * @return TaskCollectionObject|null
 	 */
-	public function collectionFetch(string $id): ?TaskCollectionObject {
+	public function collectionFetch(int $cid): ?TaskCollectionObject {
 
-		// retrieve object properties
-		$lo = $this->_Store->collectionFetch($id);
-		// evaluate if object properties where retrieved
-		if (is_array($lo) && count($lo) > 0) {
+		// retrieve collection properties
+		$co = $this->_Store->collectionFetch($cid);
+		// evaluate if properties where retrieve
+		if ($co instanceof CollectionEntity) {
 			// construct object and return
 			return new TaskCollectionObject(
-				$lo['id'],
-				$lo['label'],
-				$lo['token']
+				(string)$co->getId(),
+				$co->getLabel(),
+				null,
+				null,
+				$co->getVisible(),
+				$co->getColor()
 			);
 		} else {
 			// return nothing
@@ -81,86 +85,92 @@ class LocalTasksService {
 		}
 
 	}
-	
+
+	/**
+	 * delete collection from local storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param int $cid collection id
+	 *
+	 * @return void
+	 */
+	public function collectionDeleteById(int $cid): void {
+
+		// delete entities from data store
+		$this->_Store->entityDeleteByCollection($cid);
+		$this->_Store->collectionDeleteById($cid);
+
+	}
+
+	/**
+	 * retrieve list of entities from local storage
+	 *
+	 * @param int $cid collection id
+	 *
+	 * @return array collection of entities
+	 */
+	public function entityList(int $cid, string $particulars): array {
+
+		return $this->_Store->entityListByCollection($cid);
+
+	}
+
 	/**
 	 * retrieve the differences for specific collection from a specific point from local storage
 	 *
-	 * @param string $uid User ID
-	 * @param string $cid Collection ID
-	 * @param string $stamp
+	 * @param string $uid user id
+	 * @param int $cid collection id
+	 * @param string $signature collection signature
 	 *
-	 * @return array Collection of differences
+	 * @return array collection of differences
 	 */
-	public function reconcileCollection(string $uid, string $cid, string $stamp): array {
+	public function entityDelta(int $cid, string $signature): array {
 
 		// retrieve collection differences
-		$lcc = $this->_Store->reminisce($uid, $cid, $stamp);
+		$lcc = $this->_Store->chronicleReminisce($cid, $signature);
 		// return collection differences
 		return $lcc;
-		
+
 	}
 
 	/**
 	 * retrieve entity object from local storage
 	 *
-	 * @param string $id Entity ID
+	 * @param int $id entity id
 	 *
-	 * @return TaskObject TaskObject on success / null on fail
+	 * @return TaskObject|null
 	 */
-	public function entityFetch(string $id): ?TaskObject {
+	public function entityFetch(int $id): ?TaskObject {
 
-		// retrieve object properties
-		$lo = $this->_Store->entityFetch($id);
-		// evaluate if object properties where retrieved
-		if (is_array($lo) && count($lo) > 0) {
-			// read object data
-			$eo = Reader::read($lo['data']);
-			// convert to contact object
-			$eo = $this->toTaskObject($eo->VTODO);
-			$eo->ID = $lo['id'];
-			$eo->UUID = $lo['uuid'];
-			$eo->CID = $lo['cid'];
-			$eo->Signature = trim($lo['signature'], '"');
-			$eo->RCID = $lo['rcid'];
-			$eo->REID = $lo['reid'];
-			// return contact object
-			return $eo;
+		// retrieve entity object
+		$eo = $this->_Store->entityFetch($id);
+		// evaluate if entity was retrieved
+		if ($eo instanceof TaskEntity) {
+			return $this->fromTaskEntity($eo);
 		} else {
-			// return null
 			return null;
 		}
 
 	}
 
 	/**
-	 * retrieve entity object by remote id from local storage
+	 * retrieve entity by correlation id from local storage
 	 *
-	 * @param string $uid User Id
-	 * @param string $rcid Remote Collection ID
-	 * @param string $reid Remote Entity ID
+	 * @param int $cid collection id
+	 * @param string $ccid correlation collection id
+	 * @param string $ceid correlation entity id
 	 *
-	 * @return TaskObject TaskObject on success / null on fail
+	 * @return TaskObject|null
 	 */
-	public function entityFetchByRID(string $uid, string $rcid, string $reid): ?TaskObject {
+	public function entityFetchByCorrelation(int $cid, string $ccid, string $ceid): ?TaskObject {
 
-		// retrieve object properties
-		$lo = $this->_Store->entityFetchByRID($uid, $rcid, $reid);
-		// evaluate if object properties where retrieved
-		if (is_array($lo) && count($lo) > 0) {
-			// read object data
-			$eo = Reader::read($lo['data']);
-			// convert to contact object
-			$eo = $this->toTaskObject($eo->VTODO);
-			$eo->ID = $lo['id'];
-			$eo->UUID = $lo['uuid'];
-			$eo->CID = $lo['cid'];
-			$eo->Signature = trim($lo['signature'], '"');
-			$eo->RCID = $lo['rcid'];
-			$eo->REID = $lo['reid'];
-			// return contact object
-			return $eo;
+		// retrieve entity object
+		$eo = $this->_Store->entityFetchByCorrelation($cid, $ccid, $ceid);
+		// evaluate if entity was retrieved
+		if ($eo instanceof TaskEntity) {
+			return $this->fromTaskEntity($eo);
 		} else {
-			// return null
 			return null;
 		}
 
@@ -169,99 +179,80 @@ class LocalTasksService {
 	/**
 	 * create entity in local storage
 	 *
-	 * @param string $uid User Id
-	 * @param string $cid Collection ID
-	 * @param TaskObject $so Source Object
+	 * @param string $uid user id
+	 * @param int $sid service id
+	 * @param int $cid collection id
+	 * @param TaskObject $so source object
 	 *
 	 * @return object Status Object - item id, item uuid, item state token / Null - failed to create
 	 */
-	public function entityCreate(string $uid, string $cid, TaskObject $so): ?object {
+	public function entityCreate(string $uid, int $sid, int $cid, TaskObject $so): ?object {
 
-		// initialize data place holder
-		$lo = [];
-		// convert contact object to vcard object
-		$lo['data'] = "BEGIN:VCALENDAR\nVERSION:2.0\n" . $this->fromTaskObject($so)->serialize() . "\nEND:VCALENDAR";
-		$lo['uuid'] = (!empty($so->UUID)) ? $so->UUID : \OCA\JMAPC\Utile\UUID::v4();
-		$lo['uid'] = $uid;
-		$lo['cid'] = $cid;
-		$lo['rcid'] = $so->RCID;
-		$lo['reid'] = $so->REID;
-		$lo['size'] = strlen($lo['data']);
-		$lo['signature'] = md5($lo['data']);
-		$lo['label'] = $so->Label;
-		$lo['notes'] = $so->Notes;
-		$lo['startson'] = $so->StartsOn->setTimezone(new DateTimeZone('UTC'))->format('U');
-		$lo['dueon'] = $so->DueOn->setTimezone(new DateTimeZone('UTC'))->format('U');
+		// convert Task object to data store entity
+		$eo = $this->toTaskEntity(
+			$so,
+			[
+				'Uid' => $uid,
+				'Sid' => $sid,
+				'Cid' => $cid,
+			]
+		);
 		// create entry in data store
-		$id = $this->_Store->entityCreate($lo);
-		// return status object or null
-		if ($id) {
-			return (object)['ID' => $id, 'UUID' => $lo['uuid'], 'signature' => $lo['signature']];
+		$eo = $this->_Store->entityCreate($eo);
+		// return result
+		if ($eo) {
+			return (object)['ID' => $eo->getId(), 'Signature' => $eo->getSignature()];
 		} else {
 			return null;
 		}
 
 	}
-	
+
 	/**
-	 * update entity in local storage
+	 * modify entity in local storage
 	 *
-	 * @param string $uid User ID
-	 * @param string $cid Collection ID
-	 * @param string $eid Entity ID
-	 * @param TaskObject $so Source Object
+	 * @param string $uid user id
+	 * @param int $sid service id
+	 * @param int $cid collection id
+	 * @param int $eid entity id
+	 * @param TaskObject $so source object
 	 *
 	 * @return object Status Object - item id, item uuid, item state token / Null - failed to create
 	 */
-	public function entityModify(string $uid, string $cid, string $eid, TaskObject $so): ?object {
+	public function entityModify(string $uid, int $sid, int $cid, int $eid, TaskObject $so): ?object {
 
-		// evaluate if collection or entity id is missing - must contain id to update
-		if (empty($uid) || empty($cid) || empty($eid)) {
-			return null;
-		}
-		// initialize data place holder
-		$lo = [];
-		// convert contact object to vcard object
-		$lo['data'] = "BEGIN:VCALENDAR\nVERSION:2.0\n" . $this->fromTaskObject($so)->serialize() . "\nEND:VCALENDAR";
-		$lo['uuid'] = (!empty($so->UUID)) ? $so->UUID : \OCA\JMAPC\Utile\UUID::v4();
-		$lo['uid'] = $uid;
-		$lo['cid'] = $cid;
-		$lo['rcid'] = $so->RCID;
-		$lo['reid'] = $so->REID;
-		$lo['size'] = strlen($lo['data']);
-		$lo['signature'] = md5($lo['data']);
-		$lo['label'] = $so->Label;
-		$lo['notes'] = $so->Notes;
-		$lo['startson'] = $so->StartsOn->setTimezone(new DateTimeZone('UTC'))->format('U');
-		$lo['dueon'] = $so->DueOn->setTimezone(new DateTimeZone('UTC'))->format('U');
+		// convert Task object to data store entity
+		$eo = $this->toTaskEntity(
+			$so,
+			[
+				'Id' => $eid,
+				'Uid' => $uid,
+				'Sid' => $sid,
+				'Cid' => $cid,
+			]
+		);
 		// modify entry in data store
-		$rs = $this->_Store->entityModify($eid, $lo);
-		// return status object or null
-		if ($rs) {
-			return (object)['ID' => $eid, 'UUID' => $lo['uuid'], 'signature' => $lo['signature']];
+		$eo = $this->_Store->entityModify($eo);
+		// return result
+		if ($eo) {
+			return (object)['ID' => $eo->getId(), 'Signature' => $eo->getSignature()];
 		} else {
 			return null;
 		}
 
 	}
-	
+
 	/**
 	 * delete entity from local storage
 	 *
-	 * @param string $uid User ID
-	 * @param string $cid Collection ID
-	 * @param string $eid Entity ID
+	 * @param int $eid entity id
 	 *
-	 * @return bool true - successfully delete / false - failed to delete
+	 * @return bool
 	 */
-	public function entityDelete(string $uid, string $cid, string $eid): bool {
+	public function entityDeleteById(int $eid): bool {
 
-		// evaluate if collection or entity id is missing - must contain id to delete
-		if (empty($uid) || empty($cid) || empty($eid)) {
-			return null;
-		}
 		// delete entry from data store
-		$rs = $this->_Store->entityDelete($eid);
+		$rs = $this->_Store->entityDeleteById($eid);
 		// return result
 		if ($rs) {
 			return true;
@@ -270,898 +261,198 @@ class LocalTasksService {
 		}
 
 	}
-	
+
 	/**
-	 * retrieve collection item attachment from local storage
+	 * delete entity from local storage by remote id
+	 *
+	 * @param int $cid collection id
+	 * @param string $ccid correlation collection id
+	 * @param string $ceid correlation entity id
+	 *
+	 * @return bool
+	 */
+	public function entityDeleteByCorrelation(int $cid, string $ccid, string $ceid): bool {
+		// retrieve entity
+		$eo = $this->_Store->entityFetchByCorrelation($cid, $ccid, $ceid);
+		// evaluate if entity was retrieved
+		if ($eo instanceof TaskEntity) {
+			// delete entry from data store
+			$eo = $this->_Store->entityDelete($eo);
+			return true;
+		} else {
+			return false;
+		}
+
+	}
+
+	/**
+	 * convert store entity to Task object
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param string $uid - User ID
-	 * @param string $batch - Collection of Id's
-	 * @param string $flag - I - File Information / F - File Information + Content
+	 * @param TaskEntity $so
+	 * @param array<string,mixed>
 	 *
-	 * @return TaskAttachmentObject
+	 * @return TaskObject
 	 */
-	public function collectionFetchItemAttachment(array $batch, string $flag = 'I'): array {
+	public function fromTaskEntity(TaskEntity $so, array $additional = []): TaskObject {
 
-		// check to for entries in batch collection
-		if (count($batch) == 0) {
-			return [];
-		}
-		// construct response collection place holder
-		$rc = [];
-		// process collection of objects
-		foreach ($batch as $key => $entry) {
-			try {
-				//
-				$fo = $this->FileStore->getById($entry);
-				if ($fo[0] instanceof \OCP\Files\File) {
-					$ao = new TaskAttachmentObject('D');
-					$ao->Id = $fo[0]->getFileInfo()->getId();
-					$ao->Name = $fo[0]->getFileInfo()->getName();
-					$ao->Type = $fo[0]->getFileInfo()->getMimetype();
-					$ao->Size = $fo[0]->getFileInfo()->getSize();
-					if ($flag == 'F') {
-						$ao->Data = $fo[0]->getContent();
-						$ao->Encoding = 'B';
-					}
-					// insert attachment object in response collection
-					$rc[] = $ao;
-				}
-			} catch (\OCP\Files\NotFoundException $e) {
-				throw new StorageException('File does not exist');
+		// prase vData
+		$vObject = Reader::read($so->getData());
+		// convert entity
+		$to = $this->fromVObject($vObject->VTODO);
+		$to->ID = (string)$so->getId();
+		$to->CID = (string)$so->getCid();
+		$to->Signature = $so->getSignature();
+		$to->CCID = $so->getCcid();
+		$to->CEID = $so->getCeid();
+		$to->CESN = $so->getCesn();
+		$to->UUID = $so->getUuid();
+		// override / assign additional values
+		foreach ($additional as $label => $value) {
+			if (isset($to->$label)) {
+				$to->$label = $value;
 			}
 		}
-		// return response collection
-		return $rc;
 
+		return $to;
 	}
 
 	/**
-	 * create collection item attachment in local storage
+	 * convert Task object to store entity
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param string $uid - User ID
-	 * @param string $fn - Folder Name to save attachments
-	 * @param array $batch - Collection of TaskAttachmentObject(s) objects
+	 * @param TaskObject $so
+	 * @param array<string,mixed>
 	 *
-	 * @return string
+	 * @return TaskEntity
 	 */
-	public function collectionCreateItemAttachment(string $fn, array $batch): array {
+	public function toTaskEntity(TaskObject $so, array $additional = []): TaskEntity {
 
-		// check to for entries in batch collection
-		if (count($batch) == 0) {
-			return [];
-		}
-		// construct response collection place holder
-		$rc = [];
-		// process collection of objects
-		foreach ($batch as $key => $entry) {
-			// check if file exists and write to it if possible
-			try {
-				// construct folder location
-				$fl = $this->UserAttachmentPath . '/' . $fn;
-				// check if folder exists
-				if (!$this->FileStore->nodeExists($fl)) {
-					// create folder if missing
-					$this->FileStore->newFolder($fl);
-					$this->FileStore->unlock($fl);
-				}
-				// cunstruct file location
-				$fl = $fl . '/' . $entry->Name;
-				// check if file exists
-				if (!$this->FileStore->nodeExists($fl)) {
-					// create file
-					$fo = $this->FileStore->newFile($fl, $entry->Data);
-					$this->FileStore->unlock($fl);
-				} else {
-					// select file
-					$fo = $this->FileStore->get($fl);
-					// update file
-					$fo->putContent((string)$entry->Data);
-					$this->FileStore->unlock($fl);
-				}
-
-				$ao = clone $entry;
-				$ao->Id = $fo->getId();
-				$ao->Data = '/' . $fl;
-				$ao->Size = $fo->getSize();
-				$ao->Store = 'D';
-
-				$rc[] = $ao;
-				
-				unset($fl);
-				unset($fo);
-
-			} catch (\OCP\Files\NotPermittedException $e) {
-				// you have to create this exception by yourself ;)
-				throw new StorageException('Cant write to file');
-			} catch (Exception $e) {
-				throw $e;
+		// construct entity
+		$to = new TaskEntity();
+		$vo = $this->toVObject($so);
+		// convert source object to entity
+		$to->setData("BEGIN:VCALENDAR\nVERSION:2.0\n" . $vo->serialize() . "\nEND:VCALENDAR");
+		$to->setUuid($so->UUID);
+		$to->setSignature($this->generateSignature($so));
+		$to->setCcid($so->CCID);
+		$to->setCeid($so->CEID);
+		$to->setCesn($so->CESN);
+		$to->setLabel($so->Label);
+		$to->setDescription($so->Description);
+		$to->setStartson($so->StartsOn->setTimezone(new DateTimeZone('UTC'))->format('U'));
+		if ($so->OccurrencePatterns > 0) {
+			$eventReader = new EventReader($vo, $so->UUID);
+			if ($eventReader->recurringConcludes()) {
+				$to->setEndson($eventReader->recurringConcludesOn()->setTimezone(new DateTimeZone('UTC'))->format('U'));
+			} else {
+				$to->setEndson(2147483647);
 			}
+		} else {
+			$to->setEndson($so->EndsOn->setTimezone(new DateTimeZone('UTC'))->format('U'));
 		}
-		// return results collection
-		return $rc;
 
+		// override / assign additional values
+		foreach ($additional as $key => $value) {
+			$method = 'set' . ucfirst($key);
+			$to->$method($value);
+		}
+
+		return $to;
 	}
 
 	/**
-	 * delete collection item attachment from local storage
+	 * convert vtodo object to Task object
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param string $aid - Attachment ID
+	 * @param VTodo $so
 	 *
-	 * @return bool true - successfully delete / False - failed to delete
+	 * @return TaskObject
 	 */
-	public function collectionDeleteItemAttachment(array $batch): array {
+	public function fromVObject(VTodo $so): TaskObject {
 
-		// check to for entries in batch collection
-		if (count($batch) == 0) {
-			return [];
-		}
-		
-		// TODO: add delete code
-
-		return [];
-	}
-
-	/**
-	 * convert vtodo object to task object
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param VTodo $vo - source object
-	 *
-	 * @return TaskObject converted object
-	 */
-	public function toTaskObject(VTodo $vo): TaskObject {
-		
-		// construct task object
+		// construct target object
 		$to = new TaskObject();
 		// Origin
-		$to->Origin = 'L';
-		// UUID
-		if (isset($vo->UID)) {
-			$to->UUID = trim($vo->UID->getValue());
+		$to->Origin = OriginTypes::Internal;
+		// universal id
+		if (isset($so->UID)) {
+			$to->UUID = trim($so->UID->getValue());
 		}
-		// Creation Date
-		if (isset($vo->CREATED)) {
-			$to->CreatedOn = new DateTime($vo->CREATED->getValue());
+		// creation date time
+		if (isset($so->CREATED)) {
+			$to->CreatedOn = $so->CREATED->getDateTime();
 		}
-		// Modification Date
-		if (isset($vo->{'LAST-MODIFIED'})) {
-			$to->ModifiedOn = new DateTime($vo->{'LAST-MODIFIED'}->getValue());
+		// modification date time
+		if (isset($so->{'LAST-MODIFIED'})) {
+			$to->ModifiedOn = $so->{'LAST-MODIFIED'}->getDateTime();
 		}
-		// Starts Date/Time
-		if (isset($vo->DTSTART)) {
-			if (isset($vo->DTSTART->parameters['TZID'])) {
-				$tz = new DateTimeZone($vo->DTSTART->parameters['TZID']->getValue());
-			} elseif (str_contains($vo->DTSTART, 'Z')) {
-				$tz = new DateTimeZone('UTC');
-			} elseif ($this->UserTimeZone instanceof \DateTimeZone) {
-				$tz = $this->UserTimeZone;
-			} else {
-				$tz = $this->SystemTimeZone;
-			}
-			$to->StartsOn = new DateTime($vo->DTSTART->getValue(), $tz);
-			unset($tz);
-		}
-		// DUE Date/Time
-		if (isset($vo->DUE)) {
-			if (isset($vo->DUE->parameters['TZID'])) {
-				$tz = new DateTimeZone($vo->DUE->parameters['TZID']->getValue());
-			} elseif (str_contains($vo->DUE, 'Z')) {
-				$tz = new DateTimeZone('UTC');
-			} elseif ($this->UserTimeZone instanceof \DateTimeZone) {
-				$tz = $this->UserTimeZone;
-			} else {
-				$tz = $this->SystemTimeZone;
-			}
-			$to->DueOn = new DateTime($vo->DUE->getValue(), $tz);
-			unset($tz);
-		}
-		// Label
-		if (isset($vo->SUMMARY)) {
-			$to->Label = trim($vo->SUMMARY->getValue());
-		}
-		// Notes
-		if (isset($vo->DESCRIPTION)) {
-			if (!empty(trim($vo->DESCRIPTION->getValue()))) {
-				$to->Notes = trim($vo->DESCRIPTION->getValue());
-			}
-		}
-		// Progress
-		if (isset($vo->{'PERCENT-COMPLETE'})) {
-			$to->Progress = trim($vo->{'PERCENT-COMPLETE'}->getValue());
-		}
-		// Status
-		if (isset($vo->STATUS)) {
-			$to->Status = $this->fromStatus($vo->STATUS->getValue());
-			;
-		}
-		// Priority
-		if (isset($vo->PRIORITY)) {
-			$to->Priority = trim($vo->PRIORITY->getValue());
-		}
-		// Sensitivity
-		if (isset($vo->CLASS)) {
-			$to->Sensitivity = $this->fromClass($vo->CLASS->getValue());
-		}
-		// Tag(s)
-		if (isset($vo->CATEGORIES)) {
-			foreach ($vo->CATEGORIES->getParts() as $entry) {
-				$to->addTag(
-					trim($entry)
-				);
-			}
-		}
-		// Notifications
-		if (isset($vo->VALARM)) {
-			foreach ($vo->VALARM->TRIGGER as $entry) {
-				if ($vo->VALARM->ACTION->count() > 0) {
-					// Notifications Type
-					$t = $this->fromAlarmAction($vo->VALARM->ACTION[0]->getValue());
 
-					if ($t = 'D') {
-						if (!empty($vo->VALARM->TRIGGER[0]->getValue())) {
-							if (isset($vo->VALARM->TRIGGER[0]->parameters['RELATED'])) {
-								$p = 'R';
-								$w = $this->fromDurationPeriod($vo->VALARM->TRIGGER[0]->getValue());
-							} elseif (isset($vo->VALARM->TRIGGER[0]->parameters['VALUE'])) {
-								$p = 'A';
-								$w = new DateTime($vo->VALARM->TRIGGER[0]->getValue());
-							}
-							$to->addNotification(
-								$t,
-								$p,
-								$w
-							);
-							unset($p);
-							unset($w);
-						}
-					}
-					unset($t);
-				}
-			}
-		}
-		// Attachment(s)
-		if (isset($vo->ATTACH)) {
-			foreach ($vo->ATTACH as $entry) {
-				if (isset($entry->parameters['X-NC-FILE-ID'])) {
-					$fs = 'D';
-					$fi = $entry->parameters['X-NC-FILE-ID']->getValue();
-					$fn = $entry->parameters['FILENAME']->getValue();
-					$ft = $entry->parameters['FMTTYPE']->getValue();
-					$fd = $entry->parameters['FILENAME']->getValue();
-
-					$to->addAttachment(
-						$fs,
-						$fi,
-						$fn,
-						$ft,
-						'B',
-						null,
-						$fd
-					);
-				}
-			}
-		}
-		// Occurrence
-		if (isset($vo->RRULE)) {
-			$parts = $vo->RRULE->getParts();
-			if (isset($parts['FREQ'])) {
-				$to->Occurrence->Precision = $this->fromFrequency($parts['FREQ']);
-			}
-			if (isset($parts['INTERVAL'])) {
-				$to->Occurrence->Interval = $parts['INTERVAL'];
-			}
-			if (isset($parts['COUNT'])) {
-				$to->Occurrence->Iterations = $parts['COUNT'];
-			}
-			if (isset($parts['UNTIL'])) {
-				$to->Occurrence->Concludes = new DateTime($parts['UNTIL']);
-			}
-			if (isset($parts['BYDAY'])) {
-				if (is_array($parts['BYDAY'])) {
-					$to->Occurrence->OnDayOfWeek = $this->fromByDay($parts['BYDAY']);
-				} else {
-					$to->Occurrence->OnDayOfWeek = $this->fromByDay([$parts['BYDAY']]);
-				}
-			}
-			if (isset($parts['BYMONTH'])) {
-				if (is_array($parts['BYMONTH'])) {
-					$to->Occurrence->OnMonthOfYear = $parts['BYMONTH'];
-				} else {
-					$to->Occurrence->OnMonthOfYear = [$parts['BYMONTH']];
-				}
-			}
-			if (isset($parts['BYMONTHDAY'])) {
-				if (is_array($parts['BYMONTHDAY'])) {
-					$to->Occurrence->OnDayOfMonth = $parts['BYMONTHDAY'];
-				} else {
-					$to->Occurrence->OnDayOfMonth = [$parts['BYMONTHDAY']];
-				}
-			}
-			if (isset($parts['BYYEARDAY'])) {
-				if (is_array($parts['BYYEARDAY'])) {
-					$to->Occurrence->OnDayOfYear = $parts['BYYEARDAY'];
-				} else {
-					$to->Occurrence->OnDayOfYear = [$parts['BYYEARDAY']];
-				}
-			}
-			if (isset($parts['BYSETPOS'])) {
-				$to->Occurrence->Pattern = 'R';
-				$to->Occurrence->OnWeekOfMonth = [$parts['BYSETPOS']];
-			} else {
-				$to->Occurrence->Pattern = 'A';
-			}
-			// Excludes
-			if (isset($vo->EXDATE)) {
-				foreach ($vo->EXDATE as $entry) {
-					if (isset($entry->parameters['TZID'])) {
-						$tz = new DateTimeZone($entry->parameters['TZID']->getValue());
-					} elseif (str_contains($entry->getValue(), 'Z')) {
-						$tz = new DateTimeZone('UTC');
-					} elseif ($this->UserTimeZone instanceof \DateTimeZone) {
-						$tz = $this->UserTimeZone;
-					} else {
-						$tz = $this->SystemTimeZone;
-					}
-					$to->Occurrence->Excludes[] = new DateTime($entry->getValue(), $tz);
-				}
-			}
-		}
-		
-		// return task object
+		// return Task object
 		return $to;
-		
+
 	}
 
 	/**
-	 * Convert task object to vtask object
+	 * Convert Task object to vtodo object
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param TaskObject $vo - source object
+	 * @param TaskObject $so
 	 *
-	 * @return VTodo converted object
+	 * @return VTodo
 	 */
-	public function fromTaskObject(TaskObject $to): VTodo {
+	public function toVObject(TaskObject $so): VTodo {
 
-		// construct vtask object
-		$vo = new \Sabre\VObject\Component\VCalendar();
-		$vo = $vo->createComponent('VTODO');
+		// construct target object
+		$to = (new \Sabre\VObject\Component\VCalendar())->createComponent('VTODO');
 		// UID
-		if ($to->UUID) {
-			$vo->UID->setValue($to->UUID);
-		}
-		// Starts Date/Time
-		if (isset($to->StartsOn)) {
-			$vo->add('DTSTART', $to->StartsOn->format('Ymd\THis'));
-		}
-		// Ends Date/Time
-		if (isset($to->DueOn)) {
-			$vo->add('DUE', $to->DueOn->format('Ymd\THis'));
-		}
-		// Label
-		if ($to->Label) {
-			$vo->add('SUMMARY', $to->Label);
-		}
-		// Notes
-		if (isset($to->Notes)) {
-			$vo->add('DESCRIPTION', $to->Notes);
-		}
-		// Progress
-		if (isset($to->Progress)) {
-			$vo->add('PERCENT-COMPLETE', $to->Progress);
-		}
-		// Status
-		if (isset($to->Status)) {
-			$vo->add('STATUS', $this->toStatus($to->Status));
-		}
-		// Priority
-		if (isset($to->Priority)) {
-			$vo->add('PRIORITY', $to->Priority);
-		}
-		// Sensitivity
-		if (isset($to->Sensitivity)) {
-			$vo->add('CLASS', $this->toClass($to->Sensitivity));
-		}
-		// Tag(s)
-		if (count($to->Tags) > 0) {
-			$vo->add('CATEGORIES', $to->Tags);
-		}
-		// Attachment(s)
-		if (count($to->Attachments) > 0) {
-			foreach ($to->Attachments as $entry) {
-				// Data Store
-				if ($entry->Store == 'D' && !empty($entry->Id)) {
-					$p = [];
-					$p['X-NC-FILE-ID'] = $entry->Id;
-					$p['FILENAME'] = $entry->Data;
-					$p['FMTTYPE'] = $entry->Type;
-					$vo->add('ATTACH', '/f/' . $entry->Id, $p);
-					unset($p);
-				}
-				// Referance
-				elseif ($entry->Store == 'R' && !empty($entry->Data)) {
-					$p = [];
-					$p['FMTTYPE'] = $entry->Type;
-					$vo->add('ATTACH', $entry->Data, $p);
-					unset($p);
-				}
-				// Enclosed
-				elseif (!empty($entry->Data)) {
-					$p = [];
-					$p['FMTTYPE'] = $entry->Type;
-					$p['ENCODING'] = 'BASE64';
-					$p['VALUE'] = 'BINARY';
-					unset($p);
-					if ($entry->Encoding == 'B64') {
-						$vo->add(
-							'ATTACH',
-							'X-FILENAME="' . $entry->Name . '":' . $entry->Data,
-							$p
-						);
-					} else {
-						$vo->add(
-							'ATTACH',
-							'X-FILENAME="' . $entry->Name . '":' . base64_encode($entry->Data),
-							$p
-						);
-					}
-				}
-				
-			}
-		}
-		// Notifications
-		if (count($to->Notifications) > 0) {
-			foreach ($to->Notifications as $entry) {
-				$vo->add('VALARM');
-				$i = $vo->VALARM->count() - 1;
-				// Notifications Type
-				$vo->VALARM[$i]->add('ACTION', $this->toAlarmAction($entry->Type));
-				// Notifications Pattern
-				switch ($entry->Pattern) {
-					case 'R':
-						$t = $this->toDurationPeriod($entry->When);
-						$vo->VALARM[$i]->add('TRIGGER', $t, ['RELATED' => 'START']);
-						break;
-					case 'A':
-						$vo->VALARM[$i]->add('VALUE', $entry->When, []);
-						break;
-				}
-
-				unset($i);
-				unset($t);
-			}
-		}
-		// Occurrence
-		if (isset($to->Occurrence->Precision)) {
-			$p = [];
-			// Occurrence Precision
-			if (isset($to->Occurrence->Precision)) {
-				$p['FREQ'] = $this->toFrequency($to->Occurrence->Precision);
-			}
-			// Occurrence Interval
-			if (isset($to->Occurrence->Interval)) {
-				$p['INTERVAL'] = $to->Occurrence->Interval;
-			}
-			// Occurrence Interval
-			if (isset($to->Occurrence->Iterations)) {
-				$p['COUNT'] = $to->Occurrence->Iterations;
-			}
-			// Occurrence Conclusion
-			if (isset($to->Occurrence->Concludes)) {
-				if ($to->Origin == 'R') {
-					// adjust for how until day is calculated
-					$p['UNTIL'] = (clone $to->Occurrence->Concludes)
-						->add(new DateInterval('PT24H'))->format('Ymd\THis\Z');
-				} else {
-					$p['UNTIL'] = $to->Occurrence->Concludes->format('Ymd\THis\Z');
-				}
-			}
-			// Occurrence Day Of Week
-			if (count($to->Occurrence->OnDayOfWeek) > 0) {
-				$p['BYDAY'] = $this->toByDay($to->Occurrence->OnDayOfWeek);
-			}
-			// Occurrence Day Of Month
-			if (count($to->Occurrence->OnDayOfMonth) > 0) {
-				$p['BYMONTHDAY'] = implode(',', $to->Occurrence->OnDayOfMonth);
-			}
-			// Occurrence Day Of Year
-			if (count($to->Occurrence->OnDayOfYear) > 0) {
-				$p['BYYEARDAY'] = implode(',', $to->Occurrence->OnDayOfYear);
-			}
-			// Occurrence Month Of Year
-			if (count($to->Occurrence->OnMonthOfYear) > 0) {
-				$p['BYMONTH'] = implode(',', $to->Occurrence->OnMonthOfYear);
-			}
-			// Occurrence Relative
-			if ($to->Occurrence->Pattern == 'R') {
-				$p['BYSETPOS'] = implode(',', $to->Occurrence->OnWeekOfMonth);
-			}
-			// create attribute
-			$vo->add('RRULE', $p);
-			unset($p);
-			// Occurrence Excludes
-			if (count($to->Occurrence->Excludes) > 0) {
-				foreach ($to->Occurrence->Excludes as $entry) {
-					if ($entry instanceof \DateTime) {
-						$tz = $entry->getTimeZone()->getName();
-					} elseif ($this->UserTimeZone instanceof \DateTimeZone) {
-						$tz = $this->UserTimeZone->getName();
-					} else {
-						$tz = $this->SystemTimeZone->getName();
-					}
-					// apply time zone
-					$dt = clone $entry;
-					$dt->setTimezone(new DateTimeZone($tz));
-					// create element
-					$vo->add(
-						'EXDATE',
-						$dt->format('Ymd\THis'),
-						['TZID' => $tz]
-					);
-					unset($dt);
-					unset($tz);
-				}
-			}
-		}
-
-		return $vo;
-
-	}
-
-	/**
-	 * convert local frequency to task object occurrence precision
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param sting $frequency - local frequency value
-	 *
-	 * @return int task object occurrence precision value
-	 */
-	private function fromFrequency(?string $frequency): string {
-		
-		// frequency conversion reference
-		$_tm = [
-			'DAILY' => 'D',
-			'WEEKLY' => 'W',
-			'MONTHLY' => 'M',
-			'YEARLY' => 'Y',
-			'HOURLY' => 'H',
-			'MINUTELY' => 'I',
-			'SECONDLY' => 'S',
-		];
-		// evaluate if frequency value exists
-		if (isset($_tm[$frequency])) {
-			// return converted occurrence precision value
-			return $_tm[$frequency];
+		if ($so->UUID) {
+			$to->UID->setValue($so->UUID);
 		} else {
-			// return default occurrence precision value
-			return 'D';
+			$to->add('UUID', $so->UUID);
 		}
-		
-	}
-
-	/**
-	 * convert task object occurrence precision to local frequency
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param int $precision - task object occurrence precision value
-	 *
-	 * @return string local frequency value
-	 */
-	private function toFrequency(?string $precision): string {
-
-		// occurrence precision conversion reference
-		$_tm = [
-			'D' => 'DAILY',
-			'W' => 'WEEKLY',
-			'M' => 'MONTHLY',
-			'Y' => 'YEARLY',
-			'H' => 'HOURLY',
-			'I' => 'MINUTELY',
-			'S' => 'SECONDLY',
-		];
-		// evaluate if occurrence precision value exists
-		if (isset($_tm[$precision])) {
-			// return converted frequency value
-			return $_tm[$precision];
-		} else {
-			// return default frequency value
-			return 'DAILY';
-		}
-
-	}
-
-	/**
-	 * convert local by day to task object days of the week
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param array $days - local by day values(s)
-	 *
-	 * @return array task object days of the week values(s)
-	 */
-	private function fromByDay(array $days): array {
-		
-		// days conversion reference
-		$_tm = [
-			'MO' => 1,
-			'TU' => 2,
-			'WE' => 3,
-			'TH' => 4,
-			'FR' => 5,
-			'SA' => 6,
-			'SU' => 7
-		];
-		// convert day values
-		foreach ($days as $key => $value) {
-			if (isset($_tm[$value])) {
-				$days[$key] = $_tm[$value];
+		// creation date
+		if ($so->CreatedOn) {
+			$to->add('CREATED', $so->CreatedOn->format($this->DateFormatUTC));
+			if ($to->DTSTAMP) {
+				$to->DTSTAMP->setValue($so->CreatedOn->format($this->DateFormatUTC));
+			} else {
+				$to->add('DTSTAMP', $so->CreatedOn->format($this->DateFormatUTC));
 			}
 		}
-		// return converted days
-		return $days;
-	}
-
-	/**
-	 * convert task object days of the week to local by day
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param array $days - task object days of the week values(s)
-	 *
-	 * @return string local by day values(s)
-	 */
-	private function toByDay(array $days): string {
-
-		// days conversion reference
-		$_tm = [
-			1 => 'MO',
-			2 => 'TU',
-			3 => 'WE',
-			4 => 'TH',
-			5 => 'FR',
-			6 => 'SA',
-			7 => 'SU'
-		];
-		// convert day values
-		foreach ($days as $key => $value) {
-			if (isset($_tm[$value])) {
-				$days[$key] = $_tm[$value];
-			}
+		// modification date
+		if ($so->ModifiedOn) {
+			$to->add('LAST-MODIFIED', $so->ModifiedOn->format($this->DateFormatUTC));
 		}
-		// convert days to string
-		$days = implode(',', $days);
-		// return converted days
-		return $days;
+
+		return $to;
 
 	}
 
-	/**
-	 * convert local status to task object status
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param sting $status - local status value
-	 *
-	 * @return string task object status value
-	 */
-	private function fromStatus(?string $status): string {
-		
-		// status conversion reference
-		$_tm = [
-			'NEEDS-ACTION' => 'N',
-			'IN-PROCESS' => 'P',
-			'COMPLETED' => 'C',
-			'CANCELLED' => 'D'
-		];
-		// evaluate if status value exists
-		if (isset($_tm[$status])) {
-			// return converted status value
-			return $_tm[$status];
-		} else {
-			// return default status value
-			return 'N';
-		}
-		
-	}
+	public function generateSignature(TaskObject $eo): string {
 
-	/**
-	 * convert task object status to local status
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param string $status - task object status value
-	 *
-	 * @return string local status value
-	 */
-	private function toStatus(?string $status): string {
+		// clone self
+		$o = clone $eo;
+		// remove non needed values
+		unset(
+			$o->Origin,
+			$o->ID,
+			$o->CID,
+			$o->Signature,
+			$o->CCID,
+			$o->CEID,
+			$o->CESN,
+			$o->UUID,
+			$o->CreatedOn,
+			$o->ModifiedOn
+		);
 
-		// status conversion reference
-		$_tm = [
-			'N' => 'NEEDS-ACTION',
-			'P' => 'IN-PROCESS',
-			'W' => 'IN-PROCESS',
-			'C' => 'COMPLETED',
-			'D' => 'CANCELLED'
-		];
-		// evaluate if status value exists
-		if (isset($_tm[$status])) {
-			// return converted status value
-			return $_tm[$status];
-		} else {
-			// return default status value
-			return 'NEEDS-ACTION';
-		}
-
-	}
-
-	/**
-	 * convert local class to task object sensitivity
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param sting $level - local class value
-	 *
-	 * @return int|null task object sensitivity value
-	 */
-	private function fromClass(?string $level): int {
-		
-		// class conversion reference
-		$_tm = [
-			'PUBLIC' => 0,
-			'PRIVATE' => 2,
-			'CONFIDENTIAL' => 3
-		];
-		// evaluate if class value exists
-		if (isset($_tm[$level])) {
-			// return converted sensitivity value
-			return $_tm[$level];
-		} else {
-			// return default sensitivity value
-			return 0;
-		}
-		
-	}
-
-	/**
-	 * convert task object sensitivity to local class
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param int $level - task object sensitivity value
-	 *
-	 * @return string|null local class value
-	 */
-	private function toClass(?int $level): string {
-
-		// sensitivity conversion reference
-		$_tm = [
-			0 => 'PUBLIC',
-			1 => 'PRIVATE',
-			2 => 'PRIVATE',
-			3 => 'CONFIDENTIAL'
-		];
-		// evaluate if sensitivity value exists
-		if (isset($_tm[$level])) {
-			// return converted class value
-			return $_tm[$level];
-		} else {
-			// return default class value
-			return 'PUBLIC';
-		}
-	}
-
-	/**
-	 * convert local alarm action to task object alarm action type
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param sting $action - local alarm action value
-	 *
-	 * @return int task object alarm action type value
-	 */
-	private function fromAlarmAction(?string $action): string {
-		
-		// action conversion reference
-		$_tm = [
-			'DISPLAY' => 'D',
-			'EMAIL' => 'E',
-			'AUDIO' => 'A'
-		];
-		// evaluate if action value exists
-		if (isset($_tm[$action])) {
-			// return converted action value
-			return $_tm[$action];
-		} else {
-			// return default action value
-			return 'D';
-		}
-		
-	}
-
-	/**
-	 * convert task object alarm type to local alram action
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param string $type - task object action type value
-	 *
-	 * @return string local alarm action value
-	 */
-	private function toAlarmAction(?string $type): string {
-
-		// action conversion reference
-		$_tm = [
-			'D' => 'DISPLAY',
-			'E' => 'EMAIL',
-			'A' => 'AUDIO'
-		];
-		// evaluate if action value exists
-		if (isset($_tm[$type])) {
-			// return converted action value
-			return $_tm[$type];
-		} else {
-			// return default action value
-			return 'NEEDS-ACTION';
-		}
-
-	}
-
-	/**
-	 * convert local duration period to task object date interval
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param sting $period - local duration period value
-	 *
-	 * @return DateInterval task object date interval object
-	 */
-	private function fromDurationPeriod(string $period): DateInterval {
-		
-		// evaluate if period is negative
-		if (str_contains($period, '-P')) {
-			$period = trim($period, '-');
-			$period = new DateInterval($period);
-			$period->invert = 1;
-			// return date interval object
-			return $period;
-		} else {
-			// return date interval object
-			return new DateInterval($period);
-		}
-		
-	}
-
-	/**
-	 * convert task object date interval to local duration period
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param DateInterval $period - task object date interval object
-	 *
-	 * @return string local duration period value
-	 */
-	private function toDurationPeriod(DateInterval $period): string {
-
-		if ($period->y > 0) {
-			return $period->format('%rP%yY%mM%dDT%hH%iM');
-		} elseif ($period->m > 0) {
-			return $period->format('%rP%mM%dDT%hH%iM');
-		} elseif ($period->d > 0) {
-			return $period->format('%rP%dDT%hH%iM');
-		} elseif ($period->h > 0) {
-			return $period->format('%rPT%hH%iM');
-		} else {
-			return $period->format('%rPT%iM');
-		}
+		// generate signature
+		return md5(json_encode($o, JSON_PARTIAL_OUTPUT_ON_ERROR));
 
 	}
 

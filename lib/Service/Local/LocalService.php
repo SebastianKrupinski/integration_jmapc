@@ -32,45 +32,70 @@ use OCA\JMAPC\Store\Local\TaskStore;
 use OCP\Server;
 
 class LocalService {
-
-	public function __construct(
-	) {
+	/**
+	 * instance of the local contact service
+	 *
+	 * @since Release 1.0.0
+	 */
+	public static function contactsService(string $userId): LocalContactsService {
+		$service = new LocalContactsService();
+		$service->initialize(self::contactsStore());
+		return $service;
 	}
 
 	/**
-	 * Initialize local data store client
+	 * instance of the local event service
+	 *
+	 * @since Release 1.0.0
+	 */
+	public static function eventsService(string $userId): LocalEventsService {
+		$service = new LocalEventsService();
+		$service->initialize(self::eventsStore());
+		return $service;
+	}
+
+	/**
+	 * instance of the local task service
+	 *
+	 * @since Release 1.0.0
+	 */
+	public static function tasksService(string $userId): LocalTasksService {
+		$service = new LocalTasksService();
+		$service->initialize(self::tasksStore());
+		return $service;
+	}
+
+	/**
+	 * instance of the local contact store
 	 *
 	 * @since Release 1.0.0
 	 *
 	 * @return ContactStore
 	 */
-	public static function initializeContactStore(): ContactStore {
-		$store = Server::get(ContactStore::class);
-		return $store;
+	public static function contactsStore(): ContactStore {
+		return Server::get(ContactStore::class);
 	}
 
 	/**
-	 * Initialize local data store client
+	 * instance of the local event store
 	 *
 	 * @since Release 1.0.0
 	 *
 	 * @return EventStore
 	 */
-	public static function initializeEventStore(): EventStore {
-		$store = Server::get(EventStore::class);
-		return $store;
+	public static function eventsStore(): EventStore {
+		return Server::get(EventStore::class);
 	}
 
 	/**
-	 * Initialize local data store client
+	 * instance of the local task store
 	 *
 	 * @since Release 1.0.0
 	 *
 	 * @return TaskStore
 	 */
-	public static function initializeTaskStore(): TaskStore {
-		$store = Server::get(TaskStore::class);
-		return $store;
+	public static function tasksStore(): TaskStore {
+		return Server::get(TaskStore::class);
 	}
 
 }

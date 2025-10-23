@@ -36,7 +36,6 @@ use OCA\JMAPC\Objects\DeltaObject;
 use OCA\JMAPC\Service\Remote\RemoteEventsService;
 
 class RemoteEventsServiceFM extends RemoteEventsService {
-
 	/**
 	 * delta of changes for specific collection in remote storage
 	 *
@@ -45,7 +44,7 @@ class RemoteEventsServiceFM extends RemoteEventsService {
 	 */
 	public function entityDeltaSpecific(?string $location, string $state, string $granularity = 'D'): DeltaObject {
 		// construct set request
-		$r0 = new EventChanges($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0 = new EventChanges($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		// set state constraint
 		if (!empty($state)) {
 			$r0->state($state);
@@ -53,11 +52,11 @@ class RemoteEventsServiceFM extends RemoteEventsService {
 			$r0->state('0');
 		}
 		// construct get for created
-		$r1 = new EventGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r1 = new EventGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		$r1->targetFromRequest($r0, '/created');
 		$r1->property('calendarIds', 'id', 'created', 'updated');
 		// construct get for updated
-		$r2 = new EventGet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r2 = new EventGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		$r2->targetFromRequest($r0, '/updated');
 		$r2->property('calendarIds', 'id', 'created', 'updated');
 		// transceive
@@ -66,7 +65,6 @@ class RemoteEventsServiceFM extends RemoteEventsService {
 		$response0 = $bundle->response(0);
 		$response1 = $bundle->response(1);
 		$response2 = $bundle->response(2);
-		$response3 = $bundle->response(3);
 		// determine if command errored
 		if ($response0 instanceof ResponseException) {
 			if ($response0->type() === 'unknownMethod') {

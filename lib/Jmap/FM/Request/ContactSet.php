@@ -29,14 +29,8 @@ use JmapClient\Requests\RequestSet;
 
 class ContactSet extends RequestSet {
 
-	public function __construct(string $account, string $identifier = '', ?string $namespace = null, ?string $resource = null) {
-
-		$space = $namespace ?? 'urn:ietf:params:jmap:contacts';
-		$class = $resource ?? 'Contact';
-
-		parent::__construct($space, $class, $account, $identifier);
-		
-	}
+	protected string $_space = 'urn:ietf:params:jmap:contacts';
+	protected string $_class = 'Contact';
 	
 	public function create(string $id, $object = null): ContactParameters {
 		// evaluate if create parameter exist and create if needed

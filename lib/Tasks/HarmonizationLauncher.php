@@ -35,37 +35,16 @@ use OCP\BackgroundJob\TimedJob;
 use Psr\Log\LoggerInterface;
 
 class HarmonizationLauncher extends TimedJob {
-	/**
-	 * @var LoggerInterface
-	 */
-	private $logger;
-	/**
-	 * @var ConfigurationService
-	 */
-	private $ConfigurationService;
-	/**
-	 * @var HarmonizationService
-	 */
-	private $HarmonizationService;
-	/**
-	 * @var HarmonizationThreadService
-	 */
-	private $HarmonizationThreadService;
-
+	
 	public function __construct(
-		ITimeFactory $time,
-		LoggerInterface $logger,
-		ConfigurationService $ConfigurationService,
-		HarmonizationService $HarmonizationService,
-		HarmonizationThreadService $HarmonizationThreadService,
+		protected ITimeFactory $time,
+		private LoggerInterface $logger,
+		private ConfigurationService $ConfigurationService,
+		private HarmonizationService $HarmonizationService,
+		private HarmonizationThreadService $HarmonizationThreadService,
 	) {
 		parent::__construct($time);
-		$this->logger = $logger;
-		$this->ConfigurationService = $ConfigurationService;
-		$this->HarmonizationService = $HarmonizationService;
-		$this->HarmonizationThreadService = $HarmonizationThreadService;
 
-		// Run every 5min
 		$this->setInterval(300);
 	}
 
@@ -79,7 +58,7 @@ class HarmonizationLauncher extends TimedJob {
 
 				// retrieve thread id
 				$tid = $this->HarmonizationThreadService->getId($uid);
-				// evaluate if thread is live and launch new thred if needed
+				// evaluate if thread is live and launch new thread if needed
 				if (!$this->HarmonizationThreadService->isActive($uid, $tid)) {
 					// launch new thread
 					$tid = $this->HarmonizationThreadService->launch($uid);
@@ -91,9 +70,9 @@ class HarmonizationLauncher extends TimedJob {
 				}
 				
 			} catch (\Throwable $e) {
-				$logger->error("Harmonization launcher encountered an error while starting a thread for $uid", ['app' => 'integration_jmapc', 'exception' => $e]);
+				$this->logger->error("Harmonization launcher encountered an error while starting a thread for $uid", ['app' => 'integration_jmapc', 'exception' => $e]);
 			} catch (\Exception $e) {
-				$logger->error("Harmonization launcher encountered an error while starting a thread for $uid", ['app' => 'integration_jmapc', 'exception' => $e]);
+				$this->logger->error("Harmonization launcher encountered an error while starting a thread for $uid", ['app' => 'integration_jmapc', 'exception' => $e]);
 			}
 		}
 		// passive mode
@@ -103,9 +82,9 @@ class HarmonizationLauncher extends TimedJob {
 				$this->HarmonizationService->performHarmonization($uid);
 			
 			} catch (\Throwable $e) {
-				$logger->error("Harmonization launcher encountered an error while harmonizing for $uid", ['app' => 'integration_jmapc', 'exception' => $e]);
+				$this->logger->error("Harmonization launcher encountered an error while harmonizing for $uid", ['app' => 'integration_jmapc', 'exception' => $e]);
 			} catch (\Exception $e) {
-				$logger->error("Harmonization launcher encountered an error while harmonizing for $uid", ['app' => 'integration_jmapc', 'exception' => $e]);
+				$this->logger->error("Harmonization launcher encountered an error while harmonizing for $uid", ['app' => 'integration_jmapc', 'exception' => $e]);
 			}
 		}
 	}

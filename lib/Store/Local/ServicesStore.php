@@ -26,6 +26,13 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Store\Local;
 
+use OCA\JMAPC\Store\Common\Filters\FilterBase;
+use OCA\JMAPC\Store\Common\Filters\FilterComparisonOperator;
+use OCA\JMAPC\Store\Common\Filters\FilterConjunctionOperator;
+use OCA\JMAPC\Store\Common\Filters\IFilter;
+use OCA\JMAPC\Store\Common\Sort\ISort;
+use OCA\JMAPC\Store\Common\Sort\SortBase;
+use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 class ServicesStore {
@@ -43,33 +50,34 @@ class ServicesStore {
 		return \call_user_func($this->_EntityClass . '::fromRow', $row);
 	}
 
-	/**
-	 * retrieve services for specific user from data store
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param string $uid user id
-	 *
-	 * @return array of services
-	 */
-	public function fetchByUserId(string $uid): array {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)));
-
-		// execute command
-		$rs = $cmd->executeQuery()->fetchAll();
-		$cmd->executeQuery()->closeCursor();
-		// return result or null
-		if (is_array($rs) && count($rs) > 0) {
-			return $rs;
-		} else {
-			return [];
+	protected function fromFilter(IQueryBuilder $cmd, IFilter $filter): void {
+		foreach ($filter->conditions() as $entry) {
+			$comparison = match ($entry['comparator']) {
+				FilterComparisonOperator::EQ => $cmd->expr()->eq($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::GT => $cmd->expr()->gt($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::LT => $cmd->expr()->lt($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::GTE => $cmd->expr()->gte($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::LTE => $cmd->expr()->lte($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::NEQ => $cmd->expr()->neq($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::IN => $cmd->expr()->in($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::NIN => $cmd->expr()->notIn($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::LIKE => $cmd->expr()->like($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+				FilterComparisonOperator::NLIKE => $cmd->expr()->notLike($entry['attribute'], $cmd->createNamedParameter($entry['value'])),
+			};
+			if ($entry['conjunction'] === FilterConjunctionOperator::AND) {
+				$cmd->andWhere($comparison);
+			} elseif ($entry['conjunction'] === FilterConjunctionOperator::OR) {
+				$cmd->orWhere($comparison);
+			} else {
+				$cmd->where($comparison);
+			}
 		}
+	}
 
+	protected function fromSort(IQueryBuilder $cmd, ISort $sort): void {
+		foreach ($sort->conditions() as $entry) {
+			$cmd->addOrderBy($entry['attribute'], $entry['direction'] ? 'ASC' : 'DESC');
+		}
 	}
 
 	/**
@@ -77,62 +85,43 @@ class ServicesStore {
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param string $uid user id
-	 * @param string $sid service id
+	 * @param IFilter $filter filter options
+	 * @param ISort $sort sort options
 	 *
-	 * @return ServiceEntity|null
+	 * @return array<int,ServiceEntity>
 	 */
-	public function fetchByUserIdAndServiceId(string $uid, int $sid): ?ServiceEntity {
-		
+	public function list(?IFilter $filter = null, ?ISort $sort = null): array {
 		// construct data store command
 		$cmd = $this->_Store->getQueryBuilder();
 		$cmd->select('*')
-			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('id', $cmd->createNamedParameter($sid)));
+			->from($this->_EntityTable);
+		// apply filters
+		if ($filter instanceof IFilter) {
+			$this->fromFilter($cmd, $filter);
+		}
+		// apply sort
+		if ($sort instanceof ISort) {
+			$this->fromSort($cmd, $sort);
+		}
 		// execute command
 		$rsl = $cmd->executeQuery();
+		$entities = [];
 		try {
-			$entity = $rsl->fetch();
-			if (is_array($entity)) {
-				return $this->toEntity($entity);
-			} else {
-				return null;
+			while ($data = $rsl->fetch()) {
+				$entities[$data['id']] = $this->toEntity($data);
 			}
+			return $entities;
 		} finally {
 			$rsl->closeCursor();
 		}
-
 	}
 
-	/**
-	 * retrieve services for specific user from data store
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param string $uid user id
-	 *
-	 * @return array of services
-	 */
-	public function fetchByUserIdAndAddress(string $uid, string $address): array {
-		
-		// construct data store command
-		$cmd = $this->_Store->getQueryBuilder();
-		$cmd->select('*')
-			->from($this->_EntityTable)
-			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)))
-			->andWhere($cmd->expr()->eq('address_primary', $cmd->createNamedParameter($address)));
+	public function listFilter(): IFilter {
+		return new FilterBase();
+	}
 
-		// execute command
-		$rs = $cmd->executeQuery()->fetchAll();
-		$cmd->executeQuery()->closeCursor();
-		// return result or null
-		if (is_array($rs) && count($rs) > 0) {
-			return $rs;
-		} else {
-			return [];
-		}
-
+	public function listSort(): ISort {
+		return new SortBase();
 	}
 
 	/**

@@ -45,7 +45,6 @@ use OCA\JMAPC\Objects\OriginTypes;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
 
 class RemoteContactsServiceFM extends RemoteContactsService {
-
 	private const DATE_ANNIVERSARY = 'Y-m-d';
 
 	public function __construct() {
@@ -58,6 +57,12 @@ class RemoteContactsServiceFM extends RemoteContactsService {
 		$this->resourceNamespace = 'https://www.fastmail.com/dev/contacts';
 		$this->resourceCollectionLabel = null;
 		$this->resourceEntityLabel = 'Contact';
+
+		$dataStore->configureClassTypes('command', 'Contact/get', 'JmapClient\Responses\Contacts\ContactGet');
+		$dataStore->configureClassTypes('command', 'Contact/set', 'JmapClient\Responses\Contacts\ContactSet');
+		$dataStore->configureClassTypes('command', 'Contact/changes', 'JmapClient\Responses\Contacts\ContactChanges');
+		$dataStore->configureClassTypes('command', 'Contact/query', 'JmapClient\Responses\Contacts\ContactQuery');
+		$dataStore->configureClassTypes('command', 'Contact/queryChanges', 'JmapClient\Responses\Contacts\ContactQueryChanges');
 		$dataStore->configureClassTypes('parameters', 'Contact', 'OCA\JMAPC\Jmap\FM\Response\ContactParameters');
 
 	}
@@ -72,7 +77,7 @@ class RemoteContactsServiceFM extends RemoteContactsService {
 		// convert entity
 		$entity = $this->fromContactObject($so);
 		// construct set request
-		$r0 = new ContactSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		$r0->create('1', $entity)->in($location);
 		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
@@ -102,7 +107,7 @@ class RemoteContactsServiceFM extends RemoteContactsService {
 		// convert entity
 		$entity = $this->fromContactObject($so);
 		// construct set request
-		$r0 = new ContactSet($this->dataAccount, '', $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		$r0->update($id, $entity)->in($location);
 		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
@@ -256,7 +261,7 @@ class RemoteContactsServiceFM extends RemoteContactsService {
 		}
 
 		return $do;
-		
+
 	}
 
 	/**

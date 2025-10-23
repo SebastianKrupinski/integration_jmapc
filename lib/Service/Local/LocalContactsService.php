@@ -41,6 +41,7 @@ use OCA\JMAPC\Objects\Contact\ContactOrganizationObject;
 use OCA\JMAPC\Objects\Contact\ContactPhoneObject;
 use OCA\JMAPC\Objects\Contact\ContactPhysicalLocationObject;
 use OCA\JMAPC\Objects\Contact\ContactPronounObject;
+use OCA\JMAPC\Objects\Contact\ContactTagCollection;
 use OCA\JMAPC\Objects\Contact\ContactTitleObject;
 use OCA\JMAPC\Objects\Contact\ContactTitleTypes;
 use OCA\JMAPC\Objects\OriginTypes;
@@ -52,17 +53,16 @@ use Sabre\VObject\Component\VCard;
 use Sabre\VObject\Reader;
 
 class LocalContactsService {
-	
-	protected string $DateFormatUTC = 'Ymd\THis\Z';
-	protected string $DateFormatDateTime = 'Ymd\THis';
-	protected string $DateFormatDateOnly = 'Ymd';
+	private const DATE_FORMAT_UTC = 'Ymd\THis\Z';
+	private const DATE_FORMAT_DATE_TIME = 'Ymd\THis';
+	private const DATE_FORMAT_DATE_ONLY = 'Ymd';
 	protected ContactStore $_Store;
 	protected string $UserAttachmentPath = '';
 	protected ?LazyUserFolder $_BlobStore = null;
 
 	public function __construct() {
 	}
-	
+
 	public function initialize(ContactStore $Store) {
 
 		$this->_Store = $Store;
@@ -106,7 +106,7 @@ class LocalContactsService {
 	 * @return void
 	 */
 	public function collectionDeleteById(int $cid): void {
-		
+
 		// delete entities from data store
 		$this->_Store->entityDeleteByCollection($cid);
 		$this->_Store->collectionDeleteById($cid);
@@ -141,7 +141,7 @@ class LocalContactsService {
 		$lcc = $this->_Store->chronicleReminisce($cid, $signature);
 		// return collection differences
 		return $lcc;
-		
+
 	}
 
 	/**
@@ -221,7 +221,7 @@ class LocalContactsService {
 		}
 
 	}
-	
+
 	/**
 	 * modify entity in local storage
 	 *
@@ -259,7 +259,7 @@ class LocalContactsService {
 		}
 
 	}
-	
+
 	/**
 	 * delete entity from local storage
 	 *
@@ -318,7 +318,7 @@ class LocalContactsService {
 		// prase vData
 		$vObject = Reader::read($so->getData());
 		// convert entity
-		$to = $this->fromVObject($vObject);
+		$to = $this->toContactObject($vObject);
 		$to->ID = (string)$so->getId();
 		$to->CID = (string)$so->getCid();
 		$to->Signature = $so->getSignature();
@@ -351,7 +351,7 @@ class LocalContactsService {
 		// construct entity
 		$to = new ContactEntity();
 		// convert source object to entity
-		$to->setData($this->toVObject($so)->serialize());
+		$to->setData($this->fromContactObject($so)->serialize());
 		$to->setUuid($so->UUID);
 		$to->setSignature($this->generateSignature($so));
 		$to->setCcid($so->CCID);
@@ -376,8 +376,8 @@ class LocalContactsService {
 	 *
 	 * @return ContactObject
 	 */
-	public function fromVObject(VCard $so): ContactObject {
-		
+	public function toContactObject(VCard $so): ContactObject {
+
 		// construct target object
 		$do = new ContactObject();
 		// Origin
@@ -392,7 +392,7 @@ class LocalContactsService {
 		}
 		// modification date time
 		if (isset($so->REV)) {
-			$do->ModifiedOn = $so->REV->getDateTime();
+			$do->ModifiedOn = DateTimeImmutable::createFromFormat(self::DATE_FORMAT_UTC, $so->REV->getValue());
 		}
 		// language
 		if (isset($so->LANGUAGE)) {
@@ -593,10 +593,7 @@ class LocalContactsService {
 		}
 		// tag(s)
 		if (isset($so->CATEGORIES)) {
-			foreach ($so->CATEGORIES as $entry) {
-				$tags = explode(',', $entry->getValue());
-				$do->Tags = array_merge($do->Tags, $tags);
-			}
+			$do->Tags = new ContactTagCollection($so->CATEGORIES->getParts());
 		}
 		// note(s)
 		if (isset($so->NOTE)) {
@@ -661,7 +658,7 @@ class LocalContactsService {
 
 		// return event object
 		return $do;
-		
+
 	}
 
 	/**
@@ -673,7 +670,7 @@ class LocalContactsService {
 	 *
 	 * @return VCard
 	 */
-	public function toVObject(ContactObject $so): VCard {
+	public function fromContactObject(ContactObject $so): VCard {
 
 		// construct target object
 		$do = new VCard();
@@ -686,11 +683,11 @@ class LocalContactsService {
 		}
 		// creation date time
 		if ($so->CreatedOn) {
-			$do->add('CREATED', $so->CreatedOn->format($this->DateFormatUTC));
+			$do->add('CREATED', $so->CreatedOn);
 		}
 		// modification date time
 		if ($so->ModifiedOn) {
-			$do->add('REV', $so->ModifiedOn->format($this->DateFormatUTC));
+			$do->add('REV', $so->ModifiedOn->format(self::DATE_FORMAT_UTC));
 		}
 		// language
 		if ($so->Language) {
@@ -789,13 +786,13 @@ class LocalContactsService {
 			/** @var \Sabre\VObject\Property $property */
 			$property = $do->add('NOTE', $entry->Content);
 			if ($entry->Date !== null) {
-				$property->add('CREATED', $entry->Date->format($this->DateFormatUTC));
+				$property->add('CREATED', $entry->Date->format(self::DATE_FORMAT_UTC));
 			}
 			if ($entry->AuthorUri !== null) {
 				$property->add('AUTHOR', $entry->AuthorUri);
 			}
 			if ($entry->AuthorName !== null) {
-				$property->add('AUTHOR-NAME', $entry->AuthorUri);
+				$property->add('AUTHOR-NAME', $entry->AuthorName);
 			}
 			if ($entry->Id !== null) {
 				$property->add('X-ID', $entry->Id);
@@ -862,7 +859,8 @@ class LocalContactsService {
 		// physical location(s)
 		foreach ($so->PhysicalLocations as $index => $entry) {
 			/** @var \Sabre\VObject\Property $property */
-			$property = $do->add('ADR',
+			$property = $do->add(
+				'ADR',
 				[
 					(string)$entry->Box,
 					(string)$entry->Unit,
@@ -935,7 +933,7 @@ class LocalContactsService {
 		unset($index, $entry, $property);
 		// title(s)
 		foreach ($so->Titles as $index => $entry) {
-			switch ($entry->Type) {
+			switch ($entry->Kind) {
 				case ContactTitleTypes::Title:
 					/** @var \Sabre\VObject\Property $property */
 					$property = $do->add('TITLE', $entry->Label);
@@ -946,31 +944,7 @@ class LocalContactsService {
 					break;
 			}
 			if ($entry->Relation !== null) {
-				$property->add('PREF', $entry->Relation);
-			}
-			if ($entry->Language !== null) {
-				$property->add('LANGUAGE', $entry->Language);
-			}
-		}
-		unset($index, $entry, $property);
-		// note(s)
-		foreach ($so->Notes as $index => $entry) {
-			/** @var \Sabre\VObject\Property $property */
-			$property = $do->add('NOTE', $entry->Content);
-			if ($entry->Date !== null) {
-				$property->add('CREATED', $entry->Date->format($this->DateFormatUTC));
-			}
-			if ($entry->AuthorUri !== null) {
-				$property->add('AUTHOR', $entry->AuthorUri);
-			}
-			if ($entry->AuthorName !== null) {
-				$property->add('AUTHOR-NAME', $entry->AuthorName);
-			}
-			if ($entry->Id !== null) {
-				$property->add('X-ID', $entry->Id);
-			}
-			if ($entry->Index !== null) {
-				$property->add('INDEX', $entry->Index);
+				$property->add('X-ORG-ID', $entry->Relation);
 			}
 			if ($entry->Priority !== null) {
 				$property->add('PREF', $entry->Priority);
@@ -980,9 +954,6 @@ class LocalContactsService {
 			}
 			if ($entry->Language !== null) {
 				$property->add('LANGUAGE', $entry->Language);
-			}
-			if ($entry->URI !== null) {
-				$property->add('VALUE', $entry->URI);
 			}
 		}
 		unset($index, $entry, $property);
@@ -1042,7 +1013,7 @@ class LocalContactsService {
 	}
 
 	public function generateSignature(ContactObject $eo): string {
-		
+
 		// clone self
 		$o = clone $eo;
 		// remove non needed values

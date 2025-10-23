@@ -23,36 +23,44 @@ declare(strict_types=1);
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 namespace OCA\JMAPC\Providers\Mail;
 
+use OCA\JMAPC\Objects\Mail\MailMessageObject;
 use OCA\JMAPC\Providers\IRange;
 use OCA\JMAPC\Providers\IServiceIdentity;
-use OCA\JMAPC\Providers\IServiceLocation;
+use OCA\JMAPC\Providers\IServiceLocationUri;
 use OCA\JMAPC\Providers\ServiceIdentityBAuth;
 use OCA\JMAPC\Providers\ServiceIdentityOAuth;
 use OCA\JMAPC\Providers\ServiceLocation;
+use OCA\JMAPC\Service\MailService;
 use OCA\JMAPC\Service\Remote\RemoteService;
+use OCA\JMAPC\Store\Local\ServiceEntity;
 use OCP\Mail\Provider\Address;
 use OCP\Mail\Provider\IAddress;
 use OCP\Mail\Provider\IMessage;
 use OCP\Mail\Provider\IMessageSend;
 use OCP\Mail\Provider\IService;
+use OCP\Server;
 use Psr\Container\ContainerInterface;
 
 class Service implements IService, IMessageSend {
-
-	protected array $serviceSecondaryAddress = [];
 	protected array $serviceAbilities = [];
+	protected ?ServiceEntity $serviceData = null;
+	protected ?int $serviceId = null;
+	protected ?string $serviceLabel = null;
+	protected ?IServiceLocationUri $serviceLocation = null;
+	protected ?IServiceIdentity $serviceIdentity = null;
+	protected ?IAddress $serviceAddressPrimary = null;
+	protected ?array $serviceAddressAlternate = null;
+	protected ?MailService $mailService = null;
 
 	public function __construct(
 		protected ContainerInterface $container,
-		protected string $userId = '',
-		protected string $serviceId = '',
-		protected string $serviceLabel = '',
-		protected IAddress $servicePrimaryAddress = new Address(),
-		protected ?IServiceIdentity $serviceIdentity = null,
-		protected ?IServiceLocation $serviceLocation = null,
+		protected string $userId,
+		protected ?ServiceEntity $service,
 	) {
+
 		$this->serviceAbilities = [
 			'Collections' => true,
 			'CollectionFetch' => true,
@@ -73,93 +81,90 @@ class Service implements IService, IMessageSend {
 			'MessageList' => true,
 			'MessageSearch' => true,
 		];
+
+		if ($service === null) {
+			$service = new ServiceEntity();
+			$service->setUid($userId);
+			$service->setId(-1);
+			$service->setLabel('');
+		}
+
+		$this->serviceData = $service;
+		$this->serviceId = $this->serviceData->getId();
+		$this->serviceLabel = $this->serviceData->getLabel();
+
 	}
 
 	/**
-	 * An arbitrary unique text string identifying this service
+	 * Confirms if specific capability is supported
 	 *
-	 * @since 2024.05.25
-	 *
-	 * @return string id of this service (e.g. 1 or service1 or anything else)
-	 */
-	public function id(): string {
-
-		return $this->serviceId;
-
-	}
-
-	/**
-	 * checks if a service is able of performing an specific action
-	 *
-	 * @since 4.0.0
+	 * @since 1.0.0
 	 *
 	 * @param string $value required ability e.g. 'MessageSend'
 	 *
-	 * @return bool true/false if ability is supplied and found in collection
+	 * @return bool
 	 */
 	public function capable(string $value): bool {
 
-		// evaluate if required ability exists
 		if (isset($this->serviceAbilities[$value])) {
 			return (bool)$this->serviceAbilities[$value];
 		}
-		
 		return false;
 
 	}
 
 	/**
-	 * retrieves a collection of what actions a service can perfrom
+	 * Lists all supported capabilities
 	 *
-	 * @since 4.0.0
+	 * @since 1.0.0
 	 *
-	 * @return array collection of abilities otherwise empty collection
+	 * @return array<string,bool>
 	 */
 	public function capabilities(): array {
-
 		return $this->serviceAbilities;
-
 	}
 
 	/**
-	 * gets the localized human frendly name of this service
+	 * Unique arbitrary text string identifying this service (e.g. 1 or service1 or anything else)
 	 *
-	 * @since 2024.05.25
+	 * @since 1.0.0
+	 */
+	public function id(): string {
+		return (string)$this->serviceId;
+	}
+
+	/**
+	 * Gets the localized human friendly name of this service (e.g. ACME Company Mail Service)
 	 *
-	 * @return string label/name of service (e.g. ACME Company Mail Service)
+	 * @since 1.0.0
 	 */
 	public function getLabel(): string {
-
-		return $this->serviceLabel;
-
+		return (string)$this->serviceLabel;
 	}
 
 	/**
-	 * sets the localized human friendly name of this service
+	 * Sets the localized human friendly name of this service (e.g. ACME Company Mail Service)
 	 *
-	 * @since 2024.05.25
-	 *
-	 * @param string $value label/name of service (e.g. ACME Company Mail Service)
-	 *
-	 * @return self return this object for command chaining
+	 * @since 1.0.0
 	 */
 	public function setLabel(string $value): self {
 
 		$this->serviceLabel = $value;
+		$this->serviceData->setLabel($this->serviceLabel);
 		return $this;
 
 	}
 
 	/**
-	 * construct a new empty identity object
+	 * Instances new service identity
 	 *
-	 * @since 30.0.0
+	 * @since 1.0.0
 	 *
-	 * @param string $type identity type e.g. BA = Basic, OA = Bearer
+	 * @param string $type identity type e.g. BAUTH = Basic, OAUTH = Bearer
 	 *
-	 * @return IServiceIdentity blank identity object
+	 * @return IServiceIdentity
 	 */
-	public function initiateIdentity(string $type): IServiceIdentity {
+	public function freshIdentity(string $type): IServiceIdentity {
 
 		return match ($type) {
 			'BAUTH' => new ServiceIdentityBAuth(),
@@ -169,131 +174,168 @@ class Service implements IService, IMessageSend {
 	}
 
 	/**
-	 * gets service itentity
+	 * Gets service identity
 	 *
-	 * @since 2024.05.25
-	 *
-	 * @return IServiceIdentity service identity object
+	 * @since 1.0.0
 	 */
 	public function getIdentity(): ?IServiceIdentity {
 
+		if ($this->serviceIdentity === null) {
+			if ($this->serviceData->getAuth() == 'BA') {
+				$identity = new ServiceIdentityBAuth();
+				$identity->getIdentity($this->serviceData->getBauthId());
+				$identity->setSecret($this->serviceData->getBauthSecret());
+				$this->serviceIdentity = $identity;
+			}
+			if ($this->serviceData->getAuth() == 'OA') {
+				$identity = new ServiceIdentityOAuth();
+				$identity->setAccessId($this->serviceData->getOauthId());
+				$identity->setAccessToken($this->serviceData->getOauthAccessToken());
+				$identity->setAccessExpiry($this->serviceData->getOauthExpiry());
+				$identity->setRefreshToken($this->serviceData->getOauthRefreshToken());
+				$identity->setRefreshLocation($this->serviceData->getOauthRefreshLocation());
+				$this->serviceIdentity = $identity;
+			}
+		}
 		return $this->serviceIdentity;
 
 	}
 
 	/**
-	 * sets service identity
+	 * Sets service identity
 	 *
-	 * @since 2024.05.25
-	 *
-	 * @param IServiceIdentity $identity service identity object
-	 *
-	 * @return self return this object for command chaining
+	 * @since 1.0.0
 	 */
 	public function setIdentity(IServiceIdentity $value): self {
 
 		$this->serviceIdentity = $value;
+
+		if ($value->type() == 'BAUTH' && $value instanceof ServiceIdentityBAuth) {
+			$this->serviceData->setAuth('BA');
+			$this->serviceData->setBauthId($value->getIdentity());
+			$this->serviceData->setBauthSecret($value->getSecret());
+		}
+		if ($value->type() == 'OAUTH' && $value instanceof ServiceIdentityOAuth) {
+			$this->serviceData->setAuth('OA');
+			$this->serviceData->setOauthId($value->getAccessId());
+			$this->serviceData->setOauthAccessToken($value->getAccessToken());
+			$this->serviceData->setOauthExpiry($value->getAccessExpiry());
+			$this->serviceData->setOauthRefreshToken($value->getRefreshToken());
+			$this->serviceData->setOauthRefreshLocation($value->getRefreshLocation());
+		}
 		return $this;
+
 	}
 
 	/**
-	 * construct a new empty identity object
+	 * Instances new service location
 	 *
-	 * @since 30.0.0
-	 *
-	 * @return IServiceLocation blank identity object
+	 * @since 1.0.0
 	 */
-	public function initiateLocation(): IServiceLocation {
-
+	public function freshLocation(): IServiceLocationUri {
 		return new ServiceLocation();
-
 	}
-	
-	/**
-	 * gets service location
-	 *
-	 * @since 2024.05.25
-	 *
-	 * @return IServiceLocation service location object
-	 */
-	public function getLocation(): ?IServiceLocation {
 
+	/**
+	 * Gets service location
+	 *
+	 * @since 1.0.0
+	 */
+	public function getLocation(): ?IServiceLocationUri {
+
+		if ($this->serviceLocation === null) {
+			$location = new ServiceLocation();
+			$location->setScheme($this->serviceData->getScheme());
+			$location->setHost($this->serviceData->getHost());
+			$location->setPath($this->serviceData->getPath());
+			$location->setPort($this->serviceData->getPort());
+			$this->serviceLocation = $location;
+		}
 		return $this->serviceLocation;
 
 	}
 
 	/**
-	 * sets service location
+	 * Sets service location
 	 *
-	 * @since 2024.05.25
-	 *
-	 * @param IServiceLocation $location service location object
-	 *
-	 * @return self return this object for command chaining
+	 * @since 1.0.0
 	 */
-	public function setLocation(IServiceLocation $value): self {
+	public function setLocation(IServiceLocationUri $value): self {
 
 		$this->serviceLocation = $value;
+
+		$this->serviceData->setScheme($value->getScheme());
+		$this->serviceData->setHost($value->getHost());
+		$this->serviceData->setPath($value->getPath());
+		$this->serviceData->setPort($value->getPort());
+
 		return $this;
 
 	}
 
 	/**
-	 * gets the primary mailing address for this service
+	 * Gets the primary mailing address for this service
 	 *
-	 * @since 2024.05.25
-	 *
-	 * @return IAddress mail address object
+	 * @since 1.0.0
 	 */
 	public function getPrimaryAddress(): IAddress {
 
-		// retrieve and return primary service address
-		return $this->servicePrimaryAddress;
+		if ($this->serviceAddressPrimary === null) {
+			$this->serviceAddressPrimary = new Address($this->serviceData->getAddressPrimary());
+		}
+		return $this->serviceAddressPrimary;
 
 	}
 
 	/**
-	 * sets the primary mailing address for this service
+	 * Sets the primary mailing address for this service
 	 *
-	 * @since 2024.05.25
-	 *
-	 * @param IAddress $value mail address object
-	 *
-	 * @return self return this object for command chaining
+	 * @since 1.0.0
 	 */
 	public function setPrimaryAddress(IAddress $value): self {
 
-		$this->servicePrimaryAddress = $value;
+		$this->serviceAddressPrimary = $value;
+		$this->serviceData->setAddressPrimary($value->getAddress());
 		return $this;
 
 	}
 
 	/**
-	 * gets the secondary mailing addresses (aliases) collection for this service
+	 * Gets the secondary mailing addresses (aliases) collection for this service
 	 *
-	 * @since 2024.05.25
+	 * @since 1.0.0
 	 *
-	 * @return array<int, IAddress> collection of mail address objects
+	 * @return array<int,IAddress>
 	 */
 	public function getSecondaryAddresses(): array {
 
-		// retrieve and return secondary service addressess (aliases) collection
-		return $this->serviceSecondaryAddress;
+		if ($this->serviceAddressAlternate === null) {
+			$this->serviceAddressAlternate = [];
+			$data = $this->serviceData->getAddressAlternate();
+			$data = json_decode($data);
+			foreach ($data as $entry) {
+				$this->serviceAddressAlternate[] = new Address($entry);
+			}
+		}
+		return $this->serviceAddressAlternate;
 
 	}
 
 	/**
-	 * sets the secondary mailing addresses (aliases) for this service
+	 * Sets the secondary mailing addresses (aliases) for this service
 	 *
-	 * @since 2024.05.25
-	 *
-	 * @param IAddress ...$value collection of or one or more mail address objects
-	 *
-	 * @return self return this object for command chaining
+	 * @since 1.0.0
 	 */
 	public function setSecondaryAddresses(IAddress ...$value): self {
 
-		$this->serviceSecondaryAddress = $value;
+		$this->serviceAddressAlternate = $value;
+		$list = [];
+		foreach ($value as $entry) {
+			$list[] = $entry->getAddress();
+		}
+		if ($list !== []) {
+			$this->serviceData->setAddressAlternate(json_encode($list));
+		}
 		return $this;
 
 	}
@@ -301,166 +343,128 @@ class Service implements IService, IMessageSend {
 	/**
 	 * construct a new empty message object
 	 *
-	 * @since 30.0.0
+	 * @since 1.0.0
 	 *
-	 * @return IMessage blank message object
+	 * @return MailMessageObject blank message object
 	 */
 	public function initiateMessage(): IMessage {
+		return new MailMessageObject();
+	}
 
-		return (new Message());
+	protected function mailService(): MailService {
+
+		// check if mail service is already initialized
+		if ($this->mailService === null) {
+			// construct data store client
+			$client = RemoteService::freshClient($this->service);
+			// load action service
+			$this->mailService = Server::get(MailService::class);
+			$this->mailService->initialize($client);
+		}
+		return $this->mailService;
 
 	}
 
-	protected function mailService() {
+	public function collectionList(string $location, string $scope, array $options = []): array {
 
-		if ($this->mailService === null) {
-			// construct data store client
-			$client = RemoteService::initializeStoreFromService($this->serviceLocation, $this->serviceIdentity);
-			// load action service
-			$this->mailService = $this->container->get(\OCA\JMAPC\Service\MailMessageService::class);
-			$this->mailService->initialize($this->userId, $client);
-		}
-		
-		return $this->mailService;
-		
+		return $this->mailService()->collectionList($location, $scope, $options);
+
 	}
 
 	public function collectionFetch(string $location, string $id, array $options = []): mixed {
-		
-		// perform action
+
 		return $this->mailService()->collectionFetch($location, $id, $options);
 
 	}
 
 	public function collectionCreate(string $location, string $label, array $options = []): mixed {
 
-		// perform action
 		return $this->mailService()->collectionCreate($location, $label, $options);
 
 	}
 
 	public function collectionUpdate(string $location, string $id, string $label, array $options = []): string {
 
-		// perform action
 		return $this->mailService()->collectionUpdate($location, $id, $label, $options);
 
 	}
 
 	public function collectionDelete(string $location, string $id, array $options = []): string {
 
-		// perform action
 		return $this->mailService()->collectionDelete($location, $id, $options);
 
 	}
 
 	public function collectionMove(string $sourceLocation, string $id, string $destinationLocation, array $options = []): string {
 
-		// perform action
 		return $this->mailService()->collectionMove($sourceLocation, $id, $destinationLocation, $options);
 
 	}
 
-	/**
-	 * retrieve a list of collections
-	 *
-	 * @since 2024.05.25
-	 *
-	 */
-	public function collectionList(string $location, string $scope, array $options = []): array {
+	public function entityList(string $location, ?IRange $range = null, ?string $sort = null, string $particulars = 'D', array $options = []): array {
 
-		// perform action
-		return $this->mailService()->collectionList($location, $scope, $options);
-
-	}
-
-	public function collectionSearch(string $location, string $filter, string $scope, array $options = []): array {
-
-		// perform action
-		return $this->mailService()->collectionSearch($location, $filter, $scope, $options);
+		return $this->mailService()->entityList($location, $range, $sort, $particulars, $options);
 
 	}
 
 	public function entityFetch(string $location, string $id, string $particulars = 'D', array $options = []): object {
 
-		// perform action
 		return $this->mailService()->entityFetch($location, $id, $particulars, $options);
 
 	}
 
 	public function entityCreate(string $location, IMessage $message, array $options = []): string {
 
-		// perform action
 		return $this->mailService()->entityCreate($location, $message, $options);
 
 	}
 
 	public function entityUpdate(string $location, string $id, IMessage $message, array $options = []): string {
 
-		// perform action
 		return $this->mailService()->entityUpdate($location, $id, $message, $options);
 
 	}
 
 	public function entityDelete(string $location, string $id, array $options = []): string {
 
-		// perform action
 		return $this->mailService()->entityDelete($location, $id, $options);
 
 	}
 
 	public function entityCopy(string $sourceLocation, string $id, string $destinationLocation, array $options = []): string {
 
-		// perform action
 		return $this->mailService()->entityCopy($sourceLocation, $id, $destinationLocation, $options);
 
 	}
 
 	public function entityMove(string $sourceLocation, string $id, string $destinationLocation, array $options = []): string {
 
-		// perform action
 		return $this->mailService()->entityMove($sourceLocation, $id, $destinationLocation, $options);
 
 	}
 
 	public function entityForward(string $location, string $id, IMessage $message, array $options = []): string {
 
-		// perform action
 		return $this->mailService()->entityForward($location, $id, $message, $options);
 
 	}
 
 	public function entityReply(string $location, string $id, IMessage $message, array $options = []): string {
 
-		// perform action
 		return $this->mailService()->entityReply($location, $id, $message, $options);
 
 	}
 
 	public function entitySend(IMessage $message, array $options = []): string {
 
-		// perform action
 		return $this->mailService()->entitySend($message, $options);
-
-	}
-
-	public function entityList(string $location, ?IRange $range = null, ?string $sort = null, string $particulars = 'D', array $options = []): array {
-
-		// perform action
-		return $this->mailService()->entityList($location, $range, $sort, $particulars, $options);
-
-	}
-
-	public function entitySearch(string $location, array $filter, ?IRange $range = null, ?string $sort = null, ?string $scope = null, string $particulars = 'D', array $options = []): array {
-		
-		// perform action
-		return $this->mailService()->entitySearch($location, $filter, $range, $sort, $scope, $particulars, $options);
 
 	}
 
 	/**
 	 * Sends an outbound message
 	 *
-	 * @since 2024.05.25
+	 * @since 1.0.0
 	 *
 	 * @param IMessage $message mail message object with all required parameters to send a message
 	 *
@@ -468,14 +472,12 @@ class Service implements IService, IMessageSend {
 	 */
 	public function sendMessage(IMessage $message, array $options = []): void {
 
-		// perform action
 		$this->mailService()->entitySend($message, $options);
 
 	}
 
 	public function blobFetch(string $id, array $options = []): object {
 
-		// perform action
 		return $this->mailService()->blobFetch($id, $options);
 
 	}
