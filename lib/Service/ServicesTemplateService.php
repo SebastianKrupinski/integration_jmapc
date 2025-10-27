@@ -37,9 +37,9 @@ class ServicesTemplateService {
 
 	}
 
-	public function fetch(string $domain): array {
+	public function findByDomain(string $domain): array {
 
-		return $this->_Store->fetch($domain);
+		return $this->_Store->fetchByDomain($domain);
 
 	}
 

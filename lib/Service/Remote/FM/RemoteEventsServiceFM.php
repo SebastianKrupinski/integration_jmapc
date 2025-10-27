@@ -27,6 +27,7 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Service\Remote\FM;
 
 use Exception;
+use JmapClient\Client;
 use JmapClient\Requests\Calendar\EventChanges;
 use JmapClient\Requests\Calendar\EventGet;
 use JmapClient\Responses\ResponseException;
@@ -36,6 +37,15 @@ use OCA\JMAPC\Objects\DeltaObject;
 use OCA\JMAPC\Service\Remote\RemoteEventsService;
 
 class RemoteEventsServiceFM extends RemoteEventsService {
+
+	public function initialize(Client $dataStore, ?string $dataAccount = null) {
+
+		parent::initialize($dataStore, $dataAccount);
+
+		$dataStore->configureRequestTypes('parameters', 'CalendarEvent.filter', 'OCA\JMAPC\Jmap\FM\Request\Events\EventFilter');
+
+	}
+
 	/**
 	 * delta of changes for specific collection in remote storage
 	 *

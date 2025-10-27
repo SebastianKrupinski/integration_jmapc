@@ -23,26 +23,34 @@ declare(strict_types=1);
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-namespace OCA\JMAPC\Jmap\FM\Response;
+namespace OCA\JMAPC\Jmap\FM\Request\Contacts;
 
-use JmapClient\Responses\ResponseParameters;
+use JmapClient\Requests\RequestParameters;
 
-class ContactPhoneParameters extends ResponseParameters {
-	
-	public function type(): ?string {
-		return $this->parameter('type') ?? 'home';
+class ContactPhoneParameters extends RequestParameters {
+
+	public function __construct(&$parameters = null) {
+		parent::__construct($parameters);
 	}
 
-	public function value(): ?string {
-		return $this->parameter('value');
+	public function type(string $value): self {
+		$this->parameter('type', $value);
+		return $this;
 	}
 
-	public function label(): ?string {
-		return $this->parameter('label');
+	public function value(string $value): self {
+		$this->parameter('value', $value);
+		return $this;
 	}
 
-	public function default(): bool {
-		return (bool)$this->parameter('isDefault');
+	public function label(string $value): self {
+		$this->parameter('label', $value);
+		return $this;
+	}
+
+	public function default(bool $value): self {
+		$this->parameter('isDefault', $value);
+		return $this;
 	}
 
 }

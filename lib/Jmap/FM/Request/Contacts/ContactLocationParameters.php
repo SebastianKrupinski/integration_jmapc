@@ -23,11 +23,11 @@ declare(strict_types=1);
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-namespace OCA\JMAPC\Jmap\FM\Request;
+namespace OCA\JMAPC\Jmap\FM\Request\Contacts;
 
 use JmapClient\Requests\RequestParameters;
 
-class ContactOnlineParameters extends RequestParameters {
+class ContactLocationParameters extends RequestParameters {
 
 	public function __construct(&$parameters = null) {
 		parent::__construct($parameters);
@@ -38,13 +38,38 @@ class ContactOnlineParameters extends RequestParameters {
 		return $this;
 	}
 
-	public function value(string $value): self {
-		$this->parameter('value', $value);
+	public function label(string $value): self {
+		$this->parameter('label', $value);
+		return $this;
+	}
+	
+	public function street(string $value): self {
+		$this->parameter('street', $value);
 		return $this;
 	}
 
-	public function label(string $value): self {
-		$this->parameter('label', $value);
+	public function locality(string $value): self {
+		$this->parameter('locality', $value);
+		return $this;
+	}
+
+	public function region(string $value): self {
+		$this->parameter('region', $value);
+		return $this;
+	}
+
+	public function code(string $value): self {
+		$this->parameter('postcode', $value);
+		return $this;
+	}
+
+	public function country(string $value): self {
+		$this->parameter('country', $value);
+		return $this;
+	}
+
+	public function default(bool $value): self {
+		$this->parameter('isDefault', $value);
 		return $this;
 	}
 

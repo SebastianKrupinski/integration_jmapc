@@ -28,8 +28,7 @@ namespace OCA\JMAPC\Service\Remote\FM;
 
 use DateTimeImmutable;
 use JmapClient\Client;
-use OCA\JMAPC\Jmap\FM\Request\ContactParameters as ContactParametersRequest;
-use OCA\JMAPC\Jmap\FM\Request\ContactSet;
+use OCA\JMAPC\Jmap\FM\Request\Contacts\ContactParameters as ContactParametersRequest;
 use OCA\JMAPC\Objects\Contact\ContactAnniversaryObject;
 use OCA\JMAPC\Objects\Contact\ContactAnniversaryTypes;
 use OCA\JMAPC\Objects\Contact\ContactEmailObject;
@@ -58,73 +57,16 @@ class RemoteContactsServiceFM extends RemoteContactsService {
 		$this->resourceCollectionLabel = null;
 		$this->resourceEntityLabel = 'Contact';
 
-		$dataStore->configureClassTypes('command', 'Contact/get', 'JmapClient\Responses\Contacts\ContactGet');
-		$dataStore->configureClassTypes('command', 'Contact/set', 'JmapClient\Responses\Contacts\ContactSet');
-		$dataStore->configureClassTypes('command', 'Contact/changes', 'JmapClient\Responses\Contacts\ContactChanges');
-		$dataStore->configureClassTypes('command', 'Contact/query', 'JmapClient\Responses\Contacts\ContactQuery');
-		$dataStore->configureClassTypes('command', 'Contact/queryChanges', 'JmapClient\Responses\Contacts\ContactQueryChanges');
-		$dataStore->configureClassTypes('parameters', 'Contact', 'OCA\JMAPC\Jmap\FM\Response\ContactParameters');
+		$dataStore->configureRequestTypes('parameters', 'Contact.object', 'OCA\JMAPC\Jmap\FM\Request\Contacts\ContactParameters');
 
-	}
+		$dataStore->configureResponseTypes('command', 'Contact/get', 'JmapClient\Responses\Contacts\ContactGet');
+		$dataStore->configureResponseTypes('command', 'Contact/set', 'JmapClient\Responses\Contacts\ContactSet');
+		$dataStore->configureResponseTypes('command', 'Contact/changes', 'JmapClient\Responses\Contacts\ContactChanges');
+		$dataStore->configureResponseTypes('command', 'Contact/query', 'JmapClient\Responses\Contacts\ContactQuery');
+		$dataStore->configureResponseTypes('command', 'Contact/queryChanges', 'JmapClient\Responses\Contacts\ContactQueryChanges');
+		$dataStore->configureResponseTypes('parameters', 'Contact', 'OCA\JMAPC\Jmap\FM\Response\ContactParameters');
+		$dataStore->configureResponseTypes('parameters', 'Contact', 'OCA\JMAPC\Jmap\FM\Response\Contacts\ContactParameters');
 
-	/**
-	 * create entity in remote storage
-	 *
-	 * @since Release 1.0.0
-	 *
-	 */
-	public function entityCreate(string $location, ContactObject $so): ?ContactObject {
-		// convert entity
-		$entity = $this->fromContactObject($so);
-		// construct set request
-		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		$r0->create('1', $entity)->in($location);
-		// transceive
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// return entity
-		if (isset($response->created()['1']['id'])) {
-			$ro = clone $so;
-			$ro->Origin = OriginTypes::External;
-			$ro->ID = $response->created()['1']['id'];
-			$ro->CreatedOn = isset($response->created()['1']['updated']) ? new DateTimeImmutable($response->created()['1']['updated']) : null;
-			$ro->ModifiedOn = $ro->CreatedOn;
-			$ro->Signature = $this->generateSignature($ro);
-			return $ro;
-		} else {
-			return null;
-		}
-	}
-
-	/**
-	 * update entity in remote storage
-	 *
-	 * @since Release 1.0.0
-	 *
-	 */
-	public function entityModify(string $location, string $id, ContactObject $so): ?ContactObject {
-		// convert entity
-		$entity = $this->fromContactObject($so);
-		// construct set request
-		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		$r0->update($id, $entity)->in($location);
-		// transceive
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// convert jmap object to event object
-		if (array_key_exists($id, $response->updated())) {
-			$ro = clone $so;
-			$ro->Origin = OriginTypes::External;
-			$ro->ID = $id;
-			$ro->ModifiedOn = isset($response->updated()[$id]['updated']) ? new DateTimeImmutable($response->updated()[$id]['updated']) : null;
-			$ro->Signature = $this->generateSignature($ro);
-		} else {
-			$ro = null;
-		}
-		// return entity information
-		return $ro;
 	}
 
 	/**

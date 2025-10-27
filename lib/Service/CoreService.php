@@ -73,7 +73,7 @@ class CoreService {
 		}
 		[$identityAccount, $identityDomain] = explode('@', $identity);
 		// find template for identity domain
-		$template = $this->ServicesTemplateService->fetch($identityDomain);
+		$template = $this->ServicesTemplateService->findByDomain($identityDomain);
 		if (isset($template[0]['connection'])) {
 			$settings = json_decode($template[0]['connection'], true, 512, JSON_THROW_ON_ERROR);
 			foreach ($settings as $property => $value) {
@@ -92,7 +92,7 @@ class CoreService {
 		}
 		// find template for dns service target
 		if ($dnsTarget) {
-			$template = $this->ServicesTemplateService->fetch($dnsTarget);
+			$template = $this->ServicesTemplateService->findByDomain($dnsTarget);
 			if (isset($template[0]['connection'])) {
 				$settings = json_decode($template[0]['connection'], true, 512, JSON_THROW_ON_ERROR);
 				foreach ($settings as $property => $value) {
@@ -167,7 +167,7 @@ class CoreService {
 		$service->setLocationHost($configuration['location_host']);
 		$service->setLocationPort($configuration['location_port'] ?? 443);
 		$service->setLocationPath($configuration['location_path'] ?? null);
-		$service->setLocationSecurity((bool)$configuration['location_security'] ?? 1);
+		$service->setLocationSecurity((bool)($configuration['location_security'] ?? 1));
 		$service->setAuth($configuration['auth']);
 		if ($configuration['auth'] === AuthenticationTypes::Basic->value ||
 			$configuration['auth'] === AuthenticationTypes::JsonBasic->value ||

@@ -23,22 +23,38 @@ declare(strict_types=1);
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-namespace OCA\JMAPC\Jmap\FM\Response;
+namespace OCA\JMAPC\Jmap\FM\Response\Contacts;
 
 use JmapClient\Responses\ResponseParameters;
 
-class ContactOnlineParameters extends ResponseParameters {
-	
-	public function type(): ?string {
-		return $this->parameter('type') ?? 'other';
-	}
+class ContactLocationParameters extends ResponseParameters {
 
-	public function value(): ?string {
-		return $this->parameter('value');
+	public function type(): ?string {
+		return $this->parameter('type') ?? 'home';
 	}
 
 	public function label(): ?string {
 		return $this->parameter('label');
+	}
+
+	public function street(): ?string {
+		return $this->parameter('street');
+	}
+
+	public function locality(): ?string {
+		return $this->parameter('locality');
+	}
+
+	public function region(): ?string {
+		return $this->parameter('region');
+	}
+
+	public function code(): ?string {
+		return $this->parameter('postcode');
+	}
+
+	public function country(): ?string {
+		return $this->parameter('country');
 	}
 
 }

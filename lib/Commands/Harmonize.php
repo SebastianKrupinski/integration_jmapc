@@ -60,7 +60,7 @@ class Harmonize extends Command {
 	 */
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$uid = $input->getArgument('user');
-		$sid = (int)$input->getArgument('service');
+		$sid = $input->getArgument('service');
 
 		if (!$this->userManager->userExists($uid)) {
 			$output->writeln("<error>User $uid does not exist</error>");
@@ -69,7 +69,12 @@ class Harmonize extends Command {
 
 		$output->writeln("<info>Starting harmonization for User $uid</info>");
 
-		$this->HarmonizationService->performHarmonization($uid, $sid);
+		if ($sid !== null) {
+			$this->HarmonizationService->performHarmonization($uid, (int)$sid);
+		}
+		else {
+			$this->HarmonizationService->performHarmonization($uid);
+		}
 
 		$output->writeln("<info>Ended harmonization for User $uid</info>");
 
