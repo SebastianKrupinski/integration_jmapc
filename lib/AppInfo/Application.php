@@ -68,19 +68,6 @@ class Application extends App implements IBootstrap {
 		if (method_exists($context, 'registerMailProvider')) {
 			$context->registerMailProvider(MailProvider::class);
 		}
-
-		/*
-		try {
-			if (class_exists('\OCA\ContactsService\ContactsManager', true)) {
-				\OCA\ContactsService\ContactsManager::registerProvider(
-					'jmapc',
-					\OCA\JMAPC\Providers\Contacts\Provider::class
-				);
-			}
-		} catch (\Exception $e) {
-			// Handle the exception if needed
-		}
-		*/
 	}
 
 	public function boot(IBootContext $context): void {
