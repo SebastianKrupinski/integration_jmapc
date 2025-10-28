@@ -7,9 +7,10 @@
 		"moduleResolution": "Bundler",
 		"noImplicitAny": false,
 		"outDir": "./js",
-		"strict": true
-	},
-	"vueCompilerOptions": {
-		"target": 2.7
+		"strict": true,
+		"lib": [
+			"DOM",
+			"ESNext"
+		]
 	}
 }

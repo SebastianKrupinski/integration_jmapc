@@ -29,7 +29,6 @@ class UserSettings implements ISettings {
 	 * @return TemplateResponse
 	 */
 	public function getForm(): TemplateResponse {
-		Util::addStyle(Application::APP_ID, Application::APP_ID . '-UserSettings');
 		Util::addScript(Application::APP_ID, Application::APP_ID . '-UserSettings');
 
 		// retrieve system configuration

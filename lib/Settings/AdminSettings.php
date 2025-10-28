@@ -28,7 +28,6 @@ class AdminSettings implements ISettings {
 	 * @return TemplateResponse
 	 */
 	public function getForm(): TemplateResponse {
-		Util::addStyle(Application::APP_ID, Application::APP_ID . '-AdminSettings');
 		Util::addScript(Application::APP_ID, Application::APP_ID . '-AdminSettings');
 
 		// retrieve user configuration
