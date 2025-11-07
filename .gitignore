@@ -2,6 +2,7 @@
 /js/
 /node_modules/
 /vendor/
+/vendor-bin/
 .vscode
 .idea
 *.cache
