@@ -28,14 +28,13 @@ namespace OCA\JMAPC\Objects\Event;
 
 class EventBaseObject extends EventCommonObject {
 
-	public ?string $UUID = null;
-	public EventOccurrenceCollection $OccurrencePatterns;
+	public string|null $UUID = null;
+	public EventOccurrenceObject|null $OccurrencePattern = null;
 	public EventOccurrenceCollection $OccurrenceExceptions;
 	public EventMutationCollection $OccurrenceMutations;
 	
 	public function __construct() {
 		parent::__construct();
-		$this->OccurrencePatterns = new EventOccurrenceCollection();
 		$this->OccurrenceExceptions = new EventOccurrenceCollection();
 		$this->OccurrenceMutations = new EventMutationCollection();
 	}

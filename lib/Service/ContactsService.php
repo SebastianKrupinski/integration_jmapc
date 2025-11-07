@@ -147,8 +147,6 @@ class ContactsService {
 			$rcid = '';
 		}
 
-		// retrieve a delta of local entity variations
-		$localEntityDelta = $this->LocalContactsService->entityDelta($lcid, $lcsn);
 		// retrieve a delta of remote entity variations
 		// if server side delta is not available generate one
 		try {
@@ -158,7 +156,13 @@ class ContactsService {
 		}
 
 		// process remote additions
-		foreach ($remoteEntityDelta->additions as $reid) {
+		$alterations = array_unique(
+			array_merge(
+				$remoteEntityDelta->additions->getArrayCopy(),
+				$remoteEntityDelta->modifications->getArrayCopy()
+			)
+		);
+		foreach ($alterations as $reid) {
 			// process addition
 			$as = $this->harmonizeRemoteAltered($this->userId, $sid, $rcid, $reid, $lcid);
 			// increment statistics
@@ -175,26 +179,11 @@ class ContactsService {
 			}
 		}
 
-		// process remote modifications
-		foreach ($remoteEntityDelta->modifications as $reid) {
-			// process modification
-			$as = $this->harmonizeRemoteAltered($this->userId, $sid, $rcid, $reid, $lcid);
-			// increment statistics
-			switch ($as) {
-				case 'LC':
-					$statistics->LocalCreated += 1;
-					break;
-				case 'LU':
-					$statistics->LocalUpdated += 1;
-					break;
-				case 'RU':
-					$statistics->RemoteUpdated += 1;
-					break;
-			}
-		}
-
 		// process remote deletions
-		foreach ($remoteEntityDelta->deletions as $reid) {
+		$alterations = array_unique(
+			$remoteEntityDelta->deletions->getArrayCopy()
+		);
+		foreach ($alterations as $reid) {
 			// process delete
 			$as = $this->harmonizeRemoteDelete($rcid, $reid, $lcid);
 			if ($as == 'LD') {
@@ -209,11 +198,17 @@ class ContactsService {
 		// clean up
 		unset($remoteCollection, $remoteEntityDelta);
 
+		// retrieve a delta of local entity variations
+		$localEntityDelta = $this->LocalContactsService->entityDelta($lcid, $lcsn);
+
 		// evaluate if local entity variations exist
 		if (isset($localEntityDelta['stamp'])) {
 			// process local additions
-			foreach ($localEntityDelta['additions'] as $variant) {
-				$leid = $variant['id'];
+			$alterations = array_unique(array_merge(
+				array_column($localEntityDelta['additions'], 'id'),
+				array_column($localEntityDelta['modifications'], 'id')
+			));
+			foreach ($alterations as $leid) {
 				// process addition
 				$as = $this->harmonizeLocalAltered($this->userId, $sid, $lcid, $leid, $rcid, $rcsn);
 				// increment statistics
@@ -229,27 +224,11 @@ class ContactsService {
 						break;
 				}
 			}
-			// process local modifications
-			foreach ($localEntityDelta['modifications'] as $variant) {
-				$leid = $variant['id'];
-				// process modification
-				$as = $this->harmonizeLocalAltered($this->userId, $sid, $lcid, $leid, $rcid, $rcsn);
-				// increment statistics
-				switch ($as) {
-					case 'RC':
-						$statistics->RemoteCreated += 1;
-						break;
-					case 'RU':
-						$statistics->RemoteUpdated += 1;
-						break;
-					case 'LU':
-						$statistics->LocalUpdated += 1;
-						break;
-				}
-			}
 			// process local deletions
-			foreach ($localEntityDelta['deletions'] as $variant) {
-				$leid = $variant['id'];
+			$alterations = array_unique(array_merge(
+				array_column($localEntityDelta['deletions'], 'id')
+			));
+			foreach ($alterations as $leid) {
 				// process deletion
 				$as = $this->harmonizeLocalDelete($lcid, $leid);
 				if ($as == 'RD') {
@@ -345,7 +324,7 @@ class ContactsService {
 		}
 		// if remote entity exists
 		// compare local and remote generated signature to correlation signature
-		// stop processing if they match this is necessary to prContact synchronization feedback loop
+		// stop processing if they match this is necessary to prevent synchronization feedback loop
 		if ($lo instanceof ContactObject && $lo->CESN === ($lo->Signature . $ro->Signature)) {
 			return $status;
 		}

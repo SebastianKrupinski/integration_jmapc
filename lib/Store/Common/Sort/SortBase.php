@@ -50,7 +50,7 @@ class SortBase implements ISort {
 	 * @param bool $direction true for ascending, false for descending
 	 */
 	public function condition(string $attribute, bool $direction): void {
-		if (!isset($this->attributes[$attribute])) {
+		if (isset($this->attributes[$attribute])) {
 			$this->conditions[$attribute] = [
 				'attribute' => $attribute,
 				'direction' => $direction,

@@ -32,7 +32,7 @@ use DateTimeImmutable;
 class EventMutationObject extends EventCommonObject {
 
 	public DateTime|DateTimeImmutable|null $mutationId = null;
-	public ?string $mutationTz = null;
-	public ?bool $mutationExclusion = null;
+	public string|null $mutationTz = null;
+	public bool|null $mutationExclusion = null;
 
 }

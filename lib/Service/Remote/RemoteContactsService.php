@@ -46,8 +46,17 @@ use JmapClient\Responses\ResponseException;
 use JmapClient\Session\Account;
 use OCA\JMAPC\Exceptions\JmapUnknownMethod;
 use OCA\JMAPC\Objects\BaseStringCollection;
+use OCA\JMAPC\Objects\Contact\ContactAliasObject;
+use OCA\JMAPC\Objects\Contact\ContactAnniversaryObject;
 use OCA\JMAPC\Objects\Contact\ContactCollectionObject;
+use OCA\JMAPC\Objects\Contact\ContactCryptoObject;
+use OCA\JMAPC\Objects\Contact\ContactEmailObject;
+use OCA\JMAPC\Objects\Contact\ContactNoteObject;
 use OCA\JMAPC\Objects\Contact\ContactObject as ContactObject;
+use OCA\JMAPC\Objects\Contact\ContactOrganizationObject;
+use OCA\JMAPC\Objects\Contact\ContactPhoneObject;
+use OCA\JMAPC\Objects\Contact\ContactPhysicalLocationObject;
+use OCA\JMAPC\Objects\Contact\ContactTitleObject;
 use OCA\JMAPC\Objects\Contact\ContactTitleTypes;
 use OCA\JMAPC\Objects\DeltaObject;
 use OCA\JMAPC\Objects\OriginTypes;
@@ -55,6 +64,8 @@ use OCA\JMAPC\Store\Common\Filters\IFilter;
 use OCA\JMAPC\Store\Common\Range\IRangeTally;
 use OCA\JMAPC\Store\Common\Range\RangeAnchorType;
 use OCA\JMAPC\Store\Common\Sort\ISort;
+use OCA\JMAPC\Store\Remote\Filters\ContactFilter;
+use OCA\JMAPC\Store\Remote\Sort\ContactSort;
 
 class RemoteContactsService {
 	protected Client $dataStore;
@@ -117,7 +128,7 @@ class RemoteContactsService {
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// determine if command errored
+		// check for command error
 		if ($response instanceof ResponseException) {
 			if ($response->type() === 'unknownMethod') {
 				throw new JmapUnknownMethod($response->description(), 1);
@@ -144,16 +155,22 @@ class RemoteContactsService {
 	 *
 	 * @since Release 1.0.0
 	 */
-	public function collectionFetch(string $id): ?ContactCollectionObject {
+	public function collectionFetch(string $identifier): ?ContactCollectionObject {
 		// construct request
 		$r0 = new AddressBookGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceCollectionLabel);
-		if (!empty($id)) {
-			$r0->target($id);
-		}
+		$r0->target($identifier);
 		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
+		}
 		// convert jmap object to collection object
 		$so = $response->object(0);
 		$to = null;
@@ -169,18 +186,39 @@ class RemoteContactsService {
 	 *
 	 * @since Release 1.0.0
 	 */
-	public function collectionCreate(ContactCollectionObject $so): string {
+	public function collectionCreate(ContactCollectionObject $so): ?string {
 		// convert entity
 		$to = $this->fromContactCollection($so);
+		$id = uniqid();
 		// construct request
 		$r0 = new AddressBookSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceCollectionLabel);
-		$r0->create('1', $to);
+		$r0->create($id, $to);
 		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// return collection id
-		return (string)$response->created()['1']['id'];
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
+		}
+		// check for success
+		$result = $response->createSuccess($id);
+		if ($result !== null) {
+			return (string)$result['id'];
+		}
+		// check for failure
+		$result = $response->createFailure($id);
+		if ($result !== null) {
+			$type = $result['type'] ?? 'unknownError';
+			$description = $result['description'] ?? 'An unknown error occurred during collection creation.';
+			throw new Exception("$type: $description", 1);
+		}
+		// return null if creation failed without failure reason
+		return null;
 	}
 
 	/**
@@ -188,18 +226,38 @@ class RemoteContactsService {
 	 *
 	 * @since Release 1.0.0
 	 */
-	public function collectionModify(string $id, ContactCollectionObject $so): string {
+	public function collectionModify(string $identifier, ContactCollectionObject $so): ?string {
 		// convert entity
 		$to = $this->fromContactCollection($so);
 		// construct request
 		$r0 = new AddressBookSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceCollectionLabel);
-		$r0->update($id, $to);
+		$r0->update($identifier, $to);
 		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// return collection id
-		return array_key_exists($id, $response->updated()) ? (string)$id : '';
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
+		}
+		// check for success
+		$result = $response->updateSuccess($identifier);
+		if ($result !== null) {
+			return (string)$result['id'];
+		}
+		// check for failure
+		$result = $response->updateFailure($identifier);
+		if ($result !== null) {
+			$type = $result['type'] ?? 'unknownError';
+			$description = $result['description'] ?? 'An unknown error occurred during collection modification.';
+			throw new Exception("$type: $description", 1);
+		}
+		// return null if modification failed without failure reason
+		return null;
 	}
 
 	/**
@@ -208,195 +266,37 @@ class RemoteContactsService {
 	 * @since Release 1.0.0
 	 *
 	 */
-	public function collectionDelete(string $id): string {
+	public function collectionDelete(string $identifier): ?string {
 		// construct request
 		$r0 = new AddressBookSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceCollectionLabel);
-		$r0->delete($id);
+		$r0->delete($identifier);
+		$r0->deleteContents(true);
 		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// return collection id
-		return (string)$response->deleted()[0];
-	}
-
-	/**
-	 * retrieve entity from remote storage
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param string $location Id of collection
-	 * @param string $identifier Id of entity
-	 * @param string $granularity Amount of detail to return
-	 *
-	 * @return EventObject|null
-	 */
-	public function entityFetch(string $location, string $id, string $granularity = 'D'): ?ContactObject {
-		// construct request
-		$r0 = new ContactGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		$r0->target($id);
-		// select properties to return
-		if ($granularity === 'B') {
-			$r0->property(...$this->entityPropertiesBasic);
-		}
-		// transceive
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// convert jmap object to event object
-		$so = $response->object(0);
-		if ($so instanceof ContactParametersResponse) {
-			$to = $this->toContactObject($so);
-			$to->Signature = $this->generateSignature($to);
-		}
-
-		return $to ?? null;
-	}
-
-	/**
-	 * retrieve entity(ies) from remote storage
-	 *
-	 * @since Release 1.0.0
-	 *
-	 * @param string $location Id of collection
-	 * @param array<string> $identifiers Id of entity
-	 * @param string $granularity Amount of detail to return
-	 *
-	 * @return array<string,ContactObject>
-	 */
-	public function entityFetchMultiple(string $location, array $identifiers, string $granularity = 'D'): array {
-		// construct request
-		$r0 = new ContactGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		$r0->target(...$identifiers);
-		// select properties to return
-		if ($granularity === 'B') {
-			$r0->property(...$this->entityPropertiesBasic);
-		}
-		// transceive
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// convert jmap object(s) to event object
-		$list = $response->objects();
-		foreach ($list as $id => $so) {
-			if (!$so instanceof ContactParametersResponse) {
-				continue;
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
 			}
-			$to = $this->toContactObject($so);
-			$to->Signature = $this->generateSignature($to);
-			$list[$id] = $so;
 		}
-		// return object(s)
-		return $list;
-	}
-
-	/**
-	 * create entity in remote storage
-	 *
-	 * @since Release 1.0.0
-	 *
-	 */
-	public function entityCreate(string $location, ContactObject $so): ?ContactObject {
-		// convert entity
-		$entity = $this->fromContactObject($so);
-		// construct set request
-		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		$r0->create('1', $entity)->in($location);
-		// transceive
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// return entity
-		if (isset($response->created()['1']['id'])) {
-			$ro = clone $so;
-			$ro->Origin = OriginTypes::External;
-			$ro->ID = $response->created()['1']['id'];
-			$ro->CreatedOn = isset($response->created()['1']['updated']) ? new DateTimeImmutable($response->created()['1']['updated']) : null;
-			$ro->ModifiedOn = $ro->CreatedOn;
-			$ro->Signature = $this->generateSignature($ro);
-			return $ro;
-		} else {
-			return null;
+		// check for success
+		$result = $response->deleteSuccess($identifier);
+		if ($result !== null) {
+			return (string)$result['id'];
 		}
-	}
-
-	/**
-	 * update entity in remote storage
-	 *
-	 * @since Release 1.0.0
-	 *
-	 */
-	public function entityModify(string $location, string $id, ContactObject $so): ?ContactObject {
-		// convert entity
-		$entity = $this->fromContactObject($so);
-		// construct set request
-		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		$r0->update($id, $entity)->in($location);
-		// transceive
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// convert jmap object to event object
-		if (array_key_exists($id, $response->updated())) {
-			$ro = clone $so;
-			$ro->Origin = OriginTypes::External;
-			$ro->ID = $id;
-			$ro->ModifiedOn = isset($response->updated()[$id]['updated']) ? new DateTimeImmutable($response->updated()[$id]['updated']) : null;
-			$ro->Signature = $this->generateSignature($ro);
-		} else {
-			$ro = null;
+		// check for failure
+		$result = $response->deleteFailure($identifier);
+		if ($result !== null) {
+			$type = $result['type'] ?? 'unknownError';
+			$description = $result['description'] ?? 'An unknown error occurred during collection deletion.';
+			throw new Exception("$type: $description", 1);
 		}
-		// return entity information
-		return $ro;
-	}
-
-	/**
-	 * delete entity from remote storage
-	 *
-	 * @since Release 1.0.0
-	 *
-	 */
-	public function entityDelete(string $location, string $id): string {
-		// construct set request
-		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		// construct object
-		$r0->delete($id);
-		// transmit request and receive response
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// return collection information
-		return (string)$response->deleted()[0];
-	}
-
-	/**
-	 * copy entity in remote storage
-	 *
-	 * @since Release 1.0.0
-	 *
-	 */
-	public function entityCopy(string $sourceLocation, string $id, string $destinationLocation): string {
-		return '';
-	}
-
-	/**
-	 * move entity in remote storage
-	 *
-	 * @since Release 1.0.0
-	 *
-	 */
-	public function entityMove(string $sourceLocation, string $id, string $destinationLocation): string {
-		// construct set request
-		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		// construct object
-		$m0 = $r0->update($id);
-		$m0->in($destinationLocation);
-		// transmit request and receive response
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// return collection information
-		return array_key_exists($id, $response->updated()) ? (string)$id : '';
+		// return null if deletion failed without failure reason
+		return null;
 	}
 
 	/**
@@ -420,8 +320,8 @@ class RemoteContactsService {
 		// define filter
 		if ($filter !== null) {
 			foreach ($filter->conditions() as $condition) {
-				[$operator, $property, $value] = $condition;
-				match($property) {
+				$value = $condition['value'];
+				match($condition['attribute']) {
 					'createBefore' => $r0->filter()->createdBefore($value),
 					'createAfter' => $r0->filter()->createdAfter($value),
 					'modifiedBefore' => $r0->filter()->updatedBefore($value),
@@ -446,8 +346,8 @@ class RemoteContactsService {
 		// define sort
 		if ($sort !== null) {
 			foreach ($sort->conditions() as $condition) {
-				[$property, $direction] = $condition;
-				match($property) {
+				$direction = $condition['direction'];
+				match($condition['attribute']) {
 					'created' => $r0->sort()->created($direction),
 					'modified' => $r0->sort()->updated($direction),
 					'nameGiven' => $r0->sort()->nameGiven($direction),
@@ -477,14 +377,32 @@ class RemoteContactsService {
 		$bundle = $this->dataStore->perform([$r0, $r1]);
 		// extract response
 		$response = $bundle->response(1);
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
+		}
 		// convert json objects to contact objects
 		$state = $response->state();
 		$list = $response->objects();
 		foreach ($list as $id => $entry) {
-			$list[$id] = $this->toContactObject($entry);
+			$eo = $this->toContactObject($entry);
+			$eo->Signature = $this->generateSignature($eo);
+			$list[$id] = $eo;
 		}
 		// return status object
 		return ['list' => $list, 'state' => $state];
+	}
+
+	public function entityListFilter(): ContactFilter {
+		return new ContactFilter();
+	}
+
+	public function entityListSort(): ContactSort {
+		return new ContactSort();
 	}
 
 	/**
@@ -535,7 +453,7 @@ class RemoteContactsService {
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// determine if command errored
+		// check for command error
 		if ($response instanceof ResponseException) {
 			if ($response->type() === 'unknownMethod') {
 				throw new JmapUnknownMethod($response->description(), 1);
@@ -546,9 +464,9 @@ class RemoteContactsService {
 		// convert jmap object to delta object
 		$delta = new DeltaObject();
 		$delta->signature = $response->stateNew();
-		$delta->additions = new BaseStringCollection($response->created());
+		$delta->additions = new BaseStringCollection($response->added());
 		$delta->modifications = new BaseStringCollection($response->updated());
-		$delta->deletions = new BaseStringCollection($response->deleted());
+		$delta->deletions = new BaseStringCollection($response->removed());
 
 		return $delta;
 	}
@@ -572,7 +490,7 @@ class RemoteContactsService {
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// determine if command errored
+		// check for command error
 		if ($response instanceof ResponseException) {
 			if ($response->type() === 'unknownMethod') {
 				throw new JmapUnknownMethod($response->description(), 1);
@@ -588,6 +506,253 @@ class RemoteContactsService {
 		$delta->deletions = new BaseStringCollection($response->deleted());
 
 		return $delta;
+	}
+
+	/**
+	 * retrieve entity from remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $location Id of collection
+	 * @param string $identifier Id of entity
+	 * @param string $granularity Amount of detail to return
+	 *
+	 * @return EventObject|null
+	 */
+	public function entityFetch(string $location, string $identifier, string $granularity = 'D'): ?ContactObject {
+		// construct request
+		$r0 = new ContactGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0->target($identifier);
+		// select properties to return
+		if ($granularity === 'B') {
+			$r0->property(...$this->entityPropertiesBasic);
+		}
+		// transceive
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
+		}
+		// convert jmap object to event object
+		$so = $response->object(0);
+		if ($so instanceof ContactParametersResponse) {
+			$to = $this->toContactObject($so);
+			$to->Signature = $this->generateSignature($to);
+		}
+
+		return $to ?? null;
+	}
+
+	/**
+	 * retrieve entity(ies) from remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param string $location Id of collection
+	 * @param array<string> $identifiers Id of entity
+	 * @param string $granularity Amount of detail to return
+	 *
+	 * @return array<string,ContactObject>
+	 */
+	public function entityFetchMultiple(string $location, array $identifiers, string $granularity = 'D'): array {
+		// construct request
+		$r0 = new ContactGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0->target(...$identifiers);
+		// select properties to return
+		if ($granularity === 'B') {
+			$r0->property(...$this->entityPropertiesBasic);
+		}
+		// transceive
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
+		}
+		// convert jmap object(s) to event object
+		$list = $response->objects();
+		foreach ($list as $id => $so) {
+			if (!$so instanceof ContactParametersResponse) {
+				continue;
+			}
+			$to = $this->toContactObject($so);
+			$to->Signature = $this->generateSignature($to);
+			$list[$id] = $so;
+		}
+		// return object(s)
+		return $list;
+	}
+
+	/**
+	 * create entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 */
+	public function entityCreate(string $location, ContactObject $so): ?ContactObject {
+		// convert entity
+		$entity = $this->fromContactObject($so);
+		$id = uniqid();
+		// construct set request
+		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0->create($id, $entity)->in($location);
+		// transceive
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
+		}
+		// check for success
+		$result = $response->createSuccess($id);
+		if ($result !== null) {
+			$ro = clone $so;
+			$ro->Origin = OriginTypes::External;
+			$ro->ID = $result['id'];
+			$ro->CreatedOn = isset($result['updated']) ? new DateTimeImmutable($result['updated']) : null;
+			$ro->ModifiedOn = $ro->CreatedOn;
+			$ro->Signature = $this->generateSignature($ro);
+			return $ro;
+		}
+		// check for failure
+		$result = $response->createFailure($id);
+		if ($result !== null) {
+			$type = $result['type'] ?? 'unknownError';
+			$description = $result['description'] ?? 'An unknown error occurred during collection creation.';
+			throw new Exception("$type: $description", 1);
+		}
+		// return null if creation failed without failure reason
+		return null;
+	}
+
+	/**
+	 * update entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 */
+	public function entityModify(string $location, string $identifier, ContactObject $so): ?ContactObject {
+		// convert entity
+		$entity = $this->fromContactObject($so);
+		// construct set request
+		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+		$r0->update($identifier, $entity)->in($location);
+		// transceive
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
+		}
+		// check for success
+		$result = $response->updateSuccess($identifier);
+		if ($result !== null) {
+			$ro = clone $so;
+			$ro->Origin = OriginTypes::External;
+			$ro->ID = $identifier;
+			$ro->ModifiedOn = isset($result['updated']) ? new DateTimeImmutable($result['updated']) : null;
+			$ro->Signature = $this->generateSignature($ro);
+			return $ro;
+		}
+		// check for failure
+		$result = $response->updateFailure($identifier);
+		if ($result !== null) {
+			$type = $result['type'] ?? 'unknownError';
+			$description = $result['description'] ?? 'An unknown error occurred during collection modification.';
+			throw new Exception("$type: $description", 1);
+		}
+		// return null if modification failed without failure reason
+		return null;
+	}
+
+	/**
+	 * delete entity from remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 */
+	public function entityDelete(string $location, string $identifier): ?string {
+		// construct set request
+		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		$r0->delete($identifier);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
+		}
+		// check for success
+		$result = $response->deleteSuccess($identifier);
+		if ($result !== null) {
+			return (string)$result['id'];
+		}
+		// check for failure
+		$result = $response->deleteFailure($identifier);
+		if ($result !== null) {
+			$type = $result['type'] ?? 'unknownError';
+			$description = $result['description'] ?? 'An unknown error occurred during collection deletion.';
+			throw new Exception("$type: $description", 1);
+		}
+		// return null if deletion failed without failure reason
+		return null;
+	}
+
+	/**
+	 * copy entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 */
+	public function entityCopy(string $sourceLocation, string $identifier, string $destinationLocation): string {
+		return '';
+	}
+
+	/**
+	 * move entity in remote storage
+	 *
+	 * @since Release 1.0.0
+	 *
+	 */
+	public function entityMove(string $sourceLocation, string $identifier, string $destinationLocation): string {
+		// construct set request
+		$r0 = new ContactSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+		// construct object
+		$m0 = $r0->update($identifier);
+		$m0->in($destinationLocation);
+		// transmit request and receive response
+		$bundle = $this->dataStore->perform([$r0]);
+		// extract response
+		$response = $bundle->response(0);
+		// return collection information
+		return array_key_exists($identifier, $response->updated()) ? (string)$identifier : '';
 	}
 
 	private function toContactCollection(AddressBookParametersResponse $so): ContactCollectionObject {
@@ -674,7 +839,7 @@ class RemoteContactsService {
 		// aliases
 		if ($so->aliases() !== null) {
 			foreach ($so->aliases() as $id => $entry) {
-				$entity = new \OCA\JMAPC\Objects\Contact\ContactAliasObject();
+				$entity = new ContactAliasObject();
 				$entity->Id = (string)$id;
 				$entity->Label = $entry->name();
 				$do->Name->Aliases[$id] = $entity;
@@ -683,7 +848,7 @@ class RemoteContactsService {
 		// anniversaries
 		if ($so->anniversaries() !== null) {
 			foreach ($so->anniversaries() as $id => $entry) {
-				$entity = new \OCA\JMAPC\Objects\Contact\ContactAnniversaryObject();
+				$entity = new ContactAnniversaryObject();
 				if ($entry->date() !== null) {
 					$dateParams = $entry->date();
 					if (method_exists($dateParams, 'value')) {
@@ -696,7 +861,7 @@ class RemoteContactsService {
 		// emails
 		if ($so->emails() !== null) {
 			foreach ($so->emails() as $id => $entry) {
-				$entity = new \OCA\JMAPC\Objects\Contact\ContactEmailObject();
+				$entity = new ContactEmailObject();
 				$entity->Id = (string)$id;
 				$entity->Address = $entry->address();
 				$entity->Priority = $entry->priority();
@@ -707,7 +872,7 @@ class RemoteContactsService {
 		// phones
 		if ($so->phones() !== null) {
 			foreach ($so->phones() as $id => $entry) {
-				$entity = new \OCA\JMAPC\Objects\Contact\ContactPhoneObject();
+				$entity = new ContactPhoneObject();
 				$entity->Id = (string)$id;
 				$entity->Number = $entry->number();
 				$entity->Label = $entry->label();
@@ -719,7 +884,7 @@ class RemoteContactsService {
 		// addresses
 		if ($so->addresses() !== null) {
 			foreach ($so->addresses() as $id => $entry) {
-				$entity = new \OCA\JMAPC\Objects\Contact\ContactPhysicalLocationObject();
+				$entity = new ContactPhysicalLocationObject();
 				$entity->Id = (string)$id;
 				$entity->Coordinates = $entry->coordinates();
 				if ($entry->timeZone() !== null) {
@@ -752,7 +917,7 @@ class RemoteContactsService {
 		// organizations
 		if ($so->organizations() !== null) {
 			foreach ($so->organizations() as $id => $entry) {
-				$entity = new \OCA\JMAPC\Objects\Contact\ContactOrganizationObject();
+				$entity = new ContactOrganizationObject();
 				$entity->Id = (string)$id;
 				$entity->Label = $entry->name();
 				$entity->SortName = $entry->sorting();
@@ -767,11 +932,11 @@ class RemoteContactsService {
 		// titles
 		if ($so->titles() !== null) {
 			foreach ($so->titles() as $id => $entry) {
-				$entity = new \OCA\JMAPC\Objects\Contact\ContactTitleObject();
+				$entity = new ContactTitleObject();
 				$entity->Id = (string)$id;
 				$entity->Label = $entry->name();
 				$entity->Relation = $entry->relation();
-				$entity->Kind = match ($entry->kind()) {
+				$entity->Kind = match ($entry->kind() ?? 'title') {
 					'role' => ContactTitleTypes::Role,
 					default => ContactTitleTypes::Title,
 				};
@@ -787,7 +952,7 @@ class RemoteContactsService {
 		// notes
 		if ($so->notes() !== null) {
 			foreach ($so->notes() as $id => $entry) {
-				$entity = new \OCA\JMAPC\Objects\Contact\ContactNoteObject();
+				$entity = new ContactNoteObject();
 				$entity->Id = (string)$id;
 				$entity->Content = $entry->value();
 				$entity->Date = $entry->created();
@@ -797,7 +962,7 @@ class RemoteContactsService {
 		// crypto keys
 		if ($so->crypto() !== null) {
 			foreach ($so->crypto() as $id => $entry) {
-				$entity = new \OCA\JMAPC\Objects\Contact\ContactCryptoObject();
+				$entity = new ContactCryptoObject();
 				$entity->Id = (string)$id;
 				$entity->Type = $entry->kind();
 				$entity->Data = $entry->uri();
@@ -993,7 +1158,10 @@ class RemoteContactsService {
 				$titleParams->name($entry->Label);
 			}
 			if ($entry->Kind !== null) {
-				$titleParams->kind($entry->Kind);
+				$titleParams->kind(match ($entry->Kind ?? ContactTitleTypes::Title) {
+					ContactTitleTypes::Role => 'role',
+					default => 'title',
+				});
 			}
 			if ($entry->Relation !== null) {
 				$titleParams->relation($entry->Relation);

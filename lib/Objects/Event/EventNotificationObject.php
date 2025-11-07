@@ -31,10 +31,10 @@ use DateTime;
 use DateTimeImmutable;
 
 class EventNotificationObject {
-	public ?string $Id = null;
-	public ?EventNotificationTypes $Type = null;
-	public ?EventNotificationPatterns $Pattern = null;
+	public string|null $Id = null;
+	public EventNotificationTypes|null $Type = null;
+	public EventNotificationPatterns|null $Pattern = null;
 	public DateTime|DateTimeImmutable|null $When = null;
-	public ?EventNotificationAnchorTypes $Anchor = null;
-	public ?DateInterval $Offset = null;
+	public EventNotificationAnchorTypes|null $Anchor = null;
+	public DateInterval|null $Offset = null;
 }

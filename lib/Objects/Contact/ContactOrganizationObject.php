@@ -30,17 +30,17 @@ use OCA\JMAPC\Objects\BaseStringCollection;
 
 class ContactOrganizationObject {
 
-	public ?string $Label;
+	public string|null $Label;
 	public BaseStringCollection $Units;
 
-	public ?string $SortName = null;
+	public string|null $SortName = null;
 
-	public ?string $Id = null;
-	public ?int $Index = null;
-	public ?int $Priority = null;
-	public ?string $Context = null;
-	public ?string $Language = null;
-	public ?string $URI = null;
+	public string|null $Id = null;
+	public int|null $Index = null;
+	public int|null $Priority = null;
+	public string|null $Context = null;
+	public string|null $Language = null;
+	public string|null $URI = null;
 
 	public function __construct() {
 		$this->Units = new BaseStringCollection();

@@ -28,13 +28,13 @@ namespace OCA\JMAPC\Objects\Contact;
 
 class ContactAliasObject {
 
-	public ?string $Label = null;
+	public string|null $Label = null;
 	
-	public ?string $Id = null;
-	public ?int $Index = null;
-	public ?int $Priority = null; // PREF
-	public ?string $Context = null; // TYPE
-	public ?string $Language = null; // LANGUAGE
-	public ?string $URI = null; // VALUE
+	public string|null $Id = null;
+	public int|null $Index = null;
+	public int|null $Priority = null; // PREF
+	public string|null $Context = null; // TYPE
+	public string|null $Language = null; // LANGUAGE
+	public string|null $URI = null; // VALUE
 
 }

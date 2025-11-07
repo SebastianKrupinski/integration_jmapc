@@ -29,12 +29,12 @@ namespace OCA\JMAPC\Objects\Event;
 class EventAttachmentObject {
 
 	public string $Store; // D - Data Store / R - Reference / E - Enclosed
-	public ?string $Id;
-	public ?string $Name;
-	public ?string $Type;
-	public ?string $Encoding; // B - Binary / B64 - Base64
-	public ?string $Size;
-	public ?string $Data;
+	public string|null $Id;
+	public string|null $Name;
+	public string|null $Type;
+	public string|null $Encoding; // B - Binary / B64 - Base64
+	public string|null $Size;
+	public string|null $Data;
 	
 	public function __construct(
 		?string $store = null,

@@ -30,16 +30,16 @@ use DateTimeInterface;
 
 class ContactNoteObject {
 
-	public ?string $Content = null;
-	public ?DateTimeInterface $Date = null;
-	public ?string $AuthorUri = null;
-	public ?string $AuthorName = null;
+	public string|null $Content = null;
+	public DateTimeInterface|null $Date = null;
+	public string|null $AuthorUri = null;
+	public string|null $AuthorName = null;
 	
-	public ?string $Id = null;
-	public ?int $Index = null;
-	public ?int $Priority = null;
-	public ?string $Context = null;
-	public ?string $Language = null;
-	public ?string $URI = null;
+	public string|null $Id = null;
+	public int|null $Index = null;
+	public int|null $Priority = null;
+	public string|null $Context = null;
+	public string|null $Language = null;
+	public string|null $URI = null;
 
 }

@@ -28,12 +28,12 @@ namespace OCA\JMAPC\Objects\Event;
 
 class EventLocationPhysicalObject {
 
-	public ?string $Id = null;
-	public ?string $Name = null;
-	public ?string $Description = null;
-	public ?string $Relation = null;
-	public ?string $TimeZone = null;
-	public ?string $Coordinates = null;
+	public string|null $Id = null;
+	public string|null $Name = null;
+	public string|null $Description = null;
+	public string|null $Relation = null;
+	public string|null $TimeZone = null;
+	public string|null $Coordinates = null;
 	public array $Types = [];
 	public array $Links = [];
 

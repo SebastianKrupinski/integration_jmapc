@@ -28,12 +28,12 @@ namespace OCA\JMAPC\Objects\Contact;
 
 class ContactPronounObject {
 	
-	public ?string $Pronoun = null;
+	public string|null $Pronoun = null;
 	
-	public ?string $Id = null;
-	public ?int $Index = null;
-	public ?int $Priority = null;
-	public ?string $Context = null;
-	public ?string $Language = null;
+	public string|null $Id = null;
+	public int|null $Index = null;
+	public int|null $Priority = null;
+	public string|null $Context = null;
+	public string|null $Language = null;
 
 }

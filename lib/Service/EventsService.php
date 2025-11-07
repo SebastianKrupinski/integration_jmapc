@@ -147,8 +147,6 @@ class EventsService {
 			return $statistics;
 		}
 
-		// retrieve a delta of local entity variations
-		$localEntityDelta = $this->LocalEventsService->entityDelta($lcid, $lcsn);
 		// retrieve a delta of remote entity variations
 		// if server side delta is not available generate one
 		try {
@@ -158,7 +156,13 @@ class EventsService {
 		}
 
 		// process remote additions
-		foreach ($remoteEntityDelta->additions as $reid) {
+		$alterations = array_unique(
+			array_merge(
+				$remoteEntityDelta->additions->getArrayCopy(),
+				$remoteEntityDelta->modifications->getArrayCopy(),
+			)
+		);
+		foreach ($alterations as $reid) {
 			// process addition
 			$as = $this->harmonizeRemoteAltered($this->userId, $sid, $rcid, $reid, $lcid);
 			// increment statistics
@@ -175,26 +179,11 @@ class EventsService {
 			}
 		}
 
-		// process remote modifications
-		foreach ($remoteEntityDelta->modifications as $reid) {
-			// process modification
-			$as = $this->harmonizeRemoteAltered($this->userId, $sid, $rcid, $reid, $lcid);
-			// increment statistics
-			switch ($as) {
-				case 'LC':
-					$statistics->LocalCreated += 1;
-					break;
-				case 'LU':
-					$statistics->LocalUpdated += 1;
-					break;
-				case 'RU':
-					$statistics->RemoteUpdated += 1;
-					break;
-			}
-		}
-
 		// process remote deletions
-		foreach ($remoteEntityDelta->deletions as $reid) {
+		$alterations = array_unique(
+			$remoteEntityDelta->deletions->getArrayCopy()
+		);
+		foreach ($alterations as $reid) {
 			// process delete
 			$as = $this->harmonizeRemoteDelete($rcid, $reid, $lcid);
 			if ($as == 'LD') {
@@ -209,31 +198,19 @@ class EventsService {
 		// clean up
 		unset($remoteCollection, $remoteEntityDelta);
 
+		// retrieve a delta of local entity variations
+		$localEntityDelta = $this->LocalEventsService->entityDelta($lcid, $lcsn);
+
 		// evaluate if local entity variations exist
 		if (isset($localEntityDelta['stamp'])) {
 			// process local additions
-			foreach ($localEntityDelta['additions'] as $variant) {
-				$leid = $variant['id'];
+			$alterations = array_unique(array_merge(
+				array_column($localEntityDelta['additions'], 'id'),
+				array_column($localEntityDelta['modifications'], 'id')
+			));
+			foreach ($alterations as $leid) {
 				// process addition
-				$as = $this->harmonizeLocalAltered($this->userId, $sid, $lcid, $leid, $rcid, $rcsn);
-				// increment statistics
-				switch ($as) {
-					case 'RC':
-						$statistics->RemoteCreated += 1;
-						break;
-					case 'RU':
-						$statistics->RemoteUpdated += 1;
-						break;
-					case 'LU':
-						$statistics->LocalUpdated += 1;
-						break;
-				}
-			}
-			// process local modifications
-			foreach ($localEntityDelta['modifications'] as $variant) {
-				$leid = $variant['id'];
-				// process modification
-				$as = $this->harmonizeLocalAltered($this->userId, $sid, $lcid, $leid, $rcid, $rcsn);
+				$as = $this->harmonizeLocalAltered($this->userId, $sid, $lcid, $leid, $rcid);
 				// increment statistics
 				switch ($as) {
 					case 'RC':
@@ -248,8 +225,10 @@ class EventsService {
 				}
 			}
 			// process local deletions
-			foreach ($localEntityDelta['deletions'] as $variant) {
-				$leid = $variant['id'];
+			$alterations = array_unique(array_merge(
+				array_column($localEntityDelta['deletions'], 'id')
+			));
+			foreach ($alterations as $leid) {
 				// process deletion
 				$as = $this->harmonizeLocalDelete($leid);
 				if ($as == 'RD') {
@@ -432,7 +411,7 @@ class EventsService {
 		$ro = null;
 		$lo = null;
 		// retrieve remote entity
-		$ro = $this->RemoteEventsService->entityFetch($reid);
+		$ro = $this->RemoteEventsService->entityFetch($rcid, $reid);
 		// evaluate, if remote entity was returned
 		if (!($ro instanceof EventObject)) {
 			return $status;

@@ -34,22 +34,22 @@ class TaskObject {
 
 	private $Data = null;
 
-	private ?string $Origin = null;                 // Source System / L - Local / R - Remote
-	private ?string $ID = null;                     // Source System Id
-	private ?string $UUID = null;                   // Object UUID
-	private ?string $CID = null;                    // Source System Object Collection Affiliation Id
-	private ?string $Signature = null;                  // Source System Object State
+	private string|null $Origin = null;                 // Source System / L - Local / R - Remote
+	private string|null $ID = null;                     // Source System Id
+	private string|null $UUID = null;                   // Object UUID
+	private string|null $CID = null;                    // Source System Object Collection Affiliation Id
+	private string|null $Signature = null;                  // Source System Object State
 	private ?DateTime $CreatedOn = null;            // Source System Creation Date/Time
 	private ?DateTime $ModifiedOn = null;           // Source System Modification Date/Time
 	private ?DateTime $StartsOn = null;             // Task Start Date/Time
 	private ?DateTime $DueOn = null;                // Task End Date/Time
 	private ?DateTime $CompletedOn = null;          // Task End Date/Time
-	private ?string $Label = null;                  // Task Title/Summary
-	private ?string $Notes = null;                  // Task Notes
-	private ?string $Progress = null;               // Task Location
-	private ?string $Status = null;                 // Task Status
-	private ?string $Priority = null;               // Task Priority / 0 - Low / 1 - Normal / 2 - High
-	private ?string $Sensitivity = null;            // Task Sensitivity / 0 - Normal / 1 - Personnal / 2 - Private / 3 - Confidential
+	private string|null $Label = null;                  // Task Title/Summary
+	private string|null $Notes = null;                  // Task Notes
+	private string|null $Progress = null;               // Task Location
+	private string|null $Status = null;                 // Task Status
+	private string|null $Priority = null;               // Task Priority / 0 - Low / 1 - Normal / 2 - High
+	private string|null $Sensitivity = null;            // Task Sensitivity / 0 - Normal / 1 - Personnal / 2 - Private / 3 - Confidential
 	private array $Tags = [];                       // Task Categories
 	private array $Notifications = [];              // Task Reminders/Alerts
 	private ?TaskOccurrenceObject $Occurrence = null; // Task Recurrance Data
@@ -88,7 +88,7 @@ class TaskObject {
 		$this->Journaling = true;
 	}
 
-	public function addAttachment(string $store, ?string $id = null, ?string $name = null, ?string $type = null, ?string $encoding = null, ?string $size = null, ?string $data = null) {
+	public function addAttachment(string $store, string|null $id = null, string|null $name = null, string|null $type = null, string|null $encoding = null, string|null $size = null, string|null $data = null) {
 		$this->Attachments[] = new TaskAttachmentObject($store, $id, $name, $type, $encoding, $size, $data);
 	}
 
@@ -96,7 +96,7 @@ class TaskObject {
 		$this->Tags[] = $tag;
 	}
 
-	public function addAttendee(string $address, ?string $name, ?string $type, string $attendance) {
+	public function addAttendee(string $address, string|null $name, string|null $type, string $attendance) {
 		// $this->Attendee[] = new TaskAttendeeObject($address, $name, $type, $attendance);
 	}
 

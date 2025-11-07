@@ -28,14 +28,14 @@ namespace OCA\JMAPC\Objects\Contact;
 
 class ContactNameObject {
 
-	public ?string $Last = null;
-	public ?string $First = null;
-	public ?string $Other = null;
-	public ?string $Prefix = null;
-	public ?string $Suffix = null;
-	public ?string $PhoneticLast = null;
-	public ?string $PhoneticFirst = null;
-	public ?string $PhoneticOther = null;
+	public string|null $Last = null;
+	public string|null $First = null;
+	public string|null $Other = null;
+	public string|null $Prefix = null;
+	public string|null $Suffix = null;
+	public string|null $PhoneticLast = null;
+	public string|null $PhoneticFirst = null;
+	public string|null $PhoneticOther = null;
 	public ContactAliasCollection $Aliases;
 
 	public function __construct() {

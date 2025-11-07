@@ -27,8 +27,8 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Objects\Event;
 
 class EventOrganizerObject {
-	public ?string $Address = null;
-	public ?string $Name = null;
+	public string|null $Address = null;
+	public string|null $Name = null;
 
 	public function __construct(
 		?string $Address = null,

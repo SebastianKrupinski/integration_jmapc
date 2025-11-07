@@ -28,23 +28,23 @@ namespace OCA\JMAPC\Objects\Contact;
 
 class ContactPhysicalLocationObject {
 
-	public ?string $Box = null;
-	public ?string $Unit = null;
-	public ?string $Street = null;
-	public ?string $Locality = null;
-	public ?string $Region = null;
-	public ?string $Code = null;
-	public ?string $Country = null;
+	public string|null $Box = null;
+	public string|null $Unit = null;
+	public string|null $Street = null;
+	public string|null $Locality = null;
+	public string|null $Region = null;
+	public string|null $Code = null;
+	public string|null $Country = null;
 
-	public ?string $Label = null;
-	public ?string $Coordinates = null;
-	public ?string $TimeZone = null;
+	public string|null $Label = null;
+	public string|null $Coordinates = null;
+	public string|null $TimeZone = null;
 
-	public ?string $Id = null;
-	public ?int $Index = null;
-	public ?int $Priority = null;
-	public ?string $Context = null;
-	public ?string $Language = null;
-	public ?string $URI = null;
+	public string|null $Id = null;
+	public int|null $Index = null;
+	public int|null $Priority = null;
+	public string|null $Context = null;
+	public string|null $Language = null;
+	public string|null $URI = null;
 
 }

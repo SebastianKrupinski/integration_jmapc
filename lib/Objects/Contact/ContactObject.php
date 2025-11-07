@@ -32,18 +32,18 @@ use OCA\JMAPC\Objects\OriginTypes;
 
 class ContactObject {
 
-	public ?OriginTypes $Origin = null;             // System
-	public ?string $ID = null;                      // System Entity Id
-	public ?string $CID = null;                     // System Collection Id
-	public ?string $Signature = null;               // System Entity Signature
-	public ?string $CCID = null;                    // Correlation Collection Id
-	public ?string $CEID = null;                    // Correlation Entity Id
-	public ?string $CESN = null;                    // Correlation Signature
-	public ?string $UUID = null;
+	public OriginTypes|null $Origin = null;             // System
+	public string|null $ID = null;                      // System Entity Id
+	public string|null $CID = null;                     // System Collection Id
+	public string|null $Signature = null;               // System Entity Signature
+	public string|null $CCID = null;                    // Correlation Collection Id
+	public string|null $CEID = null;                    // Correlation Entity Id
+	public string|null $CESN = null;                    // Correlation Signature
+	public string|null $UUID = null;
 	public ?DateTimeInterface $CreatedOn = null;
 	public ?DateTimeInterface $ModifiedOn = null;
-	public ?string $Kind = null;
-	public ?string $Label = null;
+	public string|null $Kind = null;
+	public string|null $Label = null;
 	public ContactNameObject $Name;
 	public ContactAnniversaryCollection $Anniversaries;
 	public ContactPronounCollection $Pronouns;
@@ -54,13 +54,13 @@ class ContactObject {
 	public ContactTitleCollection $Titles;
 	public ContactTagCollection $Tags;
 	public ContactNoteCollection $Notes;
-	public ?string $Partner = null;
-	public ?string $Language = null;
+	public string|null $Partner = null;
+	public string|null $Language = null;
 	public ContactLanguageCollection $Languages;
-	public ?DateTimeZone $TimeZone = null;
+	public DateTimeZone|null $TimeZone = null;
 	public ContactCryptoCollection $Crypto;
 	public ContactVirtualLocationCollection $VirtualLocations;
-	public ?array $Other = [];
+	public array|null $Other = [];
 	
 	public function __construct() {
 		$this->Name = new ContactNameObject();

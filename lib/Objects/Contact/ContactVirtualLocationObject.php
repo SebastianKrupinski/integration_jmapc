@@ -28,14 +28,14 @@ namespace OCA\JMAPC\Objects\Contact;
 
 class ContactVirtualLocationObject {
 
-	public ?string $Location = null;
-	public ?string $Label = null;
+	public string|null $Location = null;
+	public string|null $Label = null;
 
-	public ?string $Id = null;
-	public ?int $Index = null;
-	public ?int $Priority = null;
-	public ?string $Context = null;
-	public ?string $Language = null;
-	public ?string $URI = null;
+	public string|null $Id = null;
+	public int|null $Index = null;
+	public int|null $Priority = null;
+	public string|null $Context = null;
+	public string|null $Language = null;
+	public string|null $URI = null;
 
 }

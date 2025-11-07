@@ -30,8 +30,8 @@ use DateTimeInterface;
 
 class ContactAnniversaryObject {
 
-	public ?ContactAnniversaryTypes $Type = null;
-	public ?DateTimeInterface $When = null;
-	public ?string $Location = null;
+	public ContactAnniversaryTypes|null $Type = null;
+	public DateTimeInterface|null $When = null;
+	public string|null $Location = null;
 
 }

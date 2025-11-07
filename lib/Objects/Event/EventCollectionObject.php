@@ -29,11 +29,11 @@ namespace OCA\JMAPC\Objects\Event;
 class EventCollectionObject {
 
 	public string $Id;
-	public ?string $Label = null;
-	public ?string $Description = null;
-	public ?int $Priority = null;
-	public ?bool $Visibility = null;
-	public ?string $Color = null;
-	public ?string $Signature = null;
+	public string|null $Label = null;
+	public string|null $Description = null;
+	public int|null $Priority = null;
+	public bool|null $Visibility = null;
+	public string|null $Color = null;
+	public string|null $Signature = null;
 
 }

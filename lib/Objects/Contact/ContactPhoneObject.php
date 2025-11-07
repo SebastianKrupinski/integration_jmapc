@@ -28,12 +28,12 @@ namespace OCA\JMAPC\Objects\Contact;
 
 class ContactPhoneObject {
 
-	public ?string $Number = null;
-	public ?string $Label = null;
+	public string|null $Number = null;
+	public string|null $Label = null;
 
-	public ?string $Id = null;
-	public ?int $Index = null;
-	public ?int $Priority = null;
-	public ?string $Context = null;
-	public ?string $URI = null;
+	public string|null $Id = null;
+	public int|null $Index = null;
+	public int|null $Priority = null;
+	public string|null $Context = null;
+	public string|null $URI = null;
 }

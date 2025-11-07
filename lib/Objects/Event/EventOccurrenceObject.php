@@ -30,12 +30,12 @@ use DateTime;
 use DateTimeImmutable;
 
 class EventOccurrenceObject {
-	public ?EventOccurrencePatternTypes $Pattern = null;        // Pattern - Absolute / Relative
-	public ?EventOccurrencePrecisionTypes $Precision = null;    // Time Interval
-	public ?int $Interval = null;           // Time Interval - Every 2 Days / Every 4 Weeks / Every 1 Year
-	public ?int $Iterations = null;         // Number of recurrence
+	public EventOccurrencePatternTypes|null $Pattern = null;        // Pattern - Absolute / Relative
+	public EventOccurrencePrecisionTypes|null $Precision = null;    // Time Interval
+	public int|null $Interval = null;           // Time Interval - Every 2 Days / Every 4 Weeks / Every 1 Year
+	public int|null $Iterations = null;         // Number of recurrence
 	public DateTime|DateTimeImmutable|null $Concludes = null;     // Date to stop recurrence
-	public ?String $Scale = null;           // calendar system in which this recurrence rule operates
+	public String|null $Scale = null;           // calendar system in which this recurrence rule operates
 	public array $OnDayOfWeek = [];
 	public array $OnDayOfMonth = [];
 	public array $OnDayOfYear = [];

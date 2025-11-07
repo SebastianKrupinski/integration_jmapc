@@ -363,7 +363,7 @@ class LocalEventsService {
 		$to->setLabel($so->Label);
 		$to->setDescription($so->Description);
 		$to->setStartson($so->StartsOn->setTimezone(new DateTimeZone('UTC'))->format('U'));
-		if ($so->OccurrencePatterns > 0) {
+		if ($so->OccurrencePattern !== null) {
 			$eventReader = new EventReader($vo, $so->UUID);
 			if ($eventReader->recurringConcludes()) {
 				$to->setEndson($eventReader->recurringConcludesOn()->setTimezone(new DateTimeZone('UTC'))->format('U'));
@@ -423,7 +423,18 @@ class LocalEventsService {
 
 	}
 
-	public function toEventInstanceObject(VEvent $so, EventObject|EventMutationObject $do, ?VEvent $bo = null): EventObject|EventMutationObject {
+	/**
+	 * convert vevent base/mutation object to event base/mutation object
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param VEvent $so source object (base or mutation)
+	 * @param EventObject|EventMutationObject $do destination object (base or mutation)
+	 * @param VEvent|null $bo source base object (for mutations)
+	 *
+	 * @return EventObject|EventMutationObject
+	 */
+	public function toEventInstanceObject(VEvent $so, EventObject|EventMutationObject $do, VEvent|null $bo = null): EventObject|EventMutationObject {
 
 		// creation date time
 		if (isset($so->CREATED)) {
@@ -431,7 +442,6 @@ class LocalEventsService {
 		} elseif (isset($so->DTSTAMP)) {
 			$do->CreatedOn = $so->DTSTAMP->getDateTime();
 		}
-
 		// modification date time
 		if (isset($so->{'LAST-MODIFIED'})) {
 			$do->ModifiedOn = $so->{'LAST-MODIFIED'}->getDateTime();
@@ -461,11 +471,11 @@ class LocalEventsService {
 			$do->Duration = $so->DURATION->getDateInterval();
 		}
 		// label
-		if (isset($so->SUMMARY) && !($bo && isset($bo->SUMMARY) && $bo->SUMMARY->getValue() === $so->SUMMARY->getValue())) {
+		if (isset($so->SUMMARY)) {
 			$do->Label = trim($so->SUMMARY->getValue());
 		}
 		// description
-		if (isset($so->DESCRIPTION) && !($bo && isset($bo->SUMMARY) && $bo->SUMMARY->getValue() === $so->SUMMARY->getValue())) {
+		if (isset($so->DESCRIPTION)) {
 			if (!empty(trim($so->DESCRIPTION->getValue()))) {
 				$do->Description = trim($so->DESCRIPTION->getValue());
 			}
@@ -483,18 +493,18 @@ class LocalEventsService {
 		}
 		// availability
 		if (isset($so->TRANSP)) {
-			$do->Availability = match (strtoupper($so->TRANSP->getValue())) {
+			$do->Availability = match (strtoupper($so->TRANSP?->getValue() ?? 'default')) {
 				'FREE' => EventAvailabilityTypes::Free,
 				default => EventAvailabilityTypes::Busy,
 			};
 		}
 		// priority
 		if (isset($so->PRIORITY)) {
-			$do->Priority = (int)trim($so->PRIORITY->getValue());
+			$do->Priority = (int)$so->PRIORITY->getValue();
 		}
 		// sensitivity
 		if (isset($so->CLASS)) {
-			$do->Sensitivity = match (strtoupper($so->CLASS->getValue())) {
+			$do->Sensitivity = match (strtoupper($so->CLASS?->getValue() ?? 'default')) {
 				'PRIVATE' => EventSensitivityTypes::Private,
 				'CONFIDENTIAL' => EventSensitivityTypes::Secret,
 				default => EventSensitivityTypes::Public,
@@ -517,19 +527,19 @@ class LocalEventsService {
 					$entity->Address = !empty($entry->getValue()) ? trim(str_replace('mailto:', '', $entry->getValue())) : null;
 					$entity->Id = $parameters['X-ID']?->getValue();
 					$entity->Name = $parameters['CN']?->getValue() ?? null;
-					$entity->Type = match ($parameters['CUTYPE']?->getValue()) {
+					$entity->Type = match (strtoupper($parameters['CUTYPE']?->getValue() ?? 'default')) {
 						'GROUP' => EventParticipantTypes::Group,
 						'RESOURCE' => EventParticipantTypes::Resource,
 						'ROOM' => EventParticipantTypes::Location,
 						default => EventParticipantTypes::Individual,
 					};
-					$entity->Status = match ($parameters['PARTSTAT']?->getValue()) {
+					$entity->Status = match (strtoupper($parameters['PARTSTAT']?->getValue() ?? 'default')) {
 						'ACCEPTED' => EventParticipantStatusTypes::Accepted,
 						'DECLINED' => EventParticipantStatusTypes::Declined,
 						'TENTATIVE' => EventParticipantStatusTypes::Tentative,
 						default => ($name === 'ORGANIZER') ? EventParticipantStatusTypes::Accepted : EventParticipantStatusTypes::None,
 					};
-					$entity->Roles[] = match ($parameters['ROLE']?->getValue()) {
+					$entity->Roles[] = match (strtoupper($parameters['ROLE']?->getValue() ?? 'default')) {
 						'CHAIR' => EventParticipantRoleTypes::Chair,
 						'OPT-PARTICIPANT' => EventParticipantRoleTypes::Optional,
 						'NON-PARTICIPANT' => EventParticipantRoleTypes::Informational,
@@ -544,7 +554,7 @@ class LocalEventsService {
 			foreach ($so->VALARM as $entry) {
 				$entity = new EventNotificationObject();
 				$entity->Id = $entry->{'X-ID'}->getValue();
-				$entity->Type = match ($entry->ACTION?->getValue()) {
+				$entity->Type = match (strtoupper($entry->ACTION?->getValue() ?? 'default')) {
 					'EMAIL' => EventNotificationTypes::Email,
 					'AUDIO' => EventNotificationTypes::Audible,
 					default => EventNotificationTypes::Visual,
@@ -555,7 +565,7 @@ class LocalEventsService {
 				}
 				if (isset($entry->TRIGGER?->parameters()['RELATED'])) {
 					$entity->Pattern = EventNotificationPatterns::Relative;
-					$entity->Anchor = match ($entry->TRIGGER->parameters()['RELATED']->getValue()) {
+					$entity->Anchor = match (strtoupper($entry->TRIGGER->parameters()['RELATED']->getValue())) {
 						'END' => EventNotificationAnchorTypes::End,
 						default => EventNotificationAnchorTypes::Start,
 					};
@@ -566,66 +576,64 @@ class LocalEventsService {
 		}
 		// occurrence
 		if (isset($so->RRULE)) {
-			foreach ($so->RRULE as $entry) {
-				$entity = new EventOccurrenceObject();
-				$parts = $so->RRULE->getParts();
-				if (isset($parts['FREQ'])) {
-					$entity->Precision = match ($parts['FREQ']) {
-						'YEARLY' => EventOccurrencePrecisionTypes::Yearly,
-						'MONTHLY' => EventOccurrencePrecisionTypes::Monthly,
-						'WEEKLY' => EventOccurrencePrecisionTypes::Weekly,
-						'DAILY' => EventOccurrencePrecisionTypes::Daily,
-						'HOURLY' => EventOccurrencePrecisionTypes::Hourly,
-						'MINUTELY' => EventOccurrencePrecisionTypes::Minutely,
-						'SECONDLY' => EventOccurrencePrecisionTypes::Secondly,
-					};
-				}
-				if (isset($parts['INTERVAL'])) {
-					$entity->Interval = (int)$parts['INTERVAL'];
-				}
-				if (isset($parts['COUNT'])) {
-					$entity->Iterations = (int)$parts['COUNT'];
-				}
-				if (isset($parts['UNTIL'])) {
-					$entity->Concludes = new DateTime($parts['UNTIL']);
-				}
-				if (isset($parts['BYDAY'])) {
-					if (is_array($parts['BYDAY'])) {
-						$entity->OnDayOfWeek = $parts['BYDAY'];
-					} else {
-						$entity->OnDayOfWeek = [$parts['BYDAY']];
-					}
-				}
-				if (isset($parts['BYMONTH'])) {
-					if (is_array($parts['BYMONTH'])) {
-						$entity->OnMonthOfYear = $this->convertToInt($parts['BYMONTH']);
-					} else {
-						$entity->OnMonthOfYear = $this->convertToInt([$parts['BYMONTH']]);
-					}
-				}
-				if (isset($parts['BYMONTHDAY'])) {
-					if (is_array($parts['BYMONTHDAY'])) {
-						$entity->OnDayOfMonth = $this->convertToInt($parts['BYMONTHDAY']);
-					} else {
-						$entity->OnDayOfMonth = $this->convertToInt([$parts['BYMONTHDAY']]);
-					}
-				}
-				if (isset($parts['BYYEARDAY'])) {
-					if (is_array($parts['BYYEARDAY'])) {
-						$entity->OnDayOfYear = $this->convertToInt($parts['BYYEARDAY']);
-					} else {
-						$entity->OnDayOfYear = $this->convertToInt([$parts['BYYEARDAY']]);
-					}
-				}
-				if (isset($parts['BYSETPOS'])) {
-					if (is_array($parts['BYSETPOS'])) {
-						$entity->OnPosition = $this->convertToInt($parts['BYSETPOS']);
-					} else {
-						$entity->OnPosition = $this->convertToInt([$parts['BYSETPOS']]);
-					}
-				}
-				$do->OccurrencePatterns[] = $entity;
+			$entity = new EventOccurrenceObject();
+			$parts = $so->RRULE->getParts();
+			if (isset($parts['FREQ'])) {
+				$entity->Precision = match (strtoupper($parts['FREQ'])) {
+					'YEARLY' => EventOccurrencePrecisionTypes::Yearly,
+					'MONTHLY' => EventOccurrencePrecisionTypes::Monthly,
+					'WEEKLY' => EventOccurrencePrecisionTypes::Weekly,
+					'DAILY' => EventOccurrencePrecisionTypes::Daily,
+					'HOURLY' => EventOccurrencePrecisionTypes::Hourly,
+					'MINUTELY' => EventOccurrencePrecisionTypes::Minutely,
+					'SECONDLY' => EventOccurrencePrecisionTypes::Secondly,
+				};
 			}
+			if (isset($parts['INTERVAL'])) {
+				$entity->Interval = (int)$parts['INTERVAL'];
+			}
+			if (isset($parts['COUNT'])) {
+				$entity->Iterations = (int)$parts['COUNT'];
+			}
+			if (isset($parts['UNTIL'])) {
+				$entity->Concludes = new DateTime($parts['UNTIL']);
+			}
+			if (isset($parts['BYDAY'])) {
+				if (is_array($parts['BYDAY'])) {
+					$entity->OnDayOfWeek = $parts['BYDAY'];
+				} else {
+					$entity->OnDayOfWeek = [$parts['BYDAY']];
+				}
+			}
+			if (isset($parts['BYMONTH'])) {
+				if (is_array($parts['BYMONTH'])) {
+					$entity->OnMonthOfYear = $this->convertToInt($parts['BYMONTH']);
+				} else {
+					$entity->OnMonthOfYear = $this->convertToInt([$parts['BYMONTH']]);
+				}
+			}
+			if (isset($parts['BYMONTHDAY'])) {
+				if (is_array($parts['BYMONTHDAY'])) {
+					$entity->OnDayOfMonth = $this->convertToInt($parts['BYMONTHDAY']);
+				} else {
+					$entity->OnDayOfMonth = $this->convertToInt([$parts['BYMONTHDAY']]);
+				}
+			}
+			if (isset($parts['BYYEARDAY'])) {
+				if (is_array($parts['BYYEARDAY'])) {
+					$entity->OnDayOfYear = $this->convertToInt($parts['BYYEARDAY']);
+				} else {
+					$entity->OnDayOfYear = $this->convertToInt([$parts['BYYEARDAY']]);
+				}
+			}
+			if (isset($parts['BYSETPOS'])) {
+				if (is_array($parts['BYSETPOS'])) {
+					$entity->OnPosition = $this->convertToInt($parts['BYSETPOS']);
+				} else {
+					$entity->OnPosition = $this->convertToInt([$parts['BYSETPOS']]);
+				}
+			}
+			$do->OccurrencePattern = $entity;
 		}
 		// Attachment(s)
 		/*
@@ -657,7 +665,7 @@ class LocalEventsService {
 	}
 
 	/**
-	 * Convert event object to vevent object
+	 * convert event object to vevent object
 	 *
 	 * @since Release 1.0.0
 	 *
@@ -708,7 +716,7 @@ class LocalEventsService {
 				$vComponent->add('UID', $so->UUID);
 			}
 			// recurrence id
-			if ($mutation->mutationTz !== null) {
+			if (isset($mutation->mutationTz)) {
 				$mutationTz = $mutation->mutationTz;
 			} elseif ($mutation->mutationId->getTimezone()->getName() !== 'UTC') {
 				$mutationTz = $mutation->mutationId->getTimezone()->getName();
@@ -737,9 +745,20 @@ class LocalEventsService {
 		return $do;
 	}
 
-	public function fromEventInstanceObject(EventObject|EventMutationObject $so, VEvent $do, ?EventObject $bo = null): VEvent {
+	/**
+	 * convert event base/mutation object to vevent base/mutation object
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param EventObject|EventMutationObject $so source object (base or mutation)
+	 * @param VEvent $do destination object (base or mutation)
+	 * @param EventObject|null $bo source base object (for mutations)
+	 *
+	 * @return VEvent
+	 */
+	public function fromEventInstanceObject(EventObject|EventMutationObject $so, VEvent $do, EventObject|null $bo = null): VEvent {
 		// creation date
-		if ($so->CreatedOn) {
+		if ($so->CreatedOn !== null) {
 			$do->add('CREATED', $so->CreatedOn);
 			if ($do->DTSTAMP) {
 				$do->DTSTAMP->setValue($so->CreatedOn);
@@ -748,69 +767,65 @@ class LocalEventsService {
 			}
 		}
 		// modification date
-		if ($so->ModifiedOn) {
+		if ($so->ModifiedOn !== null) {
 			$do->add('LAST-MODIFIED', $so->ModifiedOn);
 		}
 		// sequence
-		if ($so->Sequence) {
+		if ($so->Sequence !== null) {
 			$do->add('SEQUENCE', $so->Sequence);
 		} else {
 			$do->add('SEQUENCE', 0);
 		}
 		// time zone
-		if ($so->TimeZone) {
+		if ($so->TimeZone !== null) {
 			$do->add('X-TIMEZONE', $so->TimeZone->getName());
 		}
 		// Starts Date, Time and Zone
-		if ($so->StartsOn) {
-			if ($so->Timeless) {
+		if ($so->StartsOn !== null) {
+			if (isset($so->Timeless)) {
 				$do->add('DTSTART', $so->StartsOn);
 			} else {
 				$do->add('DTSTART', $so->StartsOn);
 			}
-			if ($so->StartsTZ) {
+			if ($so->StartsTZ !== null) {
 				$do->DTSTART->add('TZID', $so->StartsTZ->getName());
-			} elseif ($so->TimeZone) {
+			} elseif ($so->TimeZone !== null) {
 				$do->DTSTART->add('TZID', $so->TimeZone->getName());
-			} elseif ($bo && $bo->StartsTZ) {
+			} elseif ($bo !== null && $bo->StartsTZ !== null) {
 				$do->DTSTART->add('TZID', $bo->StartsTZ->getName());
 			}
-		} elseif ($so->mutationId) {
+		} elseif ($so->mutationId !== null) {
 			$do->add('DTSTART', $so->mutationId);
-			if ($so->mutationTz) {
+			if ($so->mutationTz !== null) {
 				$do->DTSTART->add('TZID', $so->mutationTz);
-			} elseif ($bo && $bo->StartsTZ) {
+			} elseif ($bo !== null && $bo->StartsTZ !== null) {
 				$do->DTSTART->add('TZID', $bo->StartsTZ->getName());
 			}
 		}
 		// End Date, Time and Zone
-		if ($so->EndsOn) {
-			if ($so->Timeless) {
+		if ($so->EndsOn !== null) {
+			if (isset($so->Timeless)) {
 				$do->add('DTEND', $so->EndsOn);
 			} else {
 				$do->add('DTEND', $so->EndsOn);
 			}
-			if ($so->EndsTZ) {
+			if ($so->EndsTZ !== null) {
 				$do->DTEND->add('TZID', $so->EndsTZ->getName());
-			} elseif ($so->TimeZone) {
+			} elseif ($so->TimeZone !== null) {
 				$do->DTEND->add('TZID', $so->TimeZone->getName());
 			}
 		}
 		// Duration
-		if ($so->Duration) {
-			//$do->add('DURATION',$so->Duration);
+		if ($so->Duration !== null && $so->EndsOn === null) {
+			$do->add('DURATION',$so->Duration);
 		}
 		// Label
-		if ($so->Label) {
+		if ($so->Label !== null) {
 			$do->add('SUMMARY', $so->Label);
-		} elseif ($bo && $bo->Label) {
-			$do->add('SUMMARY', $bo->Label);
 		}
 		// Notes
-		if ($so->Description) {
+		if ($so->Description !== null) {
 			$do->add('DESCRIPTION', $so->Description);
-		} elseif ($bo && $bo->Description) {
-			$do->add('DESCRIPTION', $bo->Description);
 		}
 		// Physical Location(s)
 		foreach ($so->LocationsPhysical as $entry) {
@@ -819,18 +834,18 @@ class LocalEventsService {
 			$entity->add('X-ID', $entry->Id);
 		}
 		// Availability
-		if ($so->Availability) {
+		if ($so->Availability !== null) {
 			$do->add('TRANSP', match ($so->Availability) {
 				EventAvailabilityTypes::Free => 'TRANSPARENT',
 				default => 'OPAQUE',
 			});
 		}
 		// Priority
-		if ($so->Priority) {
+		if ($so->Priority !== null) {
 			$do->add('PRIORITY', $so->Priority);
 		}
 		// Sensitivity
-		if (isset($so->Sensitivity)) {
+		if ($so->Sensitivity !== null) {
 			$do->add('CLASS', match ($so->Sensitivity) {
 				EventSensitivityTypes::Private => 'PRIVATE',
 				EventSensitivityTypes::Secret => 'CONFIDENTIAL',
@@ -838,11 +853,11 @@ class LocalEventsService {
 			});
 		}
 		// Color
-		if ($so->Color) {
+		if ($so->Color !== null) {
 			$do->add('COLOR', trim($so->Color));
 		}
 		// Tag(s)
-		if (count($so->Tags) > 0) {
+		if ($so->Tags->count() > 0) {
 			$do->add('CATEGORIES', implode(', ', (array)$so->Tags));
 		}
 		// Participant(s)
@@ -853,9 +868,8 @@ class LocalEventsService {
 				$entity = $do->add('ATTENDEE', 'mailto:' . $entry->address);
 			}
 			/** @var Property $entity */
-			$entity->add('X-ID', $entry->Id);
 			// Participant Type
-			$entity->add('CUTYPE', match ($entry->Type) {
+			$entity->add('CUTYPE', match ($entry->Type ?? 'default') {
 				EventParticipantTypes::Individual => 'INDIVIDUAL',
 				EventParticipantTypes::Group => 'GROUP',
 				EventParticipantTypes::Resource => 'RESOURCE',
@@ -863,16 +877,33 @@ class LocalEventsService {
 				default => 'UNKNOWN',
 			});
 			// Participant Status
-			$entity->add('PARTSTAT', match ($entry->Type) {
+			$entity->add('PARTSTAT', match ($entry->Status ?? 'default') {
 				EventParticipantStatusTypes::Accepted => 'ACCEPTED',
 				EventParticipantStatusTypes::Declined => 'DECLINED',
 				EventParticipantStatusTypes::Tentative => 'TENTATIVE',
 				EventParticipantStatusTypes::Delegated => 'DELEGATED',
 				default => 'NEEDS-ACTION',
 			});
+			// Participant Identifier
+			if ($entry->Id !== null) {
+				$entity->add('X-ID', $entry->Id);
+			}
 			// Participant Name
-			if ($entry->Name) {
+			if ($entry->Name !== null) {
 				$entity->add('CN', $entry->Name);
+			}
+			// Participant Language
+			if ($entry->Language !== null) {
+				$entity->add('LANGUAGE', $entry->Language);
+			}
+			// Participant Roles
+			if ($entry->Roles->count() > 0) {
+				$entity->add('ROLE', match ($entry->Roles[0]) {
+					EventParticipantRoleTypes::Chair => 'CHAIR',
+					EventParticipantRoleTypes::Optional => 'OPT-PARTICIPANT',
+					EventParticipantRoleTypes::Informational => 'NON-PARTICIPANT',
+					default => 'REQ-PARTICIPANT',
+				});
 			}
 		}
 		// Notifications
@@ -881,7 +912,7 @@ class LocalEventsService {
 			/** @var Property $entity */
 			$entity->add('X-ID', $entry->Id);
 			// Notifications Type
-			$entity->add('ACTION', match ($entry->Type) {
+			$entity->add('ACTION', match ($entry->Type ?? 'default') {
 				EventNotificationTypes::Email => 'EMAIL',
 				default => 'DISPLAY',
 			});
@@ -900,10 +931,11 @@ class LocalEventsService {
 			}
 		}
 		// Occurrence
-		foreach ($so->OccurrencePatterns as $entry) {
-			$pattern = [];
+		if ($so->OccurrencePattern !== null) {
+			$soRule = $so->OccurrencePattern;
+			$doRule = [];
 			// Occurrence Precision
-			$pattern['FREQ'] = match ($entry->Precision) {
+			$doRule['FREQ'] = match ($soRule->Precision) {
 				EventOccurrencePrecisionTypes::Yearly => 'YEARLY',
 				EventOccurrencePrecisionTypes::Monthly => 'MONTHLY',
 				EventOccurrencePrecisionTypes::Weekly => 'WEEKLY',
@@ -913,43 +945,43 @@ class LocalEventsService {
 				EventOccurrencePrecisionTypes::Secondly => 'SECONDLY',
 			};
 			// Occurrence Interval
-			if ($entry->Interval) {
-				$pattern['INTERVAL'] = $entry->Interval;
+			if ($soRule->Interval !== null) {
+				$doRule['INTERVAL'] = $soRule->Interval;
 			}
 			// Occurrence Iterations
-			if ($entry->Iterations) {
-				$pattern['COUNT'] = $entry->Iterations;
+			if ($soRule->Iterations !== null) {
+				$doRule['COUNT'] = $soRule->Iterations;
 			}
 			// Occurrence Conclusion
-			if ($entry->Concludes) {
-				$pattern['UNTIL'] = $entry->Concludes->format(self::DATE_FORMAT_UTC);
+			if ($soRule->Concludes !== null) {
+				$doRule['UNTIL'] = $soRule->Concludes->format(self::DATE_FORMAT_UTC);
 			}
 			// Occurrence Day Of Week
-			if (count($entry->OnDayOfWeek) > 0) {
-				$pattern['BYDAY'] = implode(',', $entry->OnDayOfWeek);
+			if (count($soRule->OnDayOfWeek) > 0) {
+				$doRule['BYDAY'] = implode(',', $soRule->OnDayOfWeek);
 			}
 			// Occurrence Day Of Month
-			if (count($entry->OnDayOfMonth) > 0) {
-				$pattern['BYMONTHDAY'] = implode(',', $entry->OnDayOfMonth);
+			if (count($soRule->OnDayOfMonth) > 0) {
+				$doRule['BYMONTHDAY'] = implode(',', $soRule->OnDayOfMonth);
 			}
 			// Occurrence Day Of Year
-			if (count($entry->OnDayOfYear) > 0) {
-				$pattern['BYYEARDAY'] = implode(',', $entry->OnDayOfYear);
+			if (count($soRule->OnDayOfYear) > 0) {
+				$doRule['BYYEARDAY'] = implode(',', $soRule->OnDayOfYear);
 			}
 			// Occurrence Week Of Year
-			if (count($entry->OnWeekOfYear) > 0) {
-				$pattern['BYWEEKNO'] = implode(',', $entry->OnWeekOfYear);
+			if (count($soRule->OnWeekOfYear) > 0) {
+				$doRule['BYWEEKNO'] = implode(',', $soRule->OnWeekOfYear);
 			}
 			// Occurrence Month Of Year
-			if (count($entry->OnMonthOfYear) > 0) {
-				$pattern['BYMONTH'] = implode(',', $entry->OnMonthOfYear);
+			if (count($soRule->OnMonthOfYear) > 0) {
+				$doRule['BYMONTH'] = implode(',', $soRule->OnMonthOfYear);
 			}
 			// Occurrence Position
-			if (count($entry->OnPosition) > 0) {
-				$pattern['BYSETPOS'] = implode(',', $entry->OnPosition);
+			if (count($soRule->OnPosition) > 0) {
+				$doRule['BYSETPOS'] = implode(',', $soRule->OnPosition);
 			}
 
-			$do->add('RRULE', $pattern);
+			$do->add('RRULE', $doRule);
 		}
 
 		// Attachment(s)
@@ -1002,6 +1034,15 @@ class LocalEventsService {
 		return $do;
 	}
 
+	/**
+	 * generate event object signature
+	 *
+	 * @since Release 1.0.0
+	 *
+	 * @param EventObject $to target object
+	 *
+	 * @return string
+	 */
 	public function generateSignature(EventObject $to): string {
 
 		// clone self

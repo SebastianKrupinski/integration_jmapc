@@ -33,25 +33,25 @@ use DateTimeZone;
 
 class EventCommonObject {
 
-	public ?string $InstanceId = null;
+	public string|null $InstanceId = null;
 	public DateTime|DateTimeImmutable|null $CreatedOn = null;
 	public DateTime|DateTimeImmutable|null $ModifiedOn = null;
-	public ?int $Sequence = null;
-	public ?DateTimeZone $TimeZone = null;
+	public int|null $Sequence = null;
+	public DateTimeZone|null $TimeZone = null;
 	public DateTime|DateTimeImmutable|null $StartsOn = null;
-	public ?DateTimeZone $StartsTZ = null;
+	public DateTimeZone|null $StartsTZ = null;
 	public DateTime|DateTimeImmutable|null $EndsOn = null;
-	public ?DateTimeZone $EndsTZ = null;
-	public ?DateInterval $Duration = null;
-	public ?bool $Timeless = false;
-	public ?string $Label = null;
-	public ?string $Description = null;
+	public DateTimeZone|null $EndsTZ = null;
+	public DateInterval|null $Duration = null;
+	public bool|null $Timeless = false;
+	public string|null $Label = null;
+	public string|null $Description = null;
 	public EventLocationPhysicalCollection $LocationsPhysical;
 	public EventLocationVirtualCollection $LocationsVirtual;
-	public ?EventAvailabilityTypes $Availability = null;
-	public ?int $Priority = null;
-	public ?EventSensitivityTypes $Sensitivity = null;
-	public ?string $Color = null;
+	public EventAvailabilityTypes|null $Availability = null;
+	public int|null $Priority = null;
+	public EventSensitivityTypes|null $Sensitivity = null;
+	public string|null $Color = null;
 	public EventTagCollection $Categories;
 	public EventTagCollection $Tags;
 	public EventOrganizerObject $Organizer;

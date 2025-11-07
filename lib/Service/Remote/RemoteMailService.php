@@ -88,7 +88,7 @@ class RemoteMailService {
 			if ($this->resourceNamespace !== null) {
 				$account = $dataStore->sessionAccountDefault($this->resourceNamespace, false);
 			} else {
-				$account = $dataStore->sessionAccountDefault('contacts');
+				$account = $dataStore->sessionAccountDefault('mail');
 			}
 			$this->dataAccount = $account !== null ? $account->id() : '';
 		} else {
@@ -118,12 +118,13 @@ class RemoteMailService {
 		// define filter
 		if ($filter !== null) {
 			foreach ($filter->conditions() as $condition) {
+				$value = $condition['value'];
 				match($condition['attribute']) {
-					'in' => $r0->filter()->in($condition['value']),
-					'name' => $r0->filter()->name($condition['value']),
-					'role' => $r0->filter()->role($condition['value']),
-					'hasRoles' => $r0->filter()->hasRoles($condition['value']),
-					'subscribed' => $r0->filter()->isSubscribed($condition['value']),
+					'in' => $r0->filter()->in($value),
+					'name' => $r0->filter()->name($value),
+					'role' => $r0->filter()->role($value),
+					'hasRoles' => $r0->filter()->hasRoles($value),
+					'subscribed' => $r0->filter()->isSubscribed($value),
 					default => null
 				};
 			}
@@ -131,9 +132,10 @@ class RemoteMailService {
 		// define order
 		if ($sort !== null) {
 			foreach ($sort->conditions() as $condition) {
+				$direction = $condition['direction'];
 				match($condition['attribute']) {
-					'name' => $r0->sort()->name($condition['value']),
-					'order' => $r0->sort()->order($condition['value']),
+					'name' => $r0->sort()->name($direction),
+					'order' => $r0->sort()->order($direction),
 					default => null
 				};
 			}
@@ -146,7 +148,7 @@ class RemoteMailService {
 		$bundle = $this->dataStore->perform([$r0, $r1]);
 		// extract response
 		$response = $bundle->response(1);
-		// determine if command errored
+		// check for command error
 		if ($response instanceof ResponseException) {
 			if ($response->type() === 'unknownMethod') {
 				throw new JmapUnknownMethod($response->description(), 1);
@@ -161,7 +163,6 @@ class RemoteMailService {
 				continue;
 			}
 			$to = $this->toMailCollection($so);
-			//$to->setSignature((string)$response->state());
 			$list[$id] = $to;
 		}
 		// return collection of collections
@@ -200,7 +201,7 @@ class RemoteMailService {
 	 *
 	 * @since Release 1.0.0
 	 */
-	public function collectionFetch(string $id): MailCollectionObject {
+	public function collectionFetch(string $id): ?MailCollectionObject {
 		// construct request
 		$r0 = new MailboxGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
 		$r0->target($id);
@@ -208,12 +209,19 @@ class RemoteMailService {
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
+		}
 		// convert jmap object to collection object
 		$so = $response->object(0);
 		$to = null;
 		if ($so instanceof MailboxParametersResponse) {
 			$to = $this->toMailCollection($so);
-			//$to->setSignature((string)$response->state());
 		}
 		return $to;
 	}
@@ -223,25 +231,41 @@ class RemoteMailService {
 	 *
 	 * @since Release 1.0.0
 	 */
-	public function collectionCreate(string $location, MailCollectionObject $so): ?MailCollectionObject {
+	public function collectionCreate(string|null $location, MailCollectionObject $so): ?string {
 		// convert entity
 		$to = $this->fromMailCollection($so);
-		$to->in($location);
+		if (!empty($location)) {
+			$to->in($location);
+		}
+		$id = uniqid();
 		// construct request
 		$r0 = new MailboxSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		$r0->create('1', $to);
+		$r0->create($id, $to);
 		// transceive
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// determine if command succeeded
-		if (array_key_exists('1', $response->created())) {
-			// update entity
-			$ro = $response->created()['1'];
-			$so->fromJmap($ro, true);
-			//$so->setSignature((string)$response->stateNew());
-			return $so;
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
 		}
+		// check for success
+		$result = $response->createSuccess($id);
+		if ($result !== null) {
+			return (string)$result['id'];
+		}
+		// check for failure
+		$result = $response->createFailure($id);
+		if ($result !== null) {
+			$type = $result['type'] ?? 'unknownError';
+			$description = $result['description'] ?? 'An unknown error occurred during collection creation.';
+			throw new Exception("$type: $description", 1);
+		}
+		// return null if creation failed without failure reason
 		return null;
 	}
 
@@ -251,9 +275,7 @@ class RemoteMailService {
 	 * @since Release 1.0.0
 	 *
 	 */
-	public function collectionModify(MailCollectionObject $so): ?MailCollectionObject {
-		// extract entity id
-		$id = $so->id();
+	public function collectionModify(string $id, MailCollectionObject $so): ?string {
 		// convert entity
 		$to = $this->fromMailCollection($so);
 		// construct request
@@ -263,11 +285,27 @@ class RemoteMailService {
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// determine if command succeeded
-		if (array_key_exists($id, $response->updated())) {
-			//$so->setSignature((string)$response->stateNew());
-			return $so;
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
 		}
+		// check for success
+		$result = $response->updateSuccess($id);
+		if ($result !== null) {
+			return (string)$result['id'];
+		}
+		// check for failure
+		$result = $response->updateFailure($id);
+		if ($result !== null) {
+			$type = $result['type'] ?? 'unknownError';
+			$description = $result['description'] ?? 'An unknown error occurred during collection modification.';
+			throw new Exception("$type: $description", 1);
+		}
+		// return null if modification failed without failure reason
 		return null;
 	}
 
@@ -285,10 +323,27 @@ class RemoteMailService {
 		$bundle = $this->dataStore->perform([$r0]);
 		// extract response
 		$response = $bundle->response(0);
-		// determine if command succeeded
-		if (array_search($id, $response->deleted()) !== false) {
-			return $response->stateNew();
+		// check for command error
+		if ($response instanceof ResponseException) {
+			if ($response->type() === 'unknownMethod') {
+				throw new JmapUnknownMethod($response->description(), 1);
+			} else {
+				throw new Exception($response->type() . ': ' . $response->description(), 1);
+			}
 		}
+		// check for success
+		$result = $response->deleteSuccess($id);
+		if ($result !== null) {
+			return (string)$result['id'];
+		}
+		// check for failure
+		$result = $response->deleteFailure($id);
+		if ($result !== null) {
+			$type = $result['type'] ?? 'unknownError';
+			$description = $result['description'] ?? 'An unknown error occurred during collection deletion.';
+			throw new Exception("$type: $description", 1);
+		}
+		// return null if deletion failed without failure reason
 		return null;
 	}
 
@@ -308,23 +363,24 @@ class RemoteMailService {
 		// define filter
 		if ($filter !== null) {
 			foreach ($filter->conditions() as $condition) {
+				$value = $condition['value'];
 				match($condition['attribute']) {
-					'in' => $r0->filter()->in($condition['value']),
-					'inOmit' => $r0->filter()->inOmit($condition['value']),
-					'text' => $r0->filter()->text($condition['value']),
-					'from' => $r0->filter()->from($condition['value']),
-					'to' => $r0->filter()->to($condition['value']),
-					'cc' => $r0->filter()->cc($condition['value']),
-					'bcc' => $r0->filter()->bcc($condition['value']),
-					'subject' => $r0->filter()->subject($condition['value']),
-					'body' => $r0->filter()->body($condition['value']),
-					'attachmentPresent' => $r0->filter()->hasAttachment($condition['value']),
-					'tagPresent' => $r0->filter()->keywordPresent($condition['value']),
-					'tagAbsent' => $r0->filter()->keywordAbsent($condition['value']),
-					'receivedBefore' => $r0->filter()->receivedBefore($condition['value']),
-					'receivedAfter' => $r0->filter()->receivedAfter($condition['value']),
-					'sizeMin' => $r0->filter()->sizeMin((int)$condition['value']),
-					'sizeMax' => $r0->filter()->sizeMax((int)$condition['value']),
+					'in' => $r0->filter()->in($value),
+					'inOmit' => $r0->filter()->inOmit($value),
+					'text' => $r0->filter()->text($value),
+					'from' => $r0->filter()->from($value),
+					'to' => $r0->filter()->to($value),
+					'cc' => $r0->filter()->cc($value),
+					'bcc' => $r0->filter()->bcc($value),
+					'subject' => $r0->filter()->subject($value),
+					'body' => $r0->filter()->body($value),
+					'attachmentPresent' => $r0->filter()->hasAttachment($value),
+					'tagPresent' => $r0->filter()->keywordPresent($value),
+					'tagAbsent' => $r0->filter()->keywordAbsent($value),
+					'receivedBefore' => $r0->filter()->receivedBefore($value),
+					'receivedAfter' => $r0->filter()->receivedAfter($value),
+					'sizeMin' => $r0->filter()->sizeMin((int)$value),
+					'sizeMax' => $r0->filter()->sizeMax((int)$value),
 					default => null
 				};
 			}
@@ -332,14 +388,15 @@ class RemoteMailService {
 		// define order
 		if ($sort !== null) {
 			foreach ($sort->conditions() as $condition) {
+				$direction = $condition['direction'];
 				match($condition['attribute']) {
-					'received' => $r0->sort()->received($condition['value']),
-					'sent' => $r0->sort()->sent($condition['value']),
-					'from' => $r0->sort()->from($condition['value']),
-					'to' => $r0->sort()->to($condition['value']),
-					'subject' => $r0->sort()->subject($condition['value']),
-					'size' => $r0->sort()->size($condition['value']),
-					'tag' => $r0->sort()->keyword($condition['value']),
+					'received' => $r0->sort()->received($direction),
+					'sent' => $r0->sort()->sent($direction),
+					'from' => $r0->sort()->from($direction),
+					'to' => $r0->sort()->to($direction),
+					'subject' => $r0->sort()->subject($direction),
+					'size' => $r0->sort()->size($direction),
+					'tag' => $r0->sort()->keyword($direction),
 					default => null
 				};
 			}

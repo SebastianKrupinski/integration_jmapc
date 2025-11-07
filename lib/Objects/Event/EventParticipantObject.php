@@ -28,13 +28,14 @@ namespace OCA\JMAPC\Objects\Event;
 
 class EventParticipantObject {
 
-	public ?string $Id = null;
-	public ?string $Name = null;
-	public ?string $Description = null;
-	public ?string $Address = null;
-	public ?EventParticipantTypes $Type = null;
-	public ?EventParticipantStatusTypes $Status = null;
-	public ?string $Comment = null;
+	public string|null $Id = null;
+	public string|null $Name = null;
+	public string|null $Description = null;
+	public string|null $Language = null;
+	public string|null $Address = null;
+	public EventParticipantTypes|null $Type = null;
+	public EventParticipantStatusTypes|null $Status = null;
+	public string|null $Comment = null;
 	public EventParticipantRoleCollection $Roles;
 
 	public function __construct() {
