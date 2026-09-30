@@ -5,23 +5,14 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import axios, { type AxiosResponse, type AxiosError } from '@nextcloud/axios'
+import axios, { type AxiosError } from '@nextcloud/axios'
 import { loadState } from '@nextcloud/initial-state'
 import { generateUrl } from '@nextcloud/router'
 import { translate as t } from '@nextcloud/l10n'
 
-// Temporary replacement for @nextcloud/dialogs until Vue 3 compatibility
-const showSuccess = (message: string) => {
-	console.log('Success:', message)
-	// Could use a simple notification or alert
-}
+import { showError, showSuccess } from '@nextcloud/dialogs'
 
-const showError = (message: string) => {
-	console.error('Error:', message)
-	// Could use a simple notification or alert
-}
-
-import { NcButton, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 
 import JmapIcon from '../icons/JmapIcon.vue'
 import CheckIcon from 'vue-material-design-icons/Check.vue'
@@ -47,19 +38,23 @@ interface SaveRequest {
 }
 
 // Reactive data
-const readonly = ref<boolean>(true)
+const saving = ref(false)
 const state = reactive<AdminConfigurationState>(
-	loadState('integration_jmapc', 'admin-configuration') as AdminConfigurationState
+	loadState('integration_jmapc', 'admin-configuration') as AdminConfigurationState,
 )
 
 // Select options for synchronization mode
 const synchronizationModeOptions: SelectOption[] = [
-	{ label: 'Passive', id: 'P' },
-	{ label: 'Active', id: 'A' }
+	{ label: t('integration_jmapc', 'Passive'), id: 'P' },
+	{ label: t('integration_jmapc', 'Active'), id: 'A' },
 ]
 
 // Methods
 const onSaveClick = async (): Promise<void> => {
+	if (saving.value) {
+		return
+	}
+	saving.value = true
 	const req: SaveRequest = {
 		values: {
 			harmonization_mode: state.harmonization_mode,
@@ -67,22 +62,24 @@ const onSaveClick = async (): Promise<void> => {
 			harmonization_thread_pause: state.harmonization_thread_pause,
 		},
 	}
-	
+
 	const url = generateUrl('/apps/integration_jmapc/admin-configuration')
-	
+
 	try {
-		const response: AxiosResponse = await axios.put(url, req)
+		await axios.put(url, req)
 		showSuccess(t('integration_jmapc', 'JMAP admin configuration saved'))
 	} catch (error) {
 		const axiosError = error as AxiosError
-		const errorMessage = axiosError.response?.data 
+		const errorMessage = axiosError.response?.data
 			? String(axiosError.response.data)
 			: axiosError.message || 'Unknown error occurred'
-		
+
 		showError(
-			t('integration_jmapc', 'Failed to save JMAP admin configuration') 
-			+ ': ' + errorMessage
+			t('integration_jmapc', 'Failed to save JMAP admin configuration')
+			+ ': ' + errorMessage,
 		)
+	} finally {
+		saving.value = false
 	}
 }
 </script>
@@ -136,9 +133,10 @@ const onSaveClick = async (): Promise<void> => {
 			</div>
 			<br>
 			<div class="jmap-actions">
-				<NcButton @click="onSaveClick()">
+				<NcButton :disabled="saving" @click="onSaveClick()">
 					<template #icon>
-						<CheckIcon />
+						<NcLoadingIcon v-if="saving" />
+						<CheckIcon v-else />
 					</template>
 					{{ t('integration_jmapc', 'Save') }}
 				</NcButton>

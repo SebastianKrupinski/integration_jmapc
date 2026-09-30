@@ -1,0 +1,19 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Sebastian Krupinski <krupinski01@gmail.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"types": ["node"],
+		"rootDir": "../../..",
+		"outDir": "../../../js/tests"
+	},
+	"include": ["./**/*.ts"]
+}

@@ -5,4 +5,4 @@
  */
 ?>
 
-<div id="davc-user-settings"></div>
+<div id="jmapc-user-settings"></div>
