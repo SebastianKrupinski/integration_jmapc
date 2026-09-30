@@ -26,6 +26,9 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Service\Remote;
 
+use Http\Discovery\Psr17FactoryDiscovery;
+use OCP\Http\Client\IClientService;
+use OCP\Server;
 use JmapClient\Authentication\Basic;
 use JmapClient\Authentication\Bearer;
 use JmapClient\Authentication\JsonBasic;
@@ -48,7 +51,15 @@ class RemoteService {
 	public static function freshClient(ServiceEntity $service): JmapClient {
 
 		// defaults
-		$client = new JmapClient();
+		$requestFactory = Psr17FactoryDiscovery::findRequestFactory();
+		$streamFactory = Psr17FactoryDiscovery::findStreamFactory();
+		$adapter = new JmapClientAdapter(
+			Server::get(IClientService::class)->newClient(),
+			Psr17FactoryDiscovery::findResponseFactory(),
+			$streamFactory,
+			['verify' => (bool)$service->getLocationSecurity(), 'timeout' => 30],
+		);
+		$client = new JmapClient('', null, $adapter, $requestFactory, $streamFactory);
 		$client->setTransportAgent(self::$clientTransportAgent);
 		// location
 		$client->configureTransportMode($service->getLocationProtocol());
@@ -56,7 +67,6 @@ class RemoteService {
 		if (!empty($service->getLocationPath())) {
 			$client->setDiscoveryPath($service->getLocationPath());
 		}
-		$client->configureTransportVerification((bool)$service->getLocationSecurity());
 		// authentication
 		if ($service->getAuth() == 'OA') {
 			$client->setAuthentication(new Bearer(
