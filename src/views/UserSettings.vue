@@ -11,15 +11,13 @@ import { generateUrl } from '@nextcloud/router'
 import { translate as t } from '@nextcloud/l10n'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 
-import {
-	NcTextField, 
-	NcPasswordField, 
-	NcButton, 
-	NcCheckboxRadioSwitch, 
-	NcColorPicker, 
-	NcSelect,
-	NcEmptyContent,
-} from '@nextcloud/vue'
+import NcTextField from '@nextcloud/vue/components/NcTextField'
+import NcPasswordField from '@nextcloud/vue/components/NcPasswordField'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcColorPicker from '@nextcloud/vue/components/NcColorPicker'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
+import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 
 import JmapIcon from '../icons/JmapIcon.vue'
 import AccountAddIcon from 'vue-material-design-icons/AccountPlus.vue'
@@ -974,6 +972,8 @@ function establishedTaskCorrelationHarmonized(ccid: string | null): number {
 
 .jmapc-section__connected {
 	margin-top: 20px;
+	border-top: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--color-border);
 	
 	.connection-status {
 		margin-bottom: 30px;
@@ -1043,7 +1043,6 @@ function establishedTaskCorrelationHarmonized(ccid: string | null): number {
 		gap: 12px;
 		margin-top: 24px;
 		padding-top: 20px;
-		border-top: 1px solid var(--color-border);
 	}
 }
 </style>
