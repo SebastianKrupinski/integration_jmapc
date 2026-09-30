@@ -35,6 +35,7 @@
 		</post-migration>
 	</repair-steps>
     <commands>
+		<command>OCA\JMAPC\Commands\Debug</command>
 		<command>OCA\JMAPC\Commands\Connect</command>
 		<command>OCA\JMAPC\Commands\Disconnect</command>
 		<command>OCA\JMAPC\Commands\Harmonize</command>

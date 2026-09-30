@@ -29,6 +29,8 @@ namespace OCA\JMAPC\Service\Remote;
 use Http\Discovery\Psr17FactoryDiscovery;
 use OCP\Http\Client\IClientService;
 use OCP\Server;
+use OCP\IConfig;
+use OCA\JMAPC\Logging\FileLogger;
 use JmapClient\Authentication\Basic;
 use JmapClient\Authentication\Bearer;
 use JmapClient\Authentication\JsonBasic;
@@ -58,6 +60,10 @@ class RemoteService {
 			Psr17FactoryDiscovery::findResponseFactory(),
 			$streamFactory,
 			['verify' => (bool)$service->getLocationSecurity(), 'timeout' => 30],
+			$service->getDebug() ? new FileLogger(
+				Server::get(IConfig::class)->getSystemValue('datadirectory', \OC::$SERVERROOT . '/data')
+				. '/jmapc-' . (int)$service->getId() . '.log',
+			) : null,
 		);
 		$client = new JmapClient('', null, $adapter, $requestFactory, $streamFactory);
 		$client->setTransportAgent(self::$clientTransportAgent);
@@ -100,13 +106,6 @@ class RemoteService {
 				self::cookieStoreRetrieve(...),
 				self::cookieStoreDeposit(...),
 			));
-		}
-		// debugging
-		if ($service->getDebug()) {
-			$client->configureTransportLogState(true);
-			$client->configureTransportLogLocation(
-				sys_get_temp_dir() . '/' . $service->getLocationHost() . '-' . $service->getAddressPrimary() . '.log'
-			);
 		}
 		// return
 		return $client;

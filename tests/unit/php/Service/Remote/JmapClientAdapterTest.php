@@ -16,6 +16,8 @@ use OCA\JMAPC\Service\Remote\JmapClientAdapter;
 use OCP\Http\Client\IClient;
 use OCP\Http\Client\IResponse;
 use PHPUnit\Framework\MockObject\MockObject;
+use Psr\Log\LoggerInterface;
+use GuzzleHttp\Psr7\NoSeekStream;
 
 class JmapClientAdapterTest extends TestCase {
 	private IClient&MockObject $ncClient;
@@ -110,5 +112,92 @@ class JmapClientAdapterTest extends TestCase {
 
 		$this->expectException(JmapTransportException::class);
 		$this->client->sendRequest($request);
+	}
+
+	public function testLogsRedactedTrafficAndPreservesResponseStream(): void {
+		$messages = [];
+		$logger = $this->createMock(LoggerInterface::class);
+		$logger->expects(self::exactly(2))->method('debug')->willReturnCallback(static function (string $message, array $context) use (&$messages): void {
+			$messages[] = ['message' => $message, 'context' => $context];
+		});
+		$client = new JmapClientAdapter($this->ncClient, $this->factory, $this->factory, [], $logger);
+		$request = $this->factory->createRequest('POST', 'https://user:uri-secret@jmap.example.com/api?access_token=query-secret')
+			->withHeader('Authorization', 'Bearer header-secret')
+			->withHeader('Cookie', 'session=cookie-secret')
+			->withHeader('Content-Type', 'application/json')
+			->withBody($this->factory->createStream('{"password":"body-secret","nested":{"accessToken":"nested-secret"},"methodCalls":[["Email/get",{},"0"]]}'));
+		$resource = fopen('php://temp', 'r+');
+		fwrite($resource, '{"ok":true,"token":"response-secret"}');
+		rewind($resource);
+		$this->ncClient->method('request')->willReturn($this->ncResponse(200, $resource, ['Content-Type' => ['application/json'], 'Set-Cookie' => ['response-cookie-secret']]));
+		$response = $client->sendRequest($request);
+		self::assertSame(0, $response->getBody()->tell());
+		self::assertSame('{"ok":true,"token":"response-secret"}', $response->getBody()->getContents());
+		self::assertSame('JMAPC Request', $messages[0]['message']);
+		self::assertSame('POST', $messages[0]['context']['method']);
+		self::assertSame('Email/get', $messages[0]['context']['body']['methodCalls'][0][0]);
+		self::assertSame('[redacted]', $messages[0]['context']['headers']['Authorization']);
+		self::assertSame('[redacted]', $messages[0]['context']['body']['nested']['accessToken']);
+		self::assertSame('JMAPC Response', $messages[1]['message']);
+		self::assertSame(200, $messages[1]['context']['status']);
+		self::assertSame(['ok' => true, 'token' => '[redacted]'], $messages[1]['context']['body']);
+		self::assertStringNotContainsString('secret', json_encode($messages));
+	}
+
+	public function testLogsFailuresWithoutExceptionPayload(): void {
+		$logger = $this->createMock(LoggerInterface::class);
+		$logger->expects(self::exactly(2))->method('debug')->with(
+			self::isString(),
+			self::callback(static fn (array $context): bool => !str_contains(json_encode($context), 'private-payload')),
+		);
+		$this->ncClient->method('request')->willThrowException(new \RuntimeException('private-payload'));
+		$client = new JmapClientAdapter($this->ncClient, $this->factory, $this->factory, [], $logger);
+		$this->expectException(JmapTransportException::class);
+		$client->sendRequest($this->factory->createRequest('GET', 'https://jmap.example.com/api'));
+	}
+
+	public function testDoesNotConsumeNonSeekableResponsesForLogging(): void {
+		$stream = new NoSeekStream($this->factory->createStream('{"ok":true}'));
+		$factory = $this->createMock(\Psr\Http\Message\StreamFactoryInterface::class);
+		$factory->method('createStream')->willReturn($stream);
+		$messages = [];
+		$logger = $this->createMock(LoggerInterface::class);
+		$logger->method('debug')->willReturnCallback(static function (string $message, array $context) use (&$messages): void { $messages[] = ['message' => $message, 'context' => $context]; });
+		$client = new JmapClientAdapter($this->ncClient, $this->factory, $factory, [], $logger);
+		$this->ncClient->method('request')->willReturn($this->ncResponse(200, '', ['Content-Type' => ['application/json']]));
+		$response = $client->sendRequest($this->factory->createRequest('GET', 'https://jmap.example.com/api'));
+		self::assertSame('[streamed body]', $messages[1]['context']['body']);
+		self::assertSame('{"ok":true}', $response->getBody()->getContents());
+	}
+
+	public function testLogsEmptyJsonBodyAsNull(): void {
+		$messages = [];
+		$logger = $this->createMock(LoggerInterface::class);
+		$logger->method('debug')->willReturnCallback(static function (string $message, array $context) use (&$messages): void { $messages[] = ['message' => $message, 'context' => $context]; });
+		$client = new JmapClientAdapter($this->ncClient, $this->factory, $this->factory, [], $logger);
+		$this->ncClient->method('request')->willReturn($this->ncResponse(200, '{"ok":true}', ['Content-Type' => ['application/json']]));
+		$client->sendRequest($this->factory->createRequest('GET', 'https://jmap.example.com/api')->withHeader('Content-Type', 'application/json'));
+		self::assertNull($messages[0]['context']['body']);
+	}
+
+	public static function omittedBodies(): array {
+		return [
+			['application/octet-stream', 'binary-secret', '[non-JSON body]'],
+			['application/json', 'invalid-secret', '[invalid JSON body]'],
+			['application/json', str_repeat('x', 1048577), '[body exceeds 1 MiB]'],
+		];
+	}
+
+	#[\PHPUnit\Framework\Attributes\DataProvider('omittedBodies')]
+	public function testOmitsUnsafeBodies(string $contentType, string $body, string $expected): void {
+		$messages = [];
+		$logger = $this->createMock(LoggerInterface::class);
+		$logger->method('debug')->willReturnCallback(static function (string $message, array $context) use (&$messages): void { $messages[] = ['message' => $message, 'context' => $context]; });
+		$client = new JmapClientAdapter($this->ncClient, $this->factory, $this->factory, [], $logger);
+		$this->ncClient->method('request')->willReturn($this->ncResponse(200, $body, ['Content-Type' => [$contentType]]));
+		$response = $client->sendRequest($this->factory->createRequest('GET', 'https://jmap.example.com/api'));
+		self::assertSame($expected, $messages[1]['context']['body']);
+		self::assertStringNotContainsString($body, json_encode($messages[1]));
+		self::assertSame($body, $response->getBody()->getContents());
 	}
 }

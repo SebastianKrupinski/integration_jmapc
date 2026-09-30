@@ -11,6 +11,8 @@ namespace OCA\JMAPC\Service\Remote;
 
 use OCP\Http\Client\IClient;
 use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\MessageInterface;
+use Psr\Log\LoggerInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -35,6 +37,7 @@ class JmapClientAdapter implements ClientInterface {
 		private ResponseFactoryInterface $responseFactory,
 		private StreamFactoryInterface $streamFactory,
 		private array $defaultOptions = [],
+		private ?LoggerInterface $logger = null,
 	) {
 	}
 
@@ -57,6 +60,8 @@ class JmapClientAdapter implements ClientInterface {
 			$options['body'] = $body;
 		}
 
+		$this->logMessage($request);
+
 		// transceive and catch any transport-level exceptions
 		try {
 			$nativeResponse = $this->client->request(
@@ -65,6 +70,7 @@ class JmapClientAdapter implements ClientInterface {
 				$options,
 			);
 		} catch (\Throwable $e) {
+			$this->logger?->debug('JMAPC Request failed', ['exception' => $e::class]);
 			throw new JmapTransportException($e->getMessage(), (int)$e->getCode(), $e);
 		}
 
@@ -82,6 +88,73 @@ class JmapClientAdapter implements ClientInterface {
 			$response = $response->withHeader($name, $values);
 		}
 
+		$this->logMessage($request, $response);
 		return $response;
+	}
+
+	private function logMessage(RequestInterface $request, ?ResponseInterface $response = null): void {
+		if ($this->logger === null) {
+			return;
+		}
+		$message = $response ?? $request;
+		$uri = $request->getUri()->withUserInfo('');
+		parse_str($uri->getQuery(), $query);
+		$uri = $uri->withQuery(http_build_query($this->redact($query)));
+		$context = [
+			'method' => $request->getMethod(),
+			'uri' => (string)$uri,
+		];
+		if ($response !== null) {
+			$context['status'] = $response->getStatusCode();
+		}
+		$context['headers'] = [];
+		foreach ($message->getHeaders() as $name => $values) {
+			$context['headers'][$name] = $this->isSensitive($name) ? '[redacted]' : implode(', ', $values);
+		}
+		$context['body'] = $this->logBody($message);
+		$this->logger->debug($response === null ? 'JMAPC Request' : 'JMAPC Response', $context);
+	}
+
+	private function logBody(MessageInterface $message): mixed {
+		$stream = $message->getBody();
+		if (!$stream->isSeekable()) {
+			return '[streamed body]';
+		}
+		$contentType = strtolower($message->getHeaderLine('Content-Type'));
+		if (!str_contains($contentType, 'json')) {
+			return '[non-JSON body]';
+		}
+		$position = $stream->tell();
+		try {
+			$stream->rewind();
+			$body = $stream->read(1048577);
+		} finally {
+			$stream->seek($position);
+		}
+		if ($body === '') {
+			return null;
+		}
+		if (strlen($body) > 1048576) {
+			return '[body exceeds 1 MiB]';
+		}
+		$value = json_decode($body, true);
+		if (json_last_error() !== JSON_ERROR_NONE) {
+			return '[invalid JSON body]';
+		}
+		return $this->redact($value);
+	}
+
+	private function redact(mixed $value): mixed {
+		if (!is_array($value)) {
+			return $value;
+		}
+		foreach ($value as $key => $item) {
+			$value[$key] = $this->isSensitive((string)$key) ? '[redacted]' : $this->redact($item);
+		}
+		return $value;
+	}
+
+	private function isSensitive(string $name): bool {
+		return (bool)preg_match('/authorization|cookie|password|secret|token/i', $name);
 	}
 }
