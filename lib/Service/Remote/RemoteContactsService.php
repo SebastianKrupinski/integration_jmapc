@@ -68,6 +68,8 @@ use OCA\JMAPC\Store\Remote\Filters\ContactFilter;
 use OCA\JMAPC\Store\Remote\Sort\ContactSort;
 
 class RemoteContactsService {
+	use ChunkedRetrieval;
+
 	protected Client $dataStore;
 	protected string $dataAccount;
 
@@ -311,90 +313,83 @@ class RemoteContactsService {
 	 * @param ISort|null $sort Properties to sort by
 	 */
 	public function entityList(?string $location = null, ?string $granularity = null, ?IRangeTally $range = null, ?IFilter $filter = null, ?ISort $sort = null, ?int $depth = null): array {
-		// construct request
-		$r0 = new ContactQuery($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		// define location
-		if (!empty($location)) {
-			$r0->filter()->in($location);
-		}
-		// define filter
-		if ($filter !== null) {
-			foreach ($filter->conditions() as $condition) {
-				$value = $condition['value'];
-				match($condition['attribute']) {
-					'createBefore' => $r0->filter()->createdBefore($value),
-					'createAfter' => $r0->filter()->createdAfter($value),
-					'modifiedBefore' => $r0->filter()->updatedBefore($value),
-					'modifiedAfter' => $r0->filter()->updatedAfter($value),
-					'uid' => $r0->filter()->uid($value),
-					'kind' => $r0->filter()->kind($value),
-					'member' => $r0->filter()->member($value),
-					'text' => $r0->filter()->text($value),
-					'name' => $r0->filter()->name($value),
-					'nameGiven' => $r0->filter()->nameGiven($value),
-					'nameSurname' => $r0->filter()->nameSurname($value),
-					'nameAlias' => $r0->filter()->nameAlias($value),
-					'organization' => $r0->filter()->organization($value),
-					'email' => $r0->filter()->mail($value),
-					'phone' => $r0->filter()->phone($value),
-					'address' => $r0->filter()->address($value),
-					'note' => $r0->filter()->note($value),
-					default => null
-				};
+		// construct query request
+		$query = function () use ($location, $range, $filter, $sort): ContactQuery {
+			$r0 = new ContactQuery($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+			// define location
+			if (!empty($location)) {
+				$r0->filter()->in($location);
 			}
-		}
-		// define sort
-		if ($sort !== null) {
-			foreach ($sort->conditions() as $condition) {
-				$direction = $condition['direction'];
-				match($condition['attribute']) {
-					'created' => $r0->sort()->created($direction),
-					'modified' => $r0->sort()->updated($direction),
-					'nameGiven' => $r0->sort()->nameGiven($direction),
-					'nameSurname' => $r0->sort()->nameSurname($direction),
-					default => null
-				};
+			// define filter
+			if ($filter !== null) {
+				foreach ($filter->conditions() as $condition) {
+					$value = $condition['value'];
+					match($condition['attribute']) {
+						'createBefore' => $r0->filter()->createdBefore($value),
+						'createAfter' => $r0->filter()->createdAfter($value),
+						'modifiedBefore' => $r0->filter()->updatedBefore($value),
+						'modifiedAfter' => $r0->filter()->updatedAfter($value),
+						'uid' => $r0->filter()->uid($value),
+						'kind' => $r0->filter()->kind($value),
+						'member' => $r0->filter()->member($value),
+						'text' => $r0->filter()->text($value),
+						'name' => $r0->filter()->name($value),
+						'nameGiven' => $r0->filter()->nameGiven($value),
+						'nameSurname' => $r0->filter()->nameSurname($value),
+						'nameAlias' => $r0->filter()->nameAlias($value),
+						'organization' => $r0->filter()->organization($value),
+						'email' => $r0->filter()->mail($value),
+						'phone' => $r0->filter()->phone($value),
+						'address' => $r0->filter()->address($value),
+						'note' => $r0->filter()->note($value),
+						default => null
+					};
+				}
 			}
-		}
-		// define range
-		if ($range !== null) {
-			if ($range->anchor() === RangeAnchorType::ABSOLUTE) {
-				$r0->limitAbsolute($range->getPosition(), $range->getCount());
+			// define sort
+			if ($sort !== null) {
+				foreach ($sort->conditions() as $condition) {
+					$direction = $condition['direction'];
+					match($condition['attribute']) {
+						'created' => $r0->sort()->created($direction),
+						'modified' => $r0->sort()->updated($direction),
+						'nameGiven' => $r0->sort()->nameGiven($direction),
+						'nameSurname' => $r0->sort()->nameSurname($direction),
+						default => null
+					};
+				}
 			}
-			if ($range->anchor() === RangeAnchorType::RELATIVE) {
-				$r0->limitRelative($range->getPosition(), $range->getCount());
+			// define range
+			if ($range !== null) {
+				if ($range->anchor() === RangeAnchorType::ABSOLUTE) {
+					$r0->limitAbsolute($range->getPosition(), $range->getCount());
+				}
+				if ($range->anchor() === RangeAnchorType::RELATIVE) {
+					$r0->limitRelative($range->getPosition(), $range->getCount());
+				}
 			}
-		}
+			return $r0;
+		};
 		// construct get request
-		$r1 = new ContactGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		// set target to query request
-		$r1->targetFromRequest($r0, '/ids');
-		// select properties to return
-		if ($granularity === 'B') {
-			$r1->property(...$this->entityPropertiesBasic);
-		}
-		// transceive
-		$bundle = $this->dataStore->perform([$r0, $r1]);
-		// extract response
-		$response = $bundle->response(1);
-		// check for command error
-		if ($response instanceof ResponseException) {
-			if ($response->type() === 'unknownMethod') {
-				throw new JmapUnknownMethod($response->description(), 1);
-			} else {
-				throw new Exception($response->type() . ': ' . $response->description(), 1);
+		$get = function () use ($granularity): ContactGet {
+			$r1 = new ContactGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+			// select properties to return
+			if ($granularity === 'B') {
+				$r1->property(...$this->entityPropertiesBasic);
 			}
-		}
+			return $r1;
+		};
+		// transceive
+		$result = $this->queryAndFetch($query, $get, $range === null);
 		// convert json objects to contact objects
-		$state = $response->state();
-		$list = $response->objects();
-		foreach ($list as $id => $entry) {
+		$list = [];
+		foreach ($result['objects'] as $entry) {
 			$eo = $this->toContactObject($entry);
 			$eo->Signature = $this->generateSignature($eo);
-			$list[$id] = $eo;
+			$list[] = $eo;
 		}
 		// return status object
-		return ['list' => $list, 'state' => $state];
+		return ['list' => $list, 'state' => $result['state']];
 	}
 
 	public function entityListFilter(): ContactFilter {
@@ -562,33 +557,25 @@ class RemoteContactsService {
 	 */
 	public function entityFetchMultiple(string $location, array $identifiers, string $granularity = 'D'): array {
 		// construct request
-		$r0 = new ContactGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		$r0->target(...$identifiers);
-		// select properties to return
-		if ($granularity === 'B') {
-			$r0->property(...$this->entityPropertiesBasic);
-		}
-		// transceive
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// check for command error
-		if ($response instanceof ResponseException) {
-			if ($response->type() === 'unknownMethod') {
-				throw new JmapUnknownMethod($response->description(), 1);
-			} else {
-				throw new Exception($response->type() . ': ' . $response->description(), 1);
+		$get = function () use ($granularity): ContactGet {
+			$r0 = new ContactGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+			// select properties to return
+			if ($granularity === 'B') {
+				$r0->property(...$this->entityPropertiesBasic);
 			}
-		}
-		// convert jmap object(s) to event object
-		$list = $response->objects();
-		foreach ($list as $id => $so) {
+			return $r0;
+		};
+		// transceive
+		$objects = $this->fetchChunked($identifiers, $get);
+		// convert jmap object(s) to contact object
+		$list = [];
+		foreach ($objects as $so) {
 			if (!$so instanceof ContactParametersResponse) {
 				continue;
 			}
 			$to = $this->toContactObject($so);
 			$to->Signature = $this->generateSignature($to);
-			$list[$id] = $so;
+			$list[] = $to;
 		}
 		// return object(s)
 		return $list;

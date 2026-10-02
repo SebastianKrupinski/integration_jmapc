@@ -77,6 +77,8 @@ use OCA\JMAPC\Store\Remote\Filters\EventFilter;
 use OCA\JMAPC\Store\Remote\Sort\EventSort;
 
 class RemoteEventsService {
+	use ChunkedRetrieval;
+
 	public ?DateTimeZone $SystemTimeZone = null;
 	public ?DateTimeZone $UserTimeZone = null;
 
@@ -325,84 +327,76 @@ class RemoteEventsService {
 	 * @param ISort|null $sort Properties to sort by
 	 */
 	public function entityList(?string $location = null, ?string $granularity = null, ?IRangeTally $range = null, ?IFilter $filter = null, ?ISort $sort = null, ?int $depth = null): array {
-		// construct request
-		$r0 = new EventQuery($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		// define location
-		if (!empty($location)) {
-			$r0->filter()->in($location);
-		}
-		// define filter
-		if ($filter !== null) {
-			foreach ($filter->conditions() as $condition) {
-				$value = $condition['value'];
-				match($condition['attribute']) {
-					'before' => $r0->filter()->before($value),
-					'after' => $r0->filter()->after($value),
-					'uid' => $r0->filter()->uid($value),
-					'text' => $r0->filter()->text($value),
-					'title' => $r0->filter()->title($value),
-					'description' => $r0->filter()->description($value),
-					'location' => $r0->filter()->location($value),
-					'owner' => $r0->filter()->owner($value),
-					'attendee' => $r0->filter()->attendee($value),
-					default => null
-				};
+		// construct query request
+		$query = function () use ($location, $range, $filter, $sort): EventQuery {
+			$r0 = new EventQuery($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+			// define location
+			if (!empty($location)) {
+				$r0->filter()->in($location);
 			}
-		}
-		// define order
-		if ($sort !== null) {
-			foreach ($sort->conditions() as $condition) {
-				$direction = $condition['direction'];
-				match($condition['attribute']) {
-					'created' => $r0->sort()->created($direction),
-					'modified' => $r0->sort()->updated($direction),
-					'start' => $r0->sort()->start($direction),
-					'uid' => $r0->sort()->uid($direction),
-					'recurrence' => $r0->sort()->recurrence($direction),
-					default => null
-				};
+			// define filter
+			if ($filter !== null) {
+				foreach ($filter->conditions() as $condition) {
+					$value = $condition['value'];
+					match($condition['attribute']) {
+						'before' => $r0->filter()->before($value),
+						'after' => $r0->filter()->after($value),
+						'uid' => $r0->filter()->uid($value),
+						'text' => $r0->filter()->text($value),
+						'title' => $r0->filter()->title($value),
+						'description' => $r0->filter()->description($value),
+						'location' => $r0->filter()->location($value),
+						'owner' => $r0->filter()->owner($value),
+						'attendee' => $r0->filter()->attendee($value),
+						default => null
+					};
+				}
 			}
-		}
-		// define range
-		if ($range !== null) {
-			if ($range->anchor() === RangeAnchorType::ABSOLUTE) {
-				$r0->limitAbsolute($range->getPosition(), $range->getCount());
+			// define order
+			if ($sort !== null) {
+				foreach ($sort->conditions() as $condition) {
+					$direction = $condition['direction'];
+					match($condition['attribute']) {
+						'created' => $r0->sort()->created($direction),
+						'modified' => $r0->sort()->updated($direction),
+						'start' => $r0->sort()->start($direction),
+						'uid' => $r0->sort()->uid($direction),
+						'recurrence' => $r0->sort()->recurrence($direction),
+						default => null
+					};
+				}
 			}
-			if ($range->anchor() === RangeAnchorType::RELATIVE) {
-				$r0->limitRelative($range->getPosition(), $range->getCount());
+			// define range
+			if ($range !== null) {
+				if ($range->anchor() === RangeAnchorType::ABSOLUTE) {
+					$r0->limitAbsolute($range->getPosition(), $range->getCount());
+				}
+				if ($range->anchor() === RangeAnchorType::RELATIVE) {
+					$r0->limitRelative($range->getPosition(), $range->getCount());
+				}
 			}
-		}
-		// construct request
-		$r1 = new EventGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		// set target to query request
-		$r1->targetFromRequest($r0, '/ids');
-		// select properties to return
-		if ($granularity === 'B') {
-			$r1->property(...$this->entityPropertiesBasic);
-		}
+			return $r0;
+		};
+		// construct get request
+		$get = function () use ($granularity): EventGet {
+			$r1 = new EventGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+			// select properties to return
+			if ($granularity === 'B') {
+				$r1->property(...$this->entityPropertiesBasic);
+			}
+			return $r1;
+		};
 		// transceive
-		$bundle = $this->dataStore->perform([$r0, $r1]);
-		// extract response
-		$response = $bundle->response(1);
-		// check for command error
-		if ($response instanceof ResponseException) {
-			if ($response->type() === 'unknownMethod') {
-				throw new JmapUnknownMethod($response->description(), 1);
-			} else {
-				throw new Exception($response->type() . ': ' . $response->description(), 1);
-			}
-		}
-		// convert json objects to message objects
-		$state = $response->state();
-		$list = $response->objects();
-		foreach ($list as $id => $entry) {
+		$result = $this->queryAndFetch($query, $get, $range === null);
+		// convert json objects to event objects
+		$list = [];
+		foreach ($result['objects'] as $entry) {
 			$eo = $this->toEventObject($entry);
 			$eo->Signature = $this->generateSignature($eo);
-			$list[$id] = $eo;
+			$list[] = $eo;
 		}
-		// return message collection
-		return ['list' => $list, 'state' => $state];
-
+		// return object collection
+		return ['list' => $list, 'state' => $result['state']];
 	}
 
 	public function entityListFilter(): EventFilter {
@@ -567,33 +561,25 @@ class RemoteEventsService {
 	 */
 	public function entityFetchMultiple(string $location, array $identifiers, string $granularity = 'D'): array {
 		// construct request
-		$r0 = new EventGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		$r0->target(...$identifiers);
-		// select properties to return
-		if ($granularity === 'B') {
-			$r0->property(...$this->entityPropertiesBasic);
-		}
-		// transceive
-		$bundle = $this->dataStore->perform([$r0]);
-		// extract response
-		$response = $bundle->response(0);
-		// check for command error
-		if ($response instanceof ResponseException) {
-			if ($response->type() === 'unknownMethod') {
-				throw new JmapUnknownMethod($response->description(), 1);
-			} else {
-				throw new Exception($response->type() . ': ' . $response->description(), 1);
+		$get = function () use ($granularity): EventGet {
+			$r0 = new EventGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+			// select properties to return
+			if ($granularity === 'B') {
+				$r0->property(...$this->entityPropertiesBasic);
 			}
-		}
+			return $r0;
+		};
+		// transceive
+		$objects = $this->fetchChunked($identifiers, $get);
 		// convert jmap object(s) to event object
-		$list = $response->objects();
-		foreach ($list as $id => $so) {
-			if ($so instanceof EventParametersResponse) {
+		$list = [];
+		foreach ($objects as $so) {
+			if (!$so instanceof EventParametersResponse) {
 				continue;
 			}
 			$to = $this->toEventObject($so);
 			$to->Signature = $this->generateSignature($to);
-			$list[$id] = $so;
+			$list[] = $to;
 		}
 		// return object(s)
 		return $list;
