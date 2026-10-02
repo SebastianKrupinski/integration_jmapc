@@ -35,7 +35,7 @@ use OCP\BackgroundJob\TimedJob;
 use Psr\Log\LoggerInterface;
 
 class HarmonizationLauncher extends TimedJob {
-	
+
 	public function __construct(
 		protected ITimeFactory $time,
 		private LoggerInterface $logger,
@@ -68,7 +68,7 @@ class HarmonizationLauncher extends TimedJob {
 					$this->HarmonizationThreadService->setId($uid, $tid);
 					$this->HarmonizationThreadService->setHeartBeat($uid, time());
 				}
-				
+
 			} catch (\Throwable $e) {
 				$this->logger->error("Harmonization launcher encountered an error while starting a thread for $uid", ['app' => 'integration_jmapc', 'exception' => $e]);
 			} catch (\Exception $e) {
@@ -80,7 +80,7 @@ class HarmonizationLauncher extends TimedJob {
 			try {
 
 				$this->HarmonizationService->performHarmonization($uid);
-			
+
 			} catch (\Throwable $e) {
 				$this->logger->error("Harmonization launcher encountered an error while harmonizing for $uid", ['app' => 'integration_jmapc', 'exception' => $e]);
 			} catch (\Exception $e) {

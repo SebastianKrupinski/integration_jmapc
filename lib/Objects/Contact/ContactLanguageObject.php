@@ -28,10 +28,10 @@ namespace OCA\JMAPC\Objects\Contact;
 
 class ContactLanguageObject {
 
-	public string|null $Data = null;
-	
-	public string|null $Id = null;
-	public int|null $Priority = null;
-	public string|null $Context = null;
+	public ?string $Data = null;
+
+	public ?string $Id = null;
+	public ?int $Priority = null;
+	public ?string $Context = null;
 
 }

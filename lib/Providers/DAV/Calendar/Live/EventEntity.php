@@ -35,8 +35,9 @@ class EventEntity implements \Sabre\CalDAV\ICalendarObject, \Sabre\DAVACL\IACL {
 	 */
 	public function __construct(
 		private EventCollection $_collection,
-		private EventObject $_entity
-	) {}
+		private EventObject $_entity,
+	) {
+	}
 
 	/**
 	 * @inheritDoc

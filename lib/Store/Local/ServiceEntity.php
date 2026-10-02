@@ -99,7 +99,7 @@ use OCP\AppFramework\Db\Entity;
  */
 class ServiceEntity extends Entity implements JsonSerializable {
 	protected ?string $uid = null;
-    protected ?string $uuid = null;
+	protected ?string $uuid = null;
 	protected ?string $label = null;
 	protected ?string $locationProtocol = null;
 	protected ?string $locationHost = null;
@@ -126,48 +126,48 @@ class ServiceEntity extends Entity implements JsonSerializable {
 	protected ?int $harmonizationState = 0;
 	protected ?int $harmonizationStart = 0;
 	protected ?int $harmonizationEnd = 0;
-    protected ?string $subscriptionCode = null;
+	protected ?string $subscriptionCode = null;
 	protected ?string $mailMode = null;
 	protected ?string $contactsMode = null;
 	protected ?string $eventsMode = null;
 	protected ?string $tasksMode = null;
-	
+
 	public function jsonSerialize(): array {
-        return [
-            'id' => $this->id,
-            'uid' => $this->uid,
-            'uuid' => $this->uuid,
-            'label' => $this->label,
-            'location_protocol' => $this->locationProtocol,
-            'location_host' => $this->locationHost,
-            'location_port' => $this->locationPort,
-            'location_path' => $this->locationPath,
-            'location_security' => $this->locationSecurity,
-            'auth' => $this->auth,
-            'bauth_id' => $this->bauthId,
-            'bauth_secret' => $this->bauthSecret,
-            'bauth_location' => $this->bauthLocation,
-            'oauth_id' => $this->oauthId,
-            'oauth_access_token' => $this->oauthAccessToken,
-            'oauth_access_location' => $this->oauthAccessLocation,
-            'oauth_access_expiry' => $this->oauthAccessExpiry,
-            'oauth_refresh_token' => $this->oauthRefreshToken,
-            'oauth_refresh_location' => $this->oauthRefreshLocation,
-            'cauth_token' => $this->cauthToken,
-            'cauth_location' => $this->cauthLocation,
-            'address_primary' => $this->addressPrimary,
-            'address_alternate' => $this->addressAlternate,
-            'enabled' => $this->enabled,
-            'connected' => $this->connected,
-            'debug' => $this->debug,
-            'harmonization_state' => $this->harmonizationState,
-            'harmonization_start' => $this->harmonizationStart,
-            'harmonization_end' => $this->harmonizationEnd,
-            'subscription_code' => $this->subscriptionCode,
-            'mail_mode' => $this->mailMode,
-            'contacts_mode' => $this->contactsMode,
-            'events_mode' => $this->eventsMode,
-            'tasks_mode' => $this->tasksMode,
-        ];
-    }
+		return [
+			'id' => $this->id,
+			'uid' => $this->uid,
+			'uuid' => $this->uuid,
+			'label' => $this->label,
+			'location_protocol' => $this->locationProtocol,
+			'location_host' => $this->locationHost,
+			'location_port' => $this->locationPort,
+			'location_path' => $this->locationPath,
+			'location_security' => $this->locationSecurity,
+			'auth' => $this->auth,
+			'bauth_id' => $this->bauthId,
+			'bauth_secret' => $this->bauthSecret,
+			'bauth_location' => $this->bauthLocation,
+			'oauth_id' => $this->oauthId,
+			'oauth_access_token' => $this->oauthAccessToken,
+			'oauth_access_location' => $this->oauthAccessLocation,
+			'oauth_access_expiry' => $this->oauthAccessExpiry,
+			'oauth_refresh_token' => $this->oauthRefreshToken,
+			'oauth_refresh_location' => $this->oauthRefreshLocation,
+			'cauth_token' => $this->cauthToken,
+			'cauth_location' => $this->cauthLocation,
+			'address_primary' => $this->addressPrimary,
+			'address_alternate' => $this->addressAlternate,
+			'enabled' => $this->enabled,
+			'connected' => $this->connected,
+			'debug' => $this->debug,
+			'harmonization_state' => $this->harmonizationState,
+			'harmonization_start' => $this->harmonizationStart,
+			'harmonization_end' => $this->harmonizationEnd,
+			'subscription_code' => $this->subscriptionCode,
+			'mail_mode' => $this->mailMode,
+			'contacts_mode' => $this->contactsMode,
+			'events_mode' => $this->eventsMode,
+			'tasks_mode' => $this->tasksMode,
+		];
+	}
 }

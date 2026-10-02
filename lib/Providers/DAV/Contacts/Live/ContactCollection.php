@@ -30,7 +30,6 @@ use OCA\JMAPC\Objects\Contact\ContactCollectionObject;
 use OCA\JMAPC\Objects\Contact\ContactObject;
 use OCA\JMAPC\Service\Local\LocalContactsService;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
-use OCA\JMAPC\Store\Common\Filters\FilterComparisonOperator;
 use Sabre\CardDAV\IAddressBook;
 use Sabre\DAV\IMultiGet;
 use Sabre\DAV\IProperties;
@@ -266,7 +265,7 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 	public function getMultipleChildren(array $ids): array {
 		// remove extension
 		$ids = array_map(
-			fn($id) => str_replace('.ics', '', $id),
+			fn ($id) => str_replace('.ics', '', $id),
 			$ids
 		);
 		// check if all entities are cached
@@ -277,7 +276,7 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 			}
 		}
 		return array_map(
-			fn($id) => new ContactEntity($this, $this->_entitiesCache[$id]),
+			fn ($id) => new ContactEntity($this, $this->_entitiesCache[$id]),
 			$ids
 		);
 	}
@@ -292,7 +291,7 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 	public function getChild($id): ContactEntity|false {
 		// remove extension
 		$id = str_replace('.vcf', '', $id);
-		// check if entity is cached	
+		// check if entity is cached
 		if (isset($this->_entitiesCache[$id])) {
 			$entity = $this->_entitiesCache[$id];
 		} else {
@@ -368,7 +367,7 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 
 	/**
 	 * convert a contact object to a string
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function fromContactObject(ContactObject $so): string {
@@ -381,7 +380,7 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 
 	/**
 	 * convert a VCard object or string to a contact object
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function toContactObject(VCard|string $so): ContactObject {

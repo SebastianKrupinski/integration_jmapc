@@ -23,7 +23,8 @@ class UserSettings implements ISettings {
 		private IInitialState $initialStateService,
 		private ConfigurationService $configurationService,
 		private string $userId,
-	) {}
+	) {
+	}
 
 	/**
 	 * @return TemplateResponse
@@ -36,7 +37,7 @@ class UserSettings implements ISettings {
 		$configuration['system_contacts'] = $this->configurationService->isContactsAppAvailable();
 		$configuration['system_events'] = $this->configurationService->isCalendarAppAvailable();
 		$configuration['system_tasks'] = $this->configurationService->isTasksAppAvailable();
-		
+
 		$this->initialStateService->provideInitialState('system-configuration', $configuration);
 
 		return new TemplateResponse(Application::APP_ID, 'UserSettings');

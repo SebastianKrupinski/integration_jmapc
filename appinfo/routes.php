@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @copyright Copyright (c) 2023 Sebastian Krupinski <krupinski01@gmail.com>
  *

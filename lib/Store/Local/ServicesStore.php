@@ -214,9 +214,9 @@ class ServicesStore {
 		$entity->resetUpdatedFields();
 
 		return $entity;
-		
+
 	}
-	
+
 	/**
 	 * modify a entity entry in the data store
 	 *
@@ -249,9 +249,9 @@ class ServicesStore {
 		}
 
 		$entity->resetUpdatedFields();
-		
+
 		return $entity;
-		
+
 	}
 
 	/**
@@ -274,7 +274,7 @@ class ServicesStore {
 
 		// return result
 		return $entity;
-		
+
 	}
 
 	/**

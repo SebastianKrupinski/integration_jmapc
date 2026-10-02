@@ -434,7 +434,7 @@ class LocalEventsService {
 	 *
 	 * @return EventObject|EventMutationObject
 	 */
-	public function toEventInstanceObject(VEvent $so, EventObject|EventMutationObject $do, VEvent|null $bo = null): EventObject|EventMutationObject {
+	public function toEventInstanceObject(VEvent $so, EventObject|EventMutationObject $do, ?VEvent $bo = null): EventObject|EventMutationObject {
 
 		// creation date time
 		if (isset($so->CREATED)) {
@@ -756,7 +756,7 @@ class LocalEventsService {
 	 *
 	 * @return VEvent
 	 */
-	public function fromEventInstanceObject(EventObject|EventMutationObject $so, VEvent $do, EventObject|null $bo = null): VEvent {
+	public function fromEventInstanceObject(EventObject|EventMutationObject $so, VEvent $do, ?EventObject $bo = null): VEvent {
 		// creation date
 		if ($so->CreatedOn !== null) {
 			$do->add('CREATED', $so->CreatedOn);
@@ -817,7 +817,7 @@ class LocalEventsService {
 		}
 		// Duration
 		if ($so->Duration !== null && $so->EndsOn === null) {
-			$do->add('DURATION',$so->Duration);
+			$do->add('DURATION', $so->Duration);
 		}
 		// Label
 		if ($so->Label !== null) {

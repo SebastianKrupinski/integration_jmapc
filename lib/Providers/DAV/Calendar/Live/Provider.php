@@ -40,8 +40,9 @@ class Provider implements ICalendarProvider1, ICalendarProvider2 {
 	protected array $_CollectionCache = [];
 
 	public function __construct(
-		private ServicesService $_ServicesService
-	) {}
+		private ServicesService $_ServicesService,
+	) {
+	}
 
 	/**
 	 * @inheritDoc
@@ -99,7 +100,7 @@ class Provider implements ICalendarProvider1, ICalendarProvider2 {
 		}
 		return null;
 	}
-	
+
 	protected function extractUserId(string $principalUri): string {
 		return substr($principalUri, 17);
 	}
@@ -140,7 +141,7 @@ class Provider implements ICalendarProvider1, ICalendarProvider2 {
 				$this->_CollectionCache[$uid][$service->getId()][$collection->Id] = new EventCollection($uid, $remoteService, $collection);
 			}
 		}
-		
+
 		return $this->_CollectionCache[$uid][$service->getId()];
 	}
 

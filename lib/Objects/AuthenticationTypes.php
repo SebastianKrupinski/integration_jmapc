@@ -27,8 +27,8 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Objects;
 
 enum AuthenticationTypes: string {
-    case Basic = 'BA';
-    case Bearer = 'OA';
+	case Basic = 'BA';
+	case Bearer = 'OA';
 	case Cookie = 'CA';
 	case JsonBasic = 'JB';
 	case JsonBasicCookie = 'JBC';

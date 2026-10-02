@@ -77,7 +77,7 @@ class Sanitizer {
 
 		// strip forbidden characters
 		$name = filter_var($name, FILTER_SANITIZE_EMAIL, FILTER_FLAG_STRIP_HIGH);
-		
+
 		// return result
 		return $name;
 

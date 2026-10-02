@@ -26,7 +26,7 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Store\Common\Sort;
 
 interface ISort {
-	
+
 	/**
 	 *
 	 * @since 1.0.0
@@ -38,7 +38,7 @@ interface ISort {
 	/**
 	 *
 	 * @since 1.0.0
-	 * 
+	 *
 	 * @param string $attribute attribute name
 	 * @param bool $direction true for ascending, false for descending
 	 */

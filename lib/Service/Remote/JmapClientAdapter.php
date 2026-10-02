@@ -12,11 +12,11 @@ namespace OCA\JMAPC\Service\Remote;
 use OCP\Http\Client\IClient;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\MessageInterface;
-use Psr\Log\LoggerInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Adapts the Native HTTP client (IClient) to the PSR-18 (ClientInterface) contract.

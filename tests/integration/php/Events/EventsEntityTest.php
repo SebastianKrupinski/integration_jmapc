@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 /**
  * SPDX-FileCopyrightText: Sebastian Krupinski <krupinski01@gmail.com>
@@ -94,7 +95,7 @@ class EventsEntityTest extends TestCase {
 		$this->assertNotEmpty($createdEvent->ID);
 
 		// Delete the created event
-		$deleteResult = $this->eventsService->entityDelete($collectionId,$createdEvent->ID);
+		$deleteResult = $this->eventsService->entityDelete($collectionId, $createdEvent->ID);
 		$this->assertNotEmpty($deleteResult);
 		$this->assertEquals($createdEvent->ID, $deleteResult);
 	}
@@ -124,7 +125,7 @@ class EventsEntityTest extends TestCase {
 		$collection->Label = 'Test Event Collection ' . time();
 		$collectionId = $this->eventsService->collectionCreate($collection);
 		$this->assertNotEmpty($collectionId);
-		
+
 		// Get unfiltered list (should be empty)
 		$allEntities = $this->eventsService->entityList($collectionId);
 		$this->assertIsArray($allEntities);
@@ -195,7 +196,7 @@ class EventsEntityTest extends TestCase {
 		$this->assertIsArray($filteredEntities);
 		$this->assertArrayHasKey('list', $filteredEntities);
 		$this->assertCount(1, $filteredEntities['list']);
-		
+
 		// verify the filtered event
 		$filteredEvent = reset($filteredEntities['list']);
 		$this->assertInstanceOf(EventObject::class, $filteredEvent);
@@ -371,7 +372,7 @@ class EventsEntityTest extends TestCase {
 
 	/**
 	 * Generate a test event by key from the predefined collection
-	 * 
+	 *
 	 * Available keys:
 	 * - singleton_part_day_no_participants
 	 * - singleton_full_day_no_participants
@@ -401,7 +402,7 @@ class EventsEntityTest extends TestCase {
 		$event->StartsOn = $eventData['startsOn'];
 		$event->EndsOn = $eventData['endsOn'];
 		$event->Timeless = $eventData['timeless'];
-		
+
 		// Add participants if needed
 		if ($eventData['participants'] === 'default') {
 			$participant1 = new EventParticipantObject();
@@ -429,7 +430,7 @@ class EventsEntityTest extends TestCase {
 			$occurrence->Precision = $recurrence['precision'];
 			$occurrence->Interval = $recurrence['interval'];
 			$occurrence->Iterations = $recurrence['iterations'];
-			
+
 			if (isset($recurrence['onDayOfWeek'])) {
 				$occurrence->OnDayOfWeek = $recurrence['onDayOfWeek'];
 			}
@@ -442,7 +443,7 @@ class EventsEntityTest extends TestCase {
 			if (isset($recurrence['onMonthOfYear'])) {
 				$occurrence->OnMonthOfYear = $recurrence['onMonthOfYear'];
 			}
-			
+
 			$event->OccurrencePattern = $occurrence;
 		}
 
@@ -451,7 +452,7 @@ class EventsEntityTest extends TestCase {
 
 	private function generateEventData(string $key): array {
 		$baseTime = new DateTime('2025-11-15 10:00:00', new DateTimeZone('UTC'));
-		
+
 		return match($key) {
 			'singleton_part_day_no_participants' => [
 				'label' => 'Singleton Part Day Event',

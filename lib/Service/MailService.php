@@ -47,7 +47,8 @@ class MailService {
 
 	public function __construct(
 		protected ConfigurationService $configuration,
-	) {	}
+	) {
+	}
 
 	public function initialize(Client $dataStore): void {
 

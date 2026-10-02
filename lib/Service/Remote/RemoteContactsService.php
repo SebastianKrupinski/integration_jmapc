@@ -990,9 +990,9 @@ class RemoteContactsService {
 		// name
 		if ($so->Name !== null) {
 			$nameParams = $to->name();
-			if ($so->Name->First !== null || $so->Name->Last !== null || 
-				$so->Name->Other !== null || $so->Name->Prefix !== null || 
-				$so->Name->Suffix !== null) {
+			if ($so->Name->First !== null || $so->Name->Last !== null
+				|| $so->Name->Other !== null || $so->Name->Prefix !== null
+				|| $so->Name->Suffix !== null) {
 				// Build name components
 				if ($so->Name->Prefix !== null) {
 					$component = $nameParams->components();
@@ -1067,9 +1067,9 @@ class RemoteContactsService {
 		// addresses
 		foreach ($so->PhysicalLocations ?? [] as $id => $entry) {
 			$addressParams = $to->addresses((string)$id);
-			if ($entry->Box !== null || $entry->Unit !== null || $entry->Street !== null ||
-				$entry->Locality !== null || $entry->Region !== null || $entry->Code !== null ||
-				$entry->Country !== null) {
+			if ($entry->Box !== null || $entry->Unit !== null || $entry->Street !== null
+				|| $entry->Locality !== null || $entry->Region !== null || $entry->Code !== null
+				|| $entry->Country !== null) {
 				// Build address components
 				if ($entry->Box !== null) {
 					$component = $addressParams->components();

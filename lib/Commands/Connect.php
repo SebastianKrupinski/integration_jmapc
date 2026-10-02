@@ -39,7 +39,7 @@ class Connect extends Command {
 
 	public function __construct(
 		private IUserManager $userManager,
-		private CoreService $CoreService
+		private CoreService $CoreService,
 	) {
 		parent::__construct();
 	}
@@ -85,7 +85,7 @@ class Connect extends Command {
 		if ($validate) {
 			$flags = ['VALIDATE'];
 		}
-		
+
 		$this->CoreService->connectAccount($uid, $account_bauth_id, $account_bauth_secret, $account_provider, $flags);
 
 		$output->writeln("<info>User $uid connected to $account_provider as $account_bauth_id</info>");

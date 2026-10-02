@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 /**
  * SPDX-FileCopyrightText: Sebastian Krupinski <krupinski01@gmail.com>
@@ -9,17 +10,17 @@ namespace OCA\JMAPC\Tests\Integration\Contacts;
 use DateTime;
 use DateTimeZone;
 use JmapClient\Client;
-use OCA\JMAPC\Objects\Contact\ContactCollectionObject;
-use OCA\JMAPC\Objects\Contact\ContactObject;
-use OCA\JMAPC\Objects\Contact\ContactEmailObject;
-use OCA\JMAPC\Objects\Contact\ContactPhoneObject;
-use OCA\JMAPC\Objects\Contact\ContactPhysicalLocationObject;
-use OCA\JMAPC\Objects\Contact\ContactOrganizationObject;
-use OCA\JMAPC\Objects\Contact\ContactTitleObject;
-use OCA\JMAPC\Objects\Contact\ContactTitleTypes;
 use OCA\JMAPC\Objects\Contact\ContactAnniversaryObject;
 use OCA\JMAPC\Objects\Contact\ContactAnniversaryTypes;
+use OCA\JMAPC\Objects\Contact\ContactCollectionObject;
+use OCA\JMAPC\Objects\Contact\ContactEmailObject;
 use OCA\JMAPC\Objects\Contact\ContactNoteObject;
+use OCA\JMAPC\Objects\Contact\ContactObject;
+use OCA\JMAPC\Objects\Contact\ContactOrganizationObject;
+use OCA\JMAPC\Objects\Contact\ContactPhoneObject;
+use OCA\JMAPC\Objects\Contact\ContactPhysicalLocationObject;
+use OCA\JMAPC\Objects\Contact\ContactTitleObject;
+use OCA\JMAPC\Objects\Contact\ContactTitleTypes;
 use OCA\JMAPC\Objects\DeltaObject;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
 use OCA\JMAPC\Service\Remote\RemoteService;
@@ -128,7 +129,7 @@ class ContactsEntityTest extends TestCase {
 		$collection->Label = 'Test Contact Collection ' . time();
 		$collectionId = $this->contactsService->collectionCreate($collection);
 		$this->assertNotEmpty($collectionId);
-		
+
 		// Get unfiltered list (should be empty)
 		$allEntities = $this->contactsService->entityList($collectionId);
 		$this->assertIsArray($allEntities);
@@ -370,7 +371,7 @@ class ContactsEntityTest extends TestCase {
 
 	/**
 	 * Generate a test contact by key from the predefined collection
-	 * 
+	 *
 	 * Available keys:
 	 * - basic
 	 * - with_email_phone
@@ -389,7 +390,7 @@ class ContactsEntityTest extends TestCase {
 		$contact->Label = $contactData['label'];
 		$contact->Name->First = $contactData['firstName'];
 		$contact->Name->Last = $contactData['lastName'];
-		
+
 		// Add email if needed
 		if (!empty($contactData['email'])) {
 			foreach ($contactData['email'] as $index => $emailData) {

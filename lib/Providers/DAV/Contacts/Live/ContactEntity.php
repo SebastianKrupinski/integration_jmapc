@@ -35,8 +35,9 @@ class ContactEntity implements \Sabre\CardDAV\ICard, \Sabre\DAVACL\IACL {
 	 */
 	public function __construct(
 		private ContactCollection $_collection,
-		private ContactObject $_entity
-	) {}
+		private ContactObject $_entity,
+	) {
+	}
 
 	/**
 	 * @inheritDoc

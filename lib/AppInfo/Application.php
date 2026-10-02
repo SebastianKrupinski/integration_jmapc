@@ -58,7 +58,7 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function register(IRegistrationContext $context): void {
-		
+
 		// register notifications
 		$manager = $this->getContainer()->get(INotificationManager::class);
 		$manager->registerNotifierService(Notifier::class);

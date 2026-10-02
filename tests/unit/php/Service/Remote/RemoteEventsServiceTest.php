@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 /**
  * SPDX-FileCopyrightText: Sebastian Krupinski <krupinski01@gmail.com>
@@ -17,7 +18,7 @@ class RemoteEventsServiceTest extends TestCase {
 
 	public function setUp(): void {
 		parent::setUp();
-		
+
 		// Instantiate the RemoteEventsService
 		$this->eventsService = new RemoteEventsService();
 	}
@@ -30,7 +31,7 @@ class RemoteEventsServiceTest extends TestCase {
 		// retrieve attributes
 		$attributes = $filter->attributes();
 		$this->assertIsArray($attributes);
-		
+
 		// Assert that the expected attributes are present
 		$this->assertArrayHasKey('before', $attributes);
 		$this->assertArrayHasKey('after', $attributes);
@@ -47,11 +48,11 @@ class RemoteEventsServiceTest extends TestCase {
 		// instantiate the sort
 		$sort = $this->eventsService->entityListSort();
 		$this->assertInstanceOf(EventSort::class, $sort);
-		
+
 		// retrieve attributes
 		$attributes = $sort->attributes();
 		$this->assertIsArray($attributes);
-		
+
 		// Assert that the expected attributes are present
 		$this->assertArrayHasKey('created', $attributes);
 		$this->assertArrayHasKey('modified', $attributes);

@@ -29,7 +29,7 @@ namespace OCA\JMAPC\Utile;
 class TimeZoneIANA {
 
 	private $zones = [
-	
+
 	];
 
 	public static function findByName(?string $name) : ?object {

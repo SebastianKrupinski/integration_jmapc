@@ -28,7 +28,7 @@ namespace OCA\JMAPC\Store\Local\Filters;
 use OCA\JMAPC\Store\Common\Filters\FilterBase;
 
 class CollectionFilter extends FilterBase {
-	
+
 	protected array $attributes = [
 		'id' => true,
 		'uid' => true,

@@ -28,7 +28,7 @@ namespace OCA\JMAPC\Jmap\FM\Request\Contacts;
 use JmapClient\Requests\RequestParameters;
 
 class ContactEmailParameters extends RequestParameters {
-	
+
 	public function __construct(&$parameters = null) {
 		parent::__construct($parameters);
 	}

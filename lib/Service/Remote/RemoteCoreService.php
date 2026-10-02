@@ -161,7 +161,7 @@ class RemoteCoreService {
 		return array_key_exists($id, $response->updated()) ? (string)$id : '';
 	}
 
-		/**
+	/**
 	 * retrieve blob from remote storage
 	 *
 	 * @since Release 1.0.0

@@ -9,15 +9,15 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Tests\Unit\Service\Remote;
 
-use PHPUnit\Framework\TestCase;
 use GuzzleHttp\Psr7\HttpFactory;
-use OCA\JMAPC\Service\Remote\JmapTransportException;
+use GuzzleHttp\Psr7\NoSeekStream;
 use OCA\JMAPC\Service\Remote\JmapClientAdapter;
+use OCA\JMAPC\Service\Remote\JmapTransportException;
 use OCP\Http\Client\IClient;
 use OCP\Http\Client\IResponse;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use GuzzleHttp\Psr7\NoSeekStream;
 
 class JmapClientAdapterTest extends TestCase {
 	private IClient&MockObject $ncClient;

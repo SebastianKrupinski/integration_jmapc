@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 /**
  * SPDX-FileCopyrightText: Sebastian Krupinski <krupinski01@gmail.com>
@@ -17,8 +18,8 @@ class RemoteMailServiceTest extends TestCase {
 
 	public function setUp(): void {
 		parent::setUp();
-        
-        $this->mailService = new RemoteMailService();
+
+		$this->mailService = new RemoteMailService();
 	}
 
 	public function testCollectionListFilter(): void {
@@ -40,8 +41,8 @@ class RemoteMailServiceTest extends TestCase {
 		// instantiate the sort
 		$sort = $this->mailService->collectionListSort();
 		$this->assertInstanceOf(MailCollectionSort::class, $sort);
-		
-        // retrieve attributes
+
+		// retrieve attributes
 		$attributes = $sort->attributes();
 		$this->assertIsArray($attributes);
 		$this->assertArrayHasKey('name', $attributes);

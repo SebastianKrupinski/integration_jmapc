@@ -28,8 +28,6 @@ namespace OCA\JMAPC\Service\Remote;
 
 use Exception;
 use JmapClient\Client;
-use JmapClient\Requests\Blob\BlobGet;
-use JmapClient\Requests\Blob\BlobSet;
 use JmapClient\Requests\Mail\MailboxGet;
 use JmapClient\Requests\Mail\MailboxParameters as MailboxParametersRequest;
 use JmapClient\Requests\Mail\MailboxQuery;
@@ -55,7 +53,6 @@ use OCA\JMAPC\Store\Remote\Filters\MailCollectionFilter;
 use OCA\JMAPC\Store\Remote\Filters\MailMessageFilter;
 use OCA\JMAPC\Store\Remote\Sort\MailCollectionSort;
 use OCA\JMAPC\Store\Remote\Sort\MailObjectSort;
-use OCP\Mail\Provider\IAttachment;
 
 class RemoteMailService {
 	protected Client $dataStore;
@@ -231,7 +228,7 @@ class RemoteMailService {
 	 *
 	 * @since Release 1.0.0
 	 */
-	public function collectionCreate(string|null $location, MailCollectionObject $so): ?string {
+	public function collectionCreate(?string $location, MailCollectionObject $so): ?string {
 		// convert entity
 		$to = $this->fromMailCollection($so);
 		if (!empty($location)) {

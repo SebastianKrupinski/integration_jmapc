@@ -341,7 +341,7 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	public function getMultipleChildren(array $ids): array {
 		// remove extension
 		$ids = array_map(
-			fn($id) => str_replace('.ics', '', $id),
+			fn ($id) => str_replace('.ics', '', $id),
 			$ids
 		);
 		// check if all entities are cached
@@ -352,7 +352,7 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 			}
 		}
 		return array_map(
-			fn($id) => new EventEntity($this, $this->_entitiesCache[$id]),
+			fn ($id) => new EventEntity($this, $this->_entitiesCache[$id]),
 			$ids
 		);
 	}
@@ -367,7 +367,7 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	public function getChild($id): EventEntity|false {
 		// remove extension
 		$id = str_replace('.ics', '', $id);
-		// check if entity is cached	
+		// check if entity is cached
 		if (isset($this->_entitiesCache[$id])) {
 			$entity = $this->_entitiesCache[$id];
 		} else {
@@ -443,7 +443,7 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 
 	/**
 	 * convert a event object to a string
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function fromEventObject(EventObject $so): string {
@@ -456,7 +456,7 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 
 	/**
 	 * convert a VCalendar object or string to a event object
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	public function toEventObject(VCalendar|string $so): EventObject {
@@ -472,7 +472,7 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 
 	/**
 	 * normalizes properties of a VCalendar object
-	 * 
+	 *
 	 * @since 1.0.0
 	 */
 	protected function normalizeProperties(VCalendar $vObject): void {

@@ -137,7 +137,7 @@ class Validator {
 		if (self::email($username)) {
 			return true;
 		}
-		
+
 		// TODO: Windows Login Validator
 		/*
 		if (self::windows_username($username)) {

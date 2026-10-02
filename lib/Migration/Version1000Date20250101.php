@@ -37,7 +37,8 @@ class Version1000Date20250101 extends SimpleMigrationStep {
 
 	public function __construct(
 		private IDBConnection $db,
-	) {}
+	) {
+	}
 
 	/**
 	 * @param IOutput $output
@@ -399,7 +400,7 @@ class Version1000Date20250101 extends SimpleMigrationStep {
 		$table->addIndex(['sid'], 'jmapc_entities_contact_index_2'); // by service id
 		$table->addIndex(['cid'], 'jmapc_entities_contact_index_3'); // by collection id
 		$table->addIndex(['cid', 'uuid'], 'jmapc_entities_contact_index_3b'); // by collection id and entity uuid
-		
+
 	}
 
 	private function createEntitiesEventTable(IOutput $output, ISchemaWrapper $schema) {
@@ -556,7 +557,7 @@ class Version1000Date20250101 extends SimpleMigrationStep {
 		$table->addIndex(['sid'], 'jmapc_entities_task_index_2'); // by service id
 		$table->addIndex(['cid'], 'jmapc_entities_task_index_3'); // by collection id
 		$table->addIndex(['cid', 'uuid'], 'jmapc_entities_task_index_3b'); // by collection id and entity uuid
-	
+
 	}
 
 	private function createChronicleTable(IOutput $output, ISchemaWrapper $schema) {

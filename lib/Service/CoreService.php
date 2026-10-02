@@ -128,9 +128,9 @@ class CoreService {
 			return false;
 		}
 
-		if ($configuration['auth'] === AuthenticationTypes::Basic->value ||
-			$configuration['auth'] === AuthenticationTypes::JsonBasic->value ||
-			$configuration['auth'] === AuthenticationTypes::JsonBasicCookie->value
+		if ($configuration['auth'] === AuthenticationTypes::Basic->value
+			|| $configuration['auth'] === AuthenticationTypes::JsonBasic->value
+			|| $configuration['auth'] === AuthenticationTypes::JsonBasicCookie->value
 		) {
 			// validate id
 			//if (!\OCA\JMAPC\Utile\Validator::username($configuration['bauth_id'])) {
@@ -170,9 +170,9 @@ class CoreService {
 		$service->setLocationPath($configuration['location_path'] ?? null);
 		$service->setLocationSecurity((bool)($configuration['location_security'] ?? 1));
 		$service->setAuth($configuration['auth']);
-		if ($configuration['auth'] === AuthenticationTypes::Basic->value ||
-			$configuration['auth'] === AuthenticationTypes::JsonBasic->value ||
-			$configuration['auth'] === AuthenticationTypes::JsonBasicCookie->value
+		if ($configuration['auth'] === AuthenticationTypes::Basic->value
+			|| $configuration['auth'] === AuthenticationTypes::JsonBasic->value
+			|| $configuration['auth'] === AuthenticationTypes::JsonBasicCookie->value
 		) {
 			$service->setBauthId($configuration['bauth_id']);
 			$service->setBauthSecret($configuration['bauth_secret']);

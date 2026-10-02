@@ -30,7 +30,7 @@ use JmapClient\Requests\RequestParameters;
 use function PHPUnit\Framework\isEmpty;
 
 class ContactParameters extends RequestParameters {
-	
+
 	public const DATE_FORMAT_ANNIVERSARY = 'YYYY-MM-DD';
 
 	public function __construct(&$parameters = null) {

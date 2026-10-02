@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 /**
  * SPDX-FileCopyrightText: Sebastian Krupinski <krupinski01@gmail.com>
@@ -30,9 +31,9 @@ class EventsCollectionTest extends TestCase {
 		$collections = $this->eventsService->collectionList();
 
 		foreach ($collections as $collection) {
-			if (str_starts_with($collection->Label, 'Test Event Collection ') ||
-			    str_starts_with($collection->Label, 'Modified Event Collection ') ||
-			    str_starts_with($collection->Label, 'To Delete Event Collection ')) {
+			if (str_starts_with($collection->Label, 'Test Event Collection ')
+				|| str_starts_with($collection->Label, 'Modified Event Collection ')
+				|| str_starts_with($collection->Label, 'To Delete Event Collection ')) {
 				$this->eventsService->collectionDelete($collection->Id);
 			}
 		}
