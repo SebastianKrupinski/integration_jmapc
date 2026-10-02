@@ -48,6 +48,7 @@ class CoreService {
 		private INotificationManager $notificationManager,
 		private ConfigurationService $ConfigurationService,
 		private ServicesService $ServicesService,
+		private FilesService $FilesService,
 		private ServicesTemplateService $ServicesTemplateService,
 		private HarmonizationThreadService $HarmonizationThreadService,
 	) {
@@ -253,6 +254,8 @@ class CoreService {
 		$localStore->entityDeleteByService($sid);
 		// delete local collection
 		$localStore->collectionDeleteByService($sid);
+		// delete files collections
+		$this->FilesService->deleteByService($sid);
 		// delete service
 		$this->ServicesService->delete($uid, $service);
 

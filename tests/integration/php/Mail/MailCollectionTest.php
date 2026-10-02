@@ -11,7 +11,7 @@ use OCA\JMAPC\Objects\Mail\MailCollectionObject;
 use OCA\JMAPC\Service\Remote\RemoteMailService;
 use OCA\JMAPC\Service\Remote\RemoteService;
 use OCA\JMAPC\Tests\Integration\TestClientFactory;
-use Test\TestCase;
+use OCA\JMAPC\Tests\Unit\TestCase;
 
 class MailCollectionTest extends TestCase {
 

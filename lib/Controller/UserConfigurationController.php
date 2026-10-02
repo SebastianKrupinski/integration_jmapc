@@ -28,6 +28,7 @@ namespace OCA\JMAPC\Controller;
 
 use OCA\JMAPC\Service\ConfigurationService;
 use OCA\JMAPC\Service\CoreService;
+use OCA\JMAPC\Service\FilesService;
 use OCA\JMAPC\Service\HarmonizationService;
 use OCA\JMAPC\Service\ServicesService;
 use OCP\AppFramework\Controller;
@@ -37,6 +38,7 @@ use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
+use Psr\Log\LoggerInterface;
 
 class UserConfigurationController extends Controller {
 	
@@ -47,6 +49,8 @@ class UserConfigurationController extends Controller {
 		private CoreService $CoreService,
 		private HarmonizationService $HarmonizationService,
 		private ServicesService $ServicesService,
+		private FilesService $FilesService,
+		private LoggerInterface $logger,
 		private string $userId,
 	) {
 		parent::__construct($appName, $request);
@@ -224,6 +228,68 @@ class UserConfigurationController extends Controller {
 			return new DataResponse($th->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 
+	}
+
+	/**
+	 * handles files collections list request
+	 */
+	#[NoAdminRequired]
+	#[FrontpageRoute(verb: 'GET', url: '/files/collections/list')]
+	public function filesCollectionList(): DataResponse {
+		return $this->filesResponse(fn () => $this->FilesService->fetchByUserId($this->userId));
+	}
+
+	/**
+	 * handles files collection create request
+	 *
+	 * @param int $sid service id
+	 * @param string $location mount location relative to the user files root
+	 * @param string $mode collection mode
+	 * @param string|null $label collection label, defaults to the service label
+	 */
+	#[NoAdminRequired]
+	#[FrontpageRoute(verb: 'POST', url: '/files/collections/create')]
+	public function filesCollectionCreate(int $sid, string $location, string $mode = FilesService::MODE_LIVE, ?string $label = null): DataResponse {
+		return $this->filesResponse(fn () => $this->FilesService->create($this->userId, $sid, $location, $mode, $label));
+	}
+
+	/**
+	 * handles files collection modify request, omitted parameters are left unchanged
+	 *
+	 * @param int $id collection id
+	 */
+	#[NoAdminRequired]
+	#[FrontpageRoute(verb: 'POST', url: '/files/collections/modify')]
+	public function filesCollectionModify(int $id, ?string $location = null, ?string $mode = null, ?string $label = null, ?bool $visible = null): DataResponse {
+		return $this->filesResponse(fn () => $this->FilesService->modify($this->userId, $id, $location, $mode, $label, $visible));
+	}
+
+	/**
+	 * handles files collection delete request
+	 *
+	 * @param int $id collection id
+	 */
+	#[NoAdminRequired]
+	#[FrontpageRoute(verb: 'POST', url: '/files/collections/delete')]
+	public function filesCollectionDelete(int $id): DataResponse {
+		return $this->filesResponse(function () use ($id) {
+			$this->FilesService->delete($this->userId, $id);
+			return 'success';
+		});
+	}
+
+	/**
+	 * executes a files operation and converts its result or failure to a response
+	 */
+	private function filesResponse(callable $operation): DataResponse {
+		try {
+			return new DataResponse($operation());
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse($e->getMessage(), Http::STATUS_BAD_REQUEST);
+		} catch (\Throwable $th) {
+			$this->logger->error('Files operation failed', ['exception' => $th]);
+			return new DataResponse('Files operation failed', Http::STATUS_INTERNAL_SERVER_ERROR);
+		}
 	}
 
 }

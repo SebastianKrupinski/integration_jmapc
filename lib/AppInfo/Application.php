@@ -26,6 +26,7 @@ namespace OCA\JMAPC\AppInfo;
 
 use OCA\JMAPC\Events\UserDeletedListener;
 use OCA\JMAPC\Notification\Notifier;
+use OCA\JMAPC\Providers\Files\MountProvider;
 use OCA\JMAPC\Providers\Mail\Provider as MailProvider;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
@@ -33,6 +34,7 @@ use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 
 use OCP\EventDispatcher\IEventDispatcher;
+use OCP\Files\Config\IMountProviderCollection;
 use OCP\Notification\IManager as INotificationManager;
 
 use OCP\User\Events\UserDeletedEvent;
@@ -71,7 +73,9 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function boot(IBootContext $context): void {
-
+		$context->injectFn(function (IMountProviderCollection $mountProviderCollection, MountProvider $mountProvider): void {
+			$mountProviderCollection->registerProvider($mountProvider);
+		});
 	}
 
 }

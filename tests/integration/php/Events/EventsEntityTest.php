@@ -20,8 +20,8 @@ use OCA\JMAPC\Objects\Event\EventParticipantTypes;
 use OCA\JMAPC\Service\Remote\RemoteEventsService;
 use OCA\JMAPC\Service\Remote\RemoteService;
 use OCA\JMAPC\Tests\Integration\TestClientFactory;
+use OCA\JMAPC\Tests\Unit\TestCase;
 use Symfony\Component\Uid\UuidV4;
-use Test\TestCase;
 
 class EventsEntityTest extends TestCase {
 

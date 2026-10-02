@@ -214,6 +214,19 @@ class RemoteService {
 		return $service;
 	}
 
+	/**
+	 * Appropriate Files Service for Connection
+	 */
+	public static function filesService(JmapClient $Client, ?string $dataAccount = null): RemoteFilesService {
+		// determine if client is connected
+		if (!$Client->sessionStatus()) {
+			$Client->connect();
+		}
+		$service = new RemoteFilesService();
+		$service->initialize($Client, $dataAccount);
+		return $service;
+	}
+	
 	public static function cookieStoreRetrieve(mixed $id): ?array {
 
 		$file = sys_get_temp_dir() . DIRECTORY_SEPARATOR . (string)$id . '.jmapc';
