@@ -11,7 +11,7 @@ use OCA\JMAPC\Objects\Contact\ContactCollectionObject;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
 use OCA\JMAPC\Service\Remote\RemoteService;
 use OCA\JMAPC\Tests\Integration\TestClientFactory;
-use Test\TestCase;
+use OCA\JMAPC\Tests\Unit\TestCase;
 
 class ContactsCollectionTest extends TestCase {
 

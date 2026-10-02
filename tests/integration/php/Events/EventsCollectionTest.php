@@ -11,7 +11,7 @@ use OCA\JMAPC\Objects\Event\EventCollectionObject;
 use OCA\JMAPC\Service\Remote\RemoteEventsService;
 use OCA\JMAPC\Service\Remote\RemoteService;
 use OCA\JMAPC\Tests\Integration\TestClientFactory;
-use Test\TestCase;
+use OCA\JMAPC\Tests\Unit\TestCase;
 
 class EventsCollectionTest extends TestCase {
 

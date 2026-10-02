@@ -9,6 +9,7 @@
     <author mail="krupinski01@gmail.com">Sebastian Krupinski</author>
     <namespace>JMAPC</namespace>
     <types>
+        <filesystem/>
         <dav/>
     </types>
     <documentation>
@@ -40,6 +41,9 @@
 		<command>OCA\JMAPC\Commands\Disconnect</command>
 		<command>OCA\JMAPC\Commands\Harmonize</command>
         <command>OCA\JMAPC\Commands\Show</command>
+        <command>OCA\JMAPC\Commands\Files\ListCollections</command>
+        <command>OCA\JMAPC\Commands\Files\CreateCollection</command>
+        <command>OCA\JMAPC\Commands\Files\DeleteCollection</command>
 	</commands>
     <settings>
         <admin>OCA\JMAPC\Settings\AdminSettings</admin>

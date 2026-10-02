@@ -51,7 +51,7 @@ class UserDeletedListener implements IEventListener {
 				$services = $this->servicesService->fetchByUserId($event->getUser()->getUID());
 
 				foreach ($services as $service) {
-					$this->coreService->disconnectAccount($service->getUid(), $service->Id());
+					$this->coreService->disconnectAccount($service->getUid(), $service->getId());
 				}
 			} catch (Exception $e) {
 				$this->logger->warning($e->getMessage(), ['uid' => $event->getUser()->getUID()]);

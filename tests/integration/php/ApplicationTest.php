@@ -7,7 +7,7 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Tests\Integration;
 
 use OCA\JMAPC\AppInfo\Application;
-use Test\TestCase;
+use OCA\JMAPC\Tests\Unit\TestCase;
 
 class ApplicationTest extends TestCase {
 

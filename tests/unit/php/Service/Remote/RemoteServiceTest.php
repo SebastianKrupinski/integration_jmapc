@@ -12,12 +12,12 @@ namespace OCA\JMAPC\Tests\Unit\Service\Remote;
 use JmapClient\Authentication\Basic;
 use OCA\JMAPC\Service\Remote\RemoteService;
 use OCA\JMAPC\Store\Local\ServiceEntity;
+use OCA\JMAPC\Tests\Unit\TestCase;
 use OCP\Http\Client\IClient;
 use OCP\Http\Client\IClientService;
 use OCP\Http\Client\IResponse;
 use OCP\IConfig;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Test\TestCase;
 
 class RemoteServiceTest extends TestCase {
 	public static function certificateVerification(): array {

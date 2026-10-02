@@ -56,6 +56,7 @@ class Version1000Date20250101 extends SimpleMigrationStep {
 		$this->createEntitiesEventTable($output, $schema);
 		$this->createEntitiesTaskTable($output, $schema);
 		$this->createChronicleTable($output, $schema);
+		$this->createFilesCollectionsTable($output, $schema);
 
 		return $schema;
 	}
@@ -615,6 +616,63 @@ class Version1000Date20250101 extends SimpleMigrationStep {
 		$table->addIndex(['uid'], 'jmapc_chronicle_index_1'); // by user id
 		$table->addIndex(['sid'], 'jmapc_chronicle_index_2'); // by service id
 		$table->addIndex(['cid'], 'jmapc_chronicle_index_3'); // by collection id
+
+	}
+
+	private function createFilesCollectionsTable(IOutput $output, ISchemaWrapper $schema) {
+		// check if the table already exists
+		if ($schema->hasTable('jmapc_collections_file')) {
+			return;
+		}
+		// create the table
+		$table = $schema->createTable('jmapc_collections_file');
+		// id
+		$table->addColumn('id', Types::BIGINT, [
+			'autoincrement' => true,
+			'notnull' => true
+		]);
+		// user id
+		$table->addColumn('uid', Types::STRING, [
+			'length' => 255,
+			'notnull' => true
+		]);
+		// service id
+		$table->addColumn('sid', Types::INTEGER, [
+			'notnull' => true
+		]);
+		// remote root node id, null for the top level
+		$table->addColumn('ccid', Types::STRING, [
+			'length' => 255,
+			'notnull' => false
+		]);
+		// uuid
+		$table->addColumn('uuid', Types::STRING, [
+			'length' => 255,
+			'notnull' => true
+		]);
+		// label
+		$table->addColumn('label', Types::STRING, [
+			'length' => 255,
+			'notnull' => false
+		]);
+		// location, relative to the user files root
+		$table->addColumn('location', Types::STRING, [
+			'length' => 4000,
+			'notnull' => true
+		]);
+		// mode
+		$table->addColumn('mode', Types::STRING, [
+			'length' => 8,
+			'notnull' => true
+		]);
+		// visible
+		$table->addColumn('visible', Types::BOOLEAN, [
+			'notnull' => false
+		]);
+
+		$table->setPrimaryKey(['id']);
+		$table->addIndex(['uid'], 'jmapc_collections_file_idx_1'); // by user id
+		$table->addIndex(['sid'], 'jmapc_collections_file_idx_2'); // by service id
 
 	}
 
