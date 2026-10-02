@@ -28,7 +28,7 @@ namespace OCA\JMAPC\Store\Local\Sort;
 use OCA\JMAPC\Store\Common\Sort\SortBase;
 
 class ContactSort extends SortBase {
-	
+
 	protected array $attributes = [
 		'uid' => true,
 		'sid' => true,

@@ -864,7 +864,7 @@ class MIME {
 		'image/vnd.microsoft.icon' => 'ico',
 		'image/tiff' => 'tif',
 		'image/svg+xml' => 'svg',
-		
+
 		'audio/midi' => 'midi',
 		'audio/wav' => 'wav',
 		'video/mpeg' => 'mpg',
@@ -888,7 +888,7 @@ class MIME {
 	 * @return string valid mime type on success, or default application/octet-stream on failure
 	 */
 	public static function fromFileName(string $filename): string {
-	  
+
 		$extension = explode('.', $filename);
 		$extension = strtolower(end($extension));
 
@@ -906,7 +906,7 @@ class MIME {
 	 * @return string valid mime type on success, or default application/octet-stream on failure
 	 */
 	public static function fromExtension(string $extension): ?string {
-		
+
 		if (array_key_exists($extension, self::$e2m)) {
 			return self::$e2m[$extension];
 		} else {

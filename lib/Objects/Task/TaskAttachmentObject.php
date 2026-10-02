@@ -35,7 +35,7 @@ class TaskAttachmentObject {
 	public ?string $Encoding; // B - Binary / B64 - Base64
 	public ?string $Size;
 	public ?string $Data;
-	
+
 	public function __construct(
 		?string $store = null,
 		?string $id = null,

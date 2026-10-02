@@ -665,7 +665,7 @@ class RemoteEventsService {
 			$ro->ModifiedOn = isset($result['updated']) ? new DateTimeImmutable($result['updated']) : null;
 			$ro->Signature = $this->generateSignature($ro);
 			return $ro;
-		} 
+		}
 		// check for failure
 		$result = $response->updateFailure($identifier);
 		if ($result !== null) {

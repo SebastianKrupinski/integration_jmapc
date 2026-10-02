@@ -57,6 +57,6 @@ class UserDeletedListener implements IEventListener {
 				$this->logger->warning($e->getMessage(), ['uid' => $event->getUser()->getUID()]);
 			}
 		}
-		
+
 	}
 }

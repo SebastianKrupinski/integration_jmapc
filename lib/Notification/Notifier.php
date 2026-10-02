@@ -165,7 +165,7 @@ class Notifier implements INotifier {
 						$content .= $p['RemoteDeleted'] . ' - Remote ';
 					}
 				}
-			
+
 				$notification->setParsedSubject("Events Syncronized \n");
 				$notification->setRichMessage($content);
 
@@ -201,7 +201,7 @@ class Notifier implements INotifier {
 						$content .= $p['RemoteDeleted'] . ' - Remote ';
 					}
 				}
-			
+
 				$notification->setParsedSubject("Tasks Syncronized \n");
 				$notification->setRichMessage($content);
 

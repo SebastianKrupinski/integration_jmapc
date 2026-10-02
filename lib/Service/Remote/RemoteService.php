@@ -27,22 +27,22 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Service\Remote;
 
 use Http\Discovery\Psr17FactoryDiscovery;
-use OCP\Http\Client\IClientService;
-use OCP\Server;
-use OCP\IConfig;
-use OCA\JMAPC\Logging\FileLogger;
 use JmapClient\Authentication\Basic;
 use JmapClient\Authentication\Bearer;
 use JmapClient\Authentication\JsonBasic;
 use JmapClient\Authentication\JsonBasicCookie;
 use JmapClient\Client as JmapClient;
+use OCA\JMAPC\Logging\FileLogger;
 use OCA\JMAPC\Service\Remote\FM\RemoteContactsServiceFM;
 use OCA\JMAPC\Service\Remote\FM\RemoteCoreServiceFM;
 use OCA\JMAPC\Service\Remote\FM\RemoteEventsServiceFM;
 use OCA\JMAPC\Store\Local\ServiceEntity;
+use OCP\Http\Client\IClientService;
+use OCP\IConfig;
+use OCP\Server;
 
 class RemoteService {
-	static string $clientTransportAgent = 'NextcloudJMAP/1.0 (1.0; x64)';
+	public static string $clientTransportAgent = 'NextcloudJMAP/1.0 (1.0; x64)';
 	//public static string $clientTransportAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0';
 
 	/**
@@ -226,7 +226,7 @@ class RemoteService {
 		$service->initialize($Client, $dataAccount);
 		return $service;
 	}
-	
+
 	public static function cookieStoreRetrieve(mixed $id): ?array {
 
 		$file = sys_get_temp_dir() . DIRECTORY_SEPARATOR . (string)$id . '.jmapc';

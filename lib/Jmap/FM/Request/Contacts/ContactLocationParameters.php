@@ -42,7 +42,7 @@ class ContactLocationParameters extends RequestParameters {
 		$this->parameter('label', $value);
 		return $this;
 	}
-	
+
 	public function street(string $value): self {
 		$this->parameter('street', $value);
 		return $this;

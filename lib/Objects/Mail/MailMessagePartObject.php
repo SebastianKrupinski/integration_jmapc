@@ -70,7 +70,7 @@ class MailMessagePartObject {
 		} else {
 			$parameters['subParts'] = null;
 		}
-		
+
 		return $parameters;
 
 	}

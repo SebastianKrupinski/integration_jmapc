@@ -128,5 +128,5 @@ class MailMessageFilter extends FilterBase {
 		$this->condition('sizeMax', $value);
 		return $this;
 	}
-	
+
 }

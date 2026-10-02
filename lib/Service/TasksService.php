@@ -82,8 +82,8 @@ class TasksService {
 		// iterate through collections
 		foreach ($collections as $collection) {
 			// evaluate if collection is locked and lock has not expired
-			if ($collection->getHlock() == 1 &&
-			   (time() - $collection->getHlockhb()) < 3600) {
+			if ($collection->getHlock() == 1
+			   && (time() - $collection->getHlockhb()) < 3600) {
 				continue;
 			}
 			// lock collection before harmonization

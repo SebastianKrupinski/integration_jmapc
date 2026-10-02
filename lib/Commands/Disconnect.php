@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -38,7 +39,7 @@ class Disconnect extends Command {
 	public function __construct(
 		private IUserManager $userManager,
 		private CoreService $CoreService,
-		private ServicesService $servicesService
+		private ServicesService $servicesService,
 	) {
 		parent::__construct();
 	}
@@ -70,7 +71,7 @@ class Disconnect extends Command {
 				$output->writeln("<error>Service $sid does not exist</error>");
 				return self::INVALID;
 			}
-			$services[] = $service; 
+			$services[] = $service;
 		} else {
 			$services = $this->servicesService->fetchByUserId($uid);
 		}

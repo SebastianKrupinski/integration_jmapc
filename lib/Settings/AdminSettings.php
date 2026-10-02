@@ -21,8 +21,9 @@ class AdminSettings implements ISettings {
 
 	public function __construct(
 		private IInitialState $initialStateService,
-		private ConfigurationService $ConfigurationService
-	) {}
+		private ConfigurationService $ConfigurationService,
+	) {
+	}
 
 	/**
 	 * @return TemplateResponse
@@ -32,7 +33,7 @@ class AdminSettings implements ISettings {
 
 		// retrieve user configuration
 		$configuration = $this->ConfigurationService->retrieveSystem();
-		
+
 		$this->initialStateService->provideInitialState('admin-configuration', $configuration);
 
 		return new TemplateResponse(Application::APP_ID, 'AdminSettings');

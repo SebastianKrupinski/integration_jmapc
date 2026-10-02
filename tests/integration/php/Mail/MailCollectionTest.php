@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 /**
  * SPDX-FileCopyrightText: Sebastian Krupinski <krupinski01@gmail.com>
@@ -30,9 +31,9 @@ class MailCollectionTest extends TestCase {
 		$collections = $this->mailService->collectionList();
 
 		foreach ($collections as $collection) {
-			if (str_starts_with($collection->getLabel(), 'Test Mail Collection ') ||
-			    str_starts_with($collection->getLabel(), 'Modified Mail Collection ') ||
-			    str_starts_with($collection->getLabel(), 'To Delete Mail Collection ')) {
+			if (str_starts_with($collection->getLabel(), 'Test Mail Collection ')
+				|| str_starts_with($collection->getLabel(), 'Modified Mail Collection ')
+				|| str_starts_with($collection->getLabel(), 'To Delete Mail Collection ')) {
 				$this->mailService->collectionDelete($collection->id());
 			}
 		}
@@ -128,7 +129,7 @@ class MailCollectionTest extends TestCase {
 		// fetch collections with the sort
 		$collections = $this->mailService->collectionList(null, null, $sort);
 		$this->assertNotEmpty($collections);
-		$this->assertIsArray($collections);	
+		$this->assertIsArray($collections);
 		$this->assertInstanceOf(MailCollectionObject::class, end($collections));
 
 		$collectionDesc = end($collections);

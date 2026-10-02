@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -11,12 +12,12 @@ use JmapClient\Requests\Calendar\EventFilter as EventFilterJmap;
 
 class EventFilter extends EventFilterJmap {
 
-    public function in(string $value): self {
-        
-        $this->condition('inCalendars', [$value]);
-        
-        return $this;
+	public function in(string $value): self {
 
-    }
+		$this->condition('inCalendars', [$value]);
+
+		return $this;
+
+	}
 
 }

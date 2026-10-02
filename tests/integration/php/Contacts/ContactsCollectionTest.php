@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 /**
  * SPDX-FileCopyrightText: Sebastian Krupinski <krupinski01@gmail.com>
@@ -28,11 +29,11 @@ class ContactsCollectionTest extends TestCase {
 		parent::tearDown();
 
 		$collections = $this->contactsService->collectionList();
-		
+
 		foreach ($collections as $collection) {
-			if (str_starts_with($collection->Label, 'Test Contact Collection ') ||
-			    str_starts_with($collection->Label, 'Modified Contact Collection ') ||
-			    str_starts_with($collection->Label, 'To Delete Contact Collection ')) {
+			if (str_starts_with($collection->Label, 'Test Contact Collection ')
+				|| str_starts_with($collection->Label, 'Modified Contact Collection ')
+				|| str_starts_with($collection->Label, 'To Delete Contact Collection ')) {
 				$this->contactsService->collectionDelete($collection->Id);
 			}
 		}

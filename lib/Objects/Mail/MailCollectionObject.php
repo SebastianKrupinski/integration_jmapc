@@ -33,7 +33,7 @@ class MailCollectionObject implements ICollectionObject {
 	 * @return self return this object for command chaining
 	 */
 	public function fromJmap(array $parameters, bool $amend = false): self {
-		
+
 		if ($amend) {
 			// merge parameters with existing ones
 			$this->parameters = array_merge($this->parameters, $parameters);

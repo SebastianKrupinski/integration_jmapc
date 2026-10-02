@@ -160,7 +160,7 @@ class Provider implements ICalendarProvider1, ICalendarProvider2 {
 		// collection not found
 		return null;
 	}
-	
+
 	protected function extractUserId(string $principalUri): string {
 		return substr($principalUri, 17);
 	}

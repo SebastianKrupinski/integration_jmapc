@@ -44,7 +44,7 @@ class AdminConfigurationController extends Controller {
 		parent::__construct($appName, $request);
 
 		$this->ConfigurationService = $ConfigurationService;
-		
+
 	}
 
 	/**
@@ -55,7 +55,7 @@ class AdminConfigurationController extends Controller {
 	 * @return DataResponse
 	 */
 	public function depositConfiguration(array $values): DataResponse {
-		
+
 		$this->ConfigurationService->depositSystem($values);
 
 		return new DataResponse(true);

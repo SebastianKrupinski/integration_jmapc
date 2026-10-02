@@ -28,7 +28,7 @@ namespace OCA\JMAPC\Jmap\FM\Response\Contacts;
 use JmapClient\Responses\ResponseParameters;
 
 class ContactOnlineParameters extends ResponseParameters {
-	
+
 	public function type(): ?string {
 		return $this->parameter('type') ?? 'other';
 	}

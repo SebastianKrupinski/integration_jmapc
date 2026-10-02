@@ -56,10 +56,10 @@ try {
 		$configUser = fileowner(\OC::$configDir . 'config.php');
 		if ($user !== $configUser) {
 			$logger->info(
-				'Harmonization thread failed has to be executed with the user that owns the file config/config.php' .
-				 "Current user id: $user Owner id of config.php: $configUser" . PHP_EOL, ['app' => 'integration_jmapc']);
-			echo 'Harmonization thread failed has to be executed with the user that owns the file config/config.php' .
-				 "Current user id: $user Owner id of config.php: $configUser" . PHP_EOL;
+				'Harmonization thread failed has to be executed with the user that owns the file config/config.php'
+				 . "Current user id: $user Owner id of config.php: $configUser" . PHP_EOL, ['app' => 'integration_jmapc']);
+			echo 'Harmonization thread failed has to be executed with the user that owns the file config/config.php'
+				 . "Current user id: $user Owner id of config.php: $configUser" . PHP_EOL;
 			exit(1);
 		}
 	}
@@ -86,7 +86,7 @@ try {
 			$uid = \OCA\JMAPC\Utile\Sanitizer::username($_GET['u']);
 		}
 	}
-	
+
 	// evaluate, if user parameter is present
 	if (empty($uid)) {
 		$logger->info('Harmonization thread failed missing required parameters', ['app' => 'integration_jmapc']);
@@ -151,7 +151,7 @@ try {
 	$ts = $HarmonizationService->connectEvents($uid, 15, 'TC');
 
 	while ((time() - $executionStart) < $executionDuration) {
-		
+
 		// update thread heart beat
 		$HarmonizationThreadService->setHeartBeat($uid, time());
 
@@ -181,7 +181,7 @@ try {
 		if (isset($ts)) {
 			$ts = $HarmonizationService->consumeEvents($uid, $ts->Id, $ts->Token, 'TC');
 		}
-		
+
 		// execute actions
 		$HarmonizationService->performLiveHarmonization($uid);
 

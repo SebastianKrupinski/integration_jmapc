@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 /**
  * SPDX-FileCopyrightText: Sebastian Krupinski <krupinski01@gmail.com>
@@ -17,7 +18,7 @@ class RemoteContactsServiceTest extends TestCase {
 
 	public function setUp(): void {
 		parent::setUp();
-		
+
 		// Instantiate the RemoteContactsService
 		$this->contactsService = new RemoteContactsService();
 	}
@@ -30,7 +31,7 @@ class RemoteContactsServiceTest extends TestCase {
 		// retrieve attributes
 		$attributes = $filter->attributes();
 		$this->assertIsArray($attributes);
-		
+
 		// Assert that the expected attributes are present
 		$this->assertArrayHasKey('createBefore', $attributes);
 		$this->assertArrayHasKey('createAfter', $attributes);
@@ -55,11 +56,11 @@ class RemoteContactsServiceTest extends TestCase {
 		// instantiate the sort
 		$sort = $this->contactsService->entityListSort();
 		$this->assertInstanceOf(ContactSort::class, $sort);
-		
+
 		// retrieve attributes
 		$attributes = $sort->attributes();
 		$this->assertIsArray($attributes);
-		
+
 		// Assert that the expected attributes are present
 		$this->assertArrayHasKey('created', $attributes);
 		$this->assertArrayHasKey('modified', $attributes);

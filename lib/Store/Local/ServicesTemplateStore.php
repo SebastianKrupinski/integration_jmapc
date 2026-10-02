@@ -64,7 +64,7 @@ class ServicesTemplateStore {
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param string $domain	configured service domain
+	 * @param string $domain configured service domain
 	 *
 	 * @return array
 	 */
@@ -90,9 +90,9 @@ class ServicesTemplateStore {
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param string $id		configured service template ID
-	 * @param string $domain	configured service domain
-	 * @param array $data	service template data
+	 * @param string $id configured service template ID
+	 * @param string $domain configured service domain
+	 * @param array $data service template data
 	 *
 	 * @return bool
 	 */
@@ -118,9 +118,9 @@ class ServicesTemplateStore {
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param string $id		configured service template ID
-	 * @param string $domain	configured service domain
-	 * @param array $data	service template data
+	 * @param string $id configured service template ID
+	 * @param string $domain configured service domain
+	 * @param array $data service template data
 	 *
 	 * @return bool
 	 */
@@ -144,7 +144,7 @@ class ServicesTemplateStore {
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param string $id    configured service template ID
+	 * @param string $id configured service template ID
 	 *
 	 * @return bool
 	 */
@@ -160,5 +160,5 @@ class ServicesTemplateStore {
 			return false;
 		}
 	}
-	
+
 }

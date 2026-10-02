@@ -39,8 +39,9 @@ class Provider implements IAddressBookProvider {
 	protected array $_CollectionCache = [];
 
 	public function __construct(
-		private ServicesService $_ServicesService
-	) {}
+		private ServicesService $_ServicesService,
+	) {
+	}
 
 	/**
 	 * @inheritDoc
@@ -132,7 +133,7 @@ class Provider implements IAddressBookProvider {
 				$this->_CollectionCache[$uid][$service->getId()][$collection->Id] = new ContactCollection($uid, $remoteService, $collection);
 			}
 		}
-		
+
 		return $this->_CollectionCache[$uid][$service->getId()];
 	}
 

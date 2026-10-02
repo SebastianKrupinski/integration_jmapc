@@ -28,7 +28,7 @@ namespace OCA\JMAPC\Store\Local\Filters;
 use OCA\JMAPC\Store\Common\Filters\FilterBase;
 
 class ContactFilter extends FilterBase {
-	
+
 	protected array $attributes = [
 		'uid' => true,
 		'sid' => true,

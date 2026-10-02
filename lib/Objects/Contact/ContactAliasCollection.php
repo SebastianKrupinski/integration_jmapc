@@ -31,7 +31,7 @@ use OCA\JMAPC\Objects\Common\CollectionIndexTrait;
 use OCA\JMAPC\Objects\Common\CollectionPriorityTrait;
 
 class ContactAliasCollection extends BaseCollection {
-	
+
 	use CollectionPriorityTrait, CollectionIndexTrait;
 
 	public function __construct($data = []) {

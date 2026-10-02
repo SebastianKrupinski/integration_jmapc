@@ -28,7 +28,7 @@ namespace OCA\JMAPC\Jmap\FM\Response\Contacts;
 use JmapClient\Responses\ResponseParameters;
 
 class ContactParameters extends ResponseParameters {
-	
+
 	/* Metadata Properties */
 
 	public function in(): ?array {
@@ -39,7 +39,7 @@ class ContactParameters extends ResponseParameters {
 		}
 		return null;
 	}
-	
+
 	public function id(): ?string {
 		return $this->parameter('id');
 	}

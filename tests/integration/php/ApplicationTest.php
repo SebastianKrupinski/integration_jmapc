@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 /**
  * SPDX-FileCopyrightText: Sebastian Krupinski <krupinski01@gmail.com>
@@ -14,7 +15,7 @@ class ApplicationTest extends TestCase {
 	public function testApplicationId(): void {
 		self::assertEquals(Application::APP_ID, 'integration_jmapc');
 	}
-	
+
 	public function testApplicationName(): void {
 		self::assertEquals(Application::APP_TAG, 'JMAPC');
 	}
@@ -22,5 +23,5 @@ class ApplicationTest extends TestCase {
 	public function testApplicationVersion(): void {
 		self::assertEquals(Application::APP_LABEL, 'JMAP Client');
 	}
-	
+
 }

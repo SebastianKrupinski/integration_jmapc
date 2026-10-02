@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -37,7 +38,7 @@ class Show extends Command {
 
 	public function __construct(
 		private IUserManager $userManager,
-		private ServicesService $servicesService
+		private ServicesService $servicesService,
 	) {
 		parent::__construct();
 	}
