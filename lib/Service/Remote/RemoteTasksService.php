@@ -54,6 +54,8 @@ use OCA\JMAPC\Store\Common\Range\IRangeTally;
 use OCA\JMAPC\Store\Common\Sort\ISort;
 
 class RemoteTasksService {
+	use ChunkedRetrieval;
+
 	public ?DateTimeZone $SystemTimeZone = null;
 	public ?DateTimeZone $UserTimeZone = null;
 
@@ -393,71 +395,71 @@ class RemoteTasksService {
 	 * @param ISort|null $sort Properties to sort by
 	 */
 	public function entityList(?string $location = null, ?string $granularity = null, ?IRangeTally $range = null, ?IFilter $filter = null, ?ISort $sort = null, ?int $depth = null): array {
-		// construct request
-		$r0 = new TaskQuery($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		// define location
-		if (!empty($location)) {
-			$r0->filter()->in($location);
-		}
-		// define filter
-		if ($filter !== null) {
-			foreach ($filter->conditions() as $condition) {
-				[$operator, $property, $value] = $condition;
-				match($property) {
-					'before' => $r0->filter()->before($value),
-					'after' => $r0->filter()->after($value),
-					'uid' => $r0->filter()->uid($value),
-					default => null
-				};
+		// construct query request
+		$query = function () use ($location, $range, $filter, $sort): TaskQuery {
+			$r0 = new TaskQuery($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+			// define location
+			if (!empty($location)) {
+				$r0->filter()->in($location);
 			}
-		}
-		// define sort
-		if ($sort !== null) {
-			foreach ($sort->conditions() as $condition) {
-				[$property, $direction] = $condition;
-				match($property) {
-					'created' => $r0->sort()->created($direction),
-					'modified' => $r0->sort()->updated($direction),
-					'start' => $r0->sort()->start($direction),
-					'uid' => $r0->sort()->uid($direction),
-					default => null
-				};
+			// define filter
+			if ($filter !== null) {
+				foreach ($filter->conditions() as $condition) {
+					[$operator, $property, $value] = $condition;
+					match($property) {
+						'before' => $r0->filter()->before($value),
+						'after' => $r0->filter()->after($value),
+						'uid' => $r0->filter()->uid($value),
+						default => null
+					};
+				}
 			}
-		}
-		// define order
-		if ($sort !== null) {
-			foreach ($sort->conditions() as $condition) {
-				match($condition['attribute']) {
-					'created' => $r0->sort()->created($condition['direction']),
-					'modified' => $r0->sort()->updated($condition['direction']),
-					'start' => $r0->sort()->start($condition['direction']),
-					'uid' => $r0->sort()->uid($condition['direction']),
-					'recurrence' => $r0->sort()->recurrence($condition['direction']),
-					default => null
-				};
+			// define sort
+			if ($sort !== null) {
+				foreach ($sort->conditions() as $condition) {
+					[$property, $direction] = $condition;
+					match($property) {
+						'created' => $r0->sort()->created($direction),
+						'modified' => $r0->sort()->updated($direction),
+						'start' => $r0->sort()->start($direction),
+						'uid' => $r0->sort()->uid($direction),
+						default => null
+					};
+				}
 			}
-		}
-		// construct request
-		$r1 = new TaskGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
-		// set target to query request
-		$r1->targetFromRequest($r0, '/ids');
-		// select properties to return
-		if ($granularity === 'B') {
-			$r1->property(...$this->entityPropertiesBasic);
-		}
+			// define order
+			if ($sort !== null) {
+				foreach ($sort->conditions() as $condition) {
+					match($condition['attribute']) {
+						'created' => $r0->sort()->created($condition['direction']),
+						'modified' => $r0->sort()->updated($condition['direction']),
+						'start' => $r0->sort()->start($condition['direction']),
+						'uid' => $r0->sort()->uid($condition['direction']),
+						'recurrence' => $r0->sort()->recurrence($condition['direction']),
+						default => null
+					};
+				}
+			}
+			return $r0;
+		};
+		// construct get request
+		$get = function () use ($granularity): TaskGet {
+			$r1 = new TaskGet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel);
+			// select properties to return
+			if ($granularity === 'B') {
+				$r1->property(...$this->entityPropertiesBasic);
+			}
+			return $r1;
+		};
 		// transceive
-		$bundle = $this->dataStore->perform([$r0, $r1]);
-		// extract response
-		$response = $bundle->response(1);
-		// convert json objects to message objects
-		$state = $response->state();
-		$list = $response->objects();
-		foreach ($list as $id => $entry) {
-			$list[$id] = $this->toTaskObject($entry);
+		$result = $this->queryAndFetch($query, $get, $range === null);
+		// convert json objects to task objects
+		$list = [];
+		foreach ($result['objects'] as $entry) {
+			$list[] = $this->toTaskObject($entry);
 		}
-		// return message collection
-		return ['list' => $list, 'state' => $state];
-
+		// return object collection
+		return ['list' => $list, 'state' => $result['state']];
 	}
 
 	/**
