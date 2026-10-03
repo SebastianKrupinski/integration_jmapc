@@ -11,6 +11,7 @@ namespace OCA\JMAPC\Providers\DAV\Contacts\Live;
 
 use OCA\JMAPC\Objects\Contact\ContactCollectionObject;
 use OCA\JMAPC\Objects\Contact\ContactObject;
+use OCA\JMAPC\Providers\DAV\Contacts\ContactUtile;
 use OCA\JMAPC\Service\Local\LocalContactsService;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
 use Sabre\CardDAV\IAddressBook;
@@ -307,7 +308,7 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 		// read the data
 		$vObject = \Sabre\VObject\Reader::read($data);
 		// normalize properties
-		//$this->normalizeProperties($vObject);
+		ContactUtile::normalizeProperties($vObject);
 		// convert to event object
 		$to = $this->toContactObject($vObject);
 		// deposit the entity in the data store
@@ -328,7 +329,7 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 		// read the data
 		$vObject = \Sabre\VObject\Reader::read($data);
 		// normalize properties
-		//$this->normalizeProperties($vObject);
+		ContactUtile::normalizeProperties($vObject);
 		// convert to event object
 		$to = $this->toContactObject($vObject);
 		// deposit the entity in the data store

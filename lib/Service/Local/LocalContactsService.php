@@ -389,13 +389,13 @@ class LocalContactsService {
 		// name
 		if (isset($so->N)) {
 			$p = $so->N->getParts();
-			$do->Name->Last = $this->sanitizeString($p[0]);
-			$do->Name->First = $this->sanitizeString($p[1]);
-			$do->Name->Other = $this->sanitizeString($p[2]);
-			$do->Name->Prefix = $this->sanitizeString($p[3]);
-			$do->Name->Suffix = $this->sanitizeString($p[4]);
-			$do->Name->PhoneticLast = $this->sanitizeString($p[6]);
-			$do->Name->PhoneticFirst = $this->sanitizeString($p[7]);
+			$do->Name->Last = $this->sanitizeString($p[0] ?? null);
+			$do->Name->First = $this->sanitizeString($p[1] ?? null);
+			$do->Name->Other = $this->sanitizeString($p[2] ?? null);
+			$do->Name->Prefix = $this->sanitizeString($p[3] ?? null);
+			$do->Name->Suffix = $this->sanitizeString($p[4] ?? null);
+			$do->Name->PhoneticLast = $this->sanitizeString($p[6] ?? null);
+			$do->Name->PhoneticFirst = $this->sanitizeString($p[7] ?? null);
 			unset($p);
 		}
 		// aliases
@@ -404,13 +404,13 @@ class LocalContactsService {
 				$parameters = $entry->parameters();
 				$entity = new ContactAliasObject();
 				$entity->Label = $this->sanitizeString($entry->getValue());
-				$entity->Id = $this->sanitizeString($parameters['X-ID']?->getValue());
-				$entity->Index = (int)$this->sanitizeNumeric($parameters['INDEX']?->getValue());
-				$entity->Priority = (int)$this->sanitizeNumeric($parameters['PREF']?->getValue());
-				$entity->Context = $this->sanitizeString($parameters['TYPE']?->getValue());
-				$entity->Language = $this->sanitizeString($parameters['LANGUAGE']?->getValue());
-				$entity->URI = $this->sanitizeString($parameters['VALUE']?->getValue());
-				$do->Name->Aliases[] = $entity;
+				$entity->Id = $parameters['X-ID']->getValue();
+				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
+				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Language = $this->sanitizeString(($parameters['LANGUAGE'] ?? null)?->getValue());
+				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
+				$do->Name->Aliases[$entity->Id] = $entity;
 			}
 		}
 		// birth day
@@ -454,12 +454,12 @@ class LocalContactsService {
 				$parameters = $entry->parameters();
 				$entity = new ContactPronounObject();
 				$entity->Pronoun = $this->sanitizeString($entry->getValue());
-				$entity->Id = $this->sanitizeString($parameters['X-ID']?->getValue());
-				$entity->Index = (int)$this->sanitizeNumeric($parameters['INDEX']?->getValue());
-				$entity->Priority = (int)$this->sanitizeNumeric($parameters['PREF']?->getValue());
-				$entity->Context = $this->sanitizeString($parameters['TYPE']?->getValue());
-				$entity->Language = $this->sanitizeString($parameters['LANGUAGE']?->getValue());
-				$do->Pronouns[] = $entity;
+				$entity->Id = $parameters['X-ID']->getValue();
+				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
+				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Language = $this->sanitizeString(($parameters['LANGUAGE'] ?? null)?->getValue());
+				$do->Pronouns[$entity->Id] = $entity;
 			}
 		}
 		// phone(s)
@@ -468,12 +468,12 @@ class LocalContactsService {
 				$parameters = $entry->parameters();
 				$entity = new ContactPhoneObject();
 				$entity->Number = $this->sanitizeString($entry->getValue());
-				$entity->Id = $this->sanitizeString($parameters['X-ID']?->getValue());
-				$entity->Index = (int)$this->sanitizeNumeric($parameters['INDEX']?->getValue());
-				$entity->Priority = (int)$this->sanitizeNumeric($parameters['PREF']?->getValue());
-				$entity->Context = $this->sanitizeString($parameters['TYPE']?->getValue());
-				$entity->URI = $this->sanitizeString($parameters['VALUE']?->getValue());
-				$do->Phone[] = $entity;
+				$entity->Id = $parameters['X-ID']->getValue();
+				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
+				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
+				$do->Phone[$entity->Id] = $entity;
 				unset($primary, $secondary);
 			}
 		}
@@ -483,12 +483,12 @@ class LocalContactsService {
 				$parameters = $entry->parameters();
 				$entity = new ContactEmailObject();
 				$entity->Address = $this->sanitizeString($entry->getValue());
-				$entity->Id = $this->sanitizeString($parameters['X-ID']?->getValue());
-				$entity->Index = (int)$this->sanitizeNumeric($parameters['INDEX']?->getValue());
-				$entity->Priority = (int)$this->sanitizeNumeric($parameters['PREF']?->getValue());
-				$entity->Context = $this->sanitizeString($parameters['TYPE']?->getValue());
-				$entity->URI = $this->sanitizeString($parameters['VALUE']?->getValue());
-				$do->Email[] = $entity;
+				$entity->Id = $parameters['X-ID']->getValue();
+				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
+				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
+				$do->Email[$entity->Id] = $entity;
 			}
 		}
 		// physical location(s)
@@ -504,15 +504,15 @@ class LocalContactsService {
 				$entity->Region = $this->sanitizeString($region);
 				$entity->Code = $this->sanitizeString($code);
 				$entity->Country = $this->sanitizeString($country);
-				$entity->Label = $this->sanitizeString($parameters['LABEL']?->getValue());
-				$entity->Coordinates = $this->sanitizeString($parameters['GEO']?->getValue());
-				$entity->TimeZone = $this->sanitizeString($parameters['TZ']?->getValue());
-				$entity->Id = $this->sanitizeString($parameters['X-ID']?->getValue());
-				$entity->Index = (int)$this->sanitizeNumeric($parameters['INDEX']?->getValue());
-				$entity->Priority = (int)$this->sanitizeNumeric($parameters['PREF']?->getValue());
-				$entity->Context = $this->sanitizeString($parameters['TYPE']?->getValue());
-				$entity->Language = $this->sanitizeString($parameters['LANGUAGE']?->getValue());
-				$do->PhysicalLocations[] = $entity;
+				$entity->Label = $this->sanitizeString(($parameters['LABEL'] ?? null)?->getValue());
+				$entity->Coordinates = $this->sanitizeString(($parameters['GEO'] ?? null)?->getValue());
+				$entity->TimeZone = $this->sanitizeString(($parameters['TZ'] ?? null)?->getValue());
+				$entity->Id = $parameters['X-ID']->getValue();
+				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
+				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Language = $this->sanitizeString(($parameters['LANGUAGE'] ?? null)?->getValue());
+				$do->PhysicalLocations[$entity->Id] = $entity;
 				unset($type, $pob, $unit, $street, $locality, $region, $code, $country);
 			}
 		}
@@ -529,14 +529,14 @@ class LocalContactsService {
 				if (isset($parts[2])) {
 					$entity->Units[2] = $this->sanitizeString($parts[2]);
 				}
-				$entity->SortName = $this->sanitizeString($parameters['SORT-AS']?->getValue());
-				$entity->Id = $this->sanitizeString($parameters['X-ID']?->getValue());
-				$entity->Index = (int)$this->sanitizeNumeric($parameters['INDEX']?->getValue());
-				$entity->Priority = (int)$this->sanitizeNumeric($parameters['PREF']?->getValue());
-				$entity->Context = $this->sanitizeString($parameters['TYPE']?->getValue());
-				$entity->Language = $this->sanitizeString($parameters['LANGUAGE']?->getValue());
-				$entity->URI = $this->sanitizeString($parameters['VALUE']?->getValue());
-				$do->Organizations[] = $entity;
+				$entity->SortName = $this->sanitizeString(($parameters['SORT-AS'] ?? null)?->getValue());
+				$entity->Id = $parameters['X-ID']->getValue();
+				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
+				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Language = $this->sanitizeString(($parameters['LANGUAGE'] ?? null)?->getValue());
+				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
+				$do->Organizations[$entity->Id] = $entity;
 			}
 		}
 		// title(s)
@@ -546,13 +546,13 @@ class LocalContactsService {
 				$entity = new ContactTitleObject();
 				$entity->Kind = ContactTitleTypes::Title;
 				$entity->Label = $this->sanitizeString($entry->getValue());
-				$entity->Relation = $this->sanitizeString($parameters['X-ORG-ID']?->getValue());
-				$entity->Id = $this->sanitizeString($parameters['X-ID']?->getValue());
-				$entity->Index = (int)$this->sanitizeNumeric($parameters['INDEX']?->getValue());
-				$entity->Priority = (int)$this->sanitizeNumeric($parameters['PREF']?->getValue());
-				$entity->Context = $this->sanitizeString($parameters['TYPE']?->getValue());
-				$entity->URI = $this->sanitizeString($parameters['VALUE']?->getValue());
-				$do->Titles[] = $entity;
+				$entity->Relation = $this->sanitizeString(($parameters['X-ORG-ID'] ?? null)?->getValue());
+				$entity->Id = $parameters['X-ID']->getValue();
+				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
+				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
+				$do->Titles[$entity->Id] = $entity;
 			}
 		}
 		// role(s)
@@ -562,13 +562,13 @@ class LocalContactsService {
 				$entity = new ContactTitleObject();
 				$entity->Kind = ContactTitleTypes::Role;
 				$entity->Label = $this->sanitizeString($entry->getValue());
-				$entity->Relation = $this->sanitizeString($parameters['X-ORG-ID']?->getValue());
-				$entity->Id = $this->sanitizeString($parameters['X-ID']?->getValue());
-				$entity->Index = (int)$this->sanitizeNumeric($parameters['INDEX']?->getValue());
-				$entity->Priority = (int)$this->sanitizeNumeric($parameters['PREF']?->getValue());
-				$entity->Context = $this->sanitizeString($parameters['TYPE']?->getValue());
-				$entity->URI = $this->sanitizeString($parameters['VALUE']?->getValue());
-				$do->Titles[] = $entity;
+				$entity->Relation = $this->sanitizeString(($parameters['X-ORG-ID'] ?? null)?->getValue());
+				$entity->Id = $parameters['X-ID']->getValue();
+				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
+				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
+				$do->Titles[$entity->Id] = $entity;
 			}
 		}
 		// tag(s)
@@ -581,16 +581,16 @@ class LocalContactsService {
 				$parameters = $entry->parameters();
 				$entity = new ContactNoteObject();
 				$entity->Content = $this->sanitizeString($entry->getValue());
-				$entity->Date = $parameters['CREATED'] ? new DateTimeImmutable($parameters['CREATED']) : null;
-				$entity->AuthorUri = $this->sanitizeString($parameters['AUTHOR']?->getValue());
-				$entity->AuthorName = $this->sanitizeString($parameters['AUTHOR-NAME']?->getValue());
-				$entity->Id = $this->sanitizeString($parameters['X-ID']?->getValue());
-				$entity->Index = (int)$this->sanitizeNumeric($parameters['INDEX']?->getValue());
-				$entity->Priority = (int)$this->sanitizeNumeric($parameters['PREF']?->getValue());
-				$entity->Context = $this->sanitizeString($parameters['TYPE']?->getValue());
-				$entity->Language = $this->sanitizeString($parameters['LANGUAGE']?->getValue());
-				$entity->URI = $this->sanitizeString($parameters['VALUE']?->getValue());
-				$do->Notes[] = $entity;
+				$entity->Date = isset($parameters['CREATED']) ? new DateTimeImmutable($parameters['CREATED']->getValue()) : null;
+				$entity->AuthorUri = $this->sanitizeString(($parameters['AUTHOR'] ?? null)?->getValue());
+				$entity->AuthorName = $this->sanitizeString(($parameters['AUTHOR-NAME'] ?? null)?->getValue());
+				$entity->Id = $parameters['X-ID']->getValue();
+				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
+				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Language = $this->sanitizeString(($parameters['LANGUAGE'] ?? null)?->getValue());
+				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
+				$do->Notes[$entity->Id] = $entity;
 			}
 		}
 		// crypto
@@ -599,12 +599,12 @@ class LocalContactsService {
 				$parameters = $entry->parameters();
 				$entity = new ContactCryptoObject();
 				$entity->Data = $this->sanitizeString($entry->getValue());
-				$entity->Type = $this->sanitizeString($parameters['MEDIATYPE']?->getValue());
-				$entity->Id = $this->sanitizeString($parameters['X-ID']?->getValue());
-				$entity->Index = (int)$this->sanitizeNumeric($parameters['INDEX']?->getValue());
-				$entity->Priority = (int)$this->sanitizeNumeric($parameters['PREF']?->getValue());
-				$entity->Context = $this->sanitizeString($parameters['TYPE']?->getValue());
-				$do->Crypto[] = $entity;
+				$entity->Type = $this->sanitizeString(($parameters['MEDIATYPE'] ?? null)?->getValue());
+				$entity->Id = $parameters['X-ID']->getValue();
+				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
+				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$do->Crypto[$entity->Id] = $entity;
 			}
 		}
 		// Photo
@@ -921,6 +921,9 @@ class LocalContactsService {
 					/** @var \Sabre\VObject\Property $property */
 					$property = $do->add('ROLE', $entry->Label);
 					break;
+			}
+			if ($entry->Id !== null) {
+				$property->add('X-ID', $entry->Id);
 			}
 			if ($entry->Relation !== null) {
 				$property->add('X-ORG-ID', $entry->Relation);

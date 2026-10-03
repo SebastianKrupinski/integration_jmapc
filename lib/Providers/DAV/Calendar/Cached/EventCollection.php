@@ -16,6 +16,7 @@ use OCA\DAV\CalDAV\EventReader;
 use OCA\DAV\CalDAV\Integration\ExternalCalendar;
 use OCA\DAV\CalDAV\Plugin;
 use OCA\JMAPC\AppInfo\Application;
+use OCA\JMAPC\Providers\DAV\Calendar\CalendarUtile;
 use OCA\JMAPC\Store\Common\Filters\FilterComparisonOperator;
 use OCA\JMAPC\Store\Common\Range\RangeDate;
 use OCA\JMAPC\Store\Local\CollectionEntity as CollectionEntityData;
@@ -371,7 +372,7 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 		// read the data
 		$vObject = \Sabre\VObject\Reader::read($data);
 		// normalize properties
-		$this->normalizeProperties($vObject);
+		CalendarUtile::normalizeProperties($vObject);
 		// direct properties
 		$entity->setUid($this->_collection->getUid());
 		$entity->setSid($this->_collection->getSid());
@@ -403,7 +404,7 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 		// read the data
 		$vObject = \Sabre\VObject\Reader::read($data);
 		// normalize properties
-		$this->normalizeProperties($vObject);
+		CalendarUtile::normalizeProperties($vObject);
 		// direct properties
 		$entity->setData($vObject->serialize());
 		// calculated properties
@@ -426,52 +427,6 @@ class EventCollection extends ExternalCalendar implements ICalendar, IProperties
 	public function deleteFile(EventEntityData $entity): void {
 		// delete entry from data store and return result
 		$this->_store->entityDelete($entity);
-	}
-
-	protected function normalizeProperties(VCalendar $vObject): void {
-		foreach ($vObject->getComponents() as $component) {
-			if ($component->name === 'VTIMEZONE') {
-				continue;
-			}
-			// normalize ORGANIZER
-			if ($component->ORGANIZER !== null && $component->ORGANIZER->{'X-ID'}?->getValue() === null) {
-				$component->ORGANIZER->add('X-ID', uniqid());
-			}
-			// normalize ATTENDEE(s)
-			if (isset($component->ATTENDEE)) {
-				foreach ($component->ATTENDEE as $entry) {
-					if (empty($entry->parameters()['X-ID']?->getValue())) {
-						$entry->add('X-ID', uniqid());
-					}
-				}
-			}
-			// normalize LOCATION(s)
-			if (isset($component->LOCATION)) {
-				foreach ($component->LOCATION as $entry) {
-					if (empty($entry->parameters()['X-ID']?->getValue())) {
-						$entry->add('X-ID', uniqid());
-					}
-				}
-			}
-			// normalize VALARM(s)
-			if (isset($component->VALARM)) {
-				foreach ($component->VALARM as $entry) {
-					if ($entry->{'X-ID'} === null) {
-						$entry->add('X-ID', uniqid());
-					} elseif (empty($entry->{'X-ID'}?->getValue())) {
-						$entry->{'X-ID'}->setValue(uniqid());
-					}
-				}
-			}
-			// normalize ATTACH(s)
-			if (isset($component->ATTACH)) {
-				foreach ($component->ATTACH as $entry) {
-					if (empty($entry->parameters()['X-ID']?->getValue())) {
-						$entry->add('X-ID', uniqid());
-					}
-				}
-			}
-		}
 	}
 
 	/**

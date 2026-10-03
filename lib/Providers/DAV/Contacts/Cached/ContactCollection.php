@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Providers\DAV\Contacts\Cached;
 
+use OCA\JMAPC\Providers\DAV\Contacts\ContactUtile;
 use OCA\JMAPC\Store\Common\Filters\FilterComparisonOperator;
 use OCA\JMAPC\Store\Local\CollectionEntity as CollectionEntityData;
 use OCA\JMAPC\Store\Local\ContactEntity as ContactEntityData;
@@ -306,6 +307,9 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 		$entity = new ContactEntityData();
 		// read the data
 		$vObject = \Sabre\VObject\Reader::read($data);
+		// normalize properties
+		ContactUtile::normalizeProperties($vObject);
+		$data = $vObject->serialize();
 		// direct properties
 		$entity->setUid($this->_collection->getUid());
 		$entity->setSid($this->_collection->getSid());
@@ -336,6 +340,9 @@ class ContactCollection implements IAddressBook, IProperties, IMultiGet, ISyncCo
 		}
 		// read the data
 		$vObject = \Sabre\VObject\Reader::read($data);
+		// normalize properties
+		ContactUtile::normalizeProperties($vObject);
+		$data = $vObject->serialize();
 		// direct properties
 		$entity->setData($data);
 		// calculated properties
