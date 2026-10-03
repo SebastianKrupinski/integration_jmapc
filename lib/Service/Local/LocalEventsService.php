@@ -465,7 +465,7 @@ class LocalEventsService {
 			foreach ($so->LOCATION as $id => $entry) {
 				$parameters = $entry->parameters();
 				$entity = new EventLocationPhysicalObject();
-				$entity->Id = $parameters['X-ID']?->getValue();
+				$entity->Id = $parameters['X-ID']->getValue();
 				$entity->Name = trim($entry->getValue());
 				//$location->Description = $entry->description();
 				$do->LocationsPhysical[$entity->Id] = $entity;
@@ -505,21 +505,21 @@ class LocalEventsService {
 					$parameters = $entry->parameters();
 					$entity = new EventParticipantObject();
 					$entity->Address = !empty($entry->getValue()) ? trim(str_replace('mailto:', '', $entry->getValue())) : null;
-					$entity->Id = $parameters['X-ID']?->getValue();
-					$entity->Name = $parameters['CN']?->getValue() ?? null;
-					$entity->Type = match (strtoupper($parameters['CUTYPE']?->getValue() ?? 'default')) {
+					$entity->Id = $parameters['X-ID']->getValue();
+					$entity->Name = ($parameters['CN'] ?? null)?->getValue() ?? null;
+					$entity->Type = match (strtoupper(($parameters['CUTYPE'] ?? null)?->getValue() ?? 'default')) {
 						'GROUP' => EventParticipantTypes::Group,
 						'RESOURCE' => EventParticipantTypes::Resource,
 						'ROOM' => EventParticipantTypes::Location,
 						default => EventParticipantTypes::Individual,
 					};
-					$entity->Status = match (strtoupper($parameters['PARTSTAT']?->getValue() ?? 'default')) {
+					$entity->Status = match (strtoupper(($parameters['PARTSTAT'] ?? null)?->getValue() ?? 'default')) {
 						'ACCEPTED' => EventParticipantStatusTypes::Accepted,
 						'DECLINED' => EventParticipantStatusTypes::Declined,
 						'TENTATIVE' => EventParticipantStatusTypes::Tentative,
 						default => ($name === 'ORGANIZER') ? EventParticipantStatusTypes::Accepted : EventParticipantStatusTypes::None,
 					};
-					$entity->Roles[] = match (strtoupper($parameters['ROLE']?->getValue() ?? 'default')) {
+					$entity->Roles[] = match (strtoupper(($parameters['ROLE'] ?? null)?->getValue() ?? 'default')) {
 						'CHAIR' => EventParticipantRoleTypes::Chair,
 						'OPT-PARTICIPANT' => EventParticipantRoleTypes::Optional,
 						'NON-PARTICIPANT' => EventParticipantRoleTypes::Informational,
