@@ -113,7 +113,6 @@ class LocalTasksService {
 	public function entityList(int $cid, string $particulars): array {
 
 		return $this->_Store->entityListByCollection($cid);
-
 	}
 
 	/**
@@ -131,7 +130,6 @@ class LocalTasksService {
 		$lcc = $this->_Store->chronicleReminisce($cid, $signature);
 		// return collection differences
 		return $lcc;
-
 	}
 
 	/**
@@ -393,7 +391,6 @@ class LocalTasksService {
 
 		// return Task object
 		return $to;
-
 	}
 
 	/**
@@ -430,7 +427,6 @@ class LocalTasksService {
 		}
 
 		return $to;
-
 	}
 
 	public function generateSignature(TaskObject $eo): string {
@@ -453,7 +449,6 @@ class LocalTasksService {
 
 		// generate signature
 		return md5(json_encode($o, JSON_PARTIAL_OUTPUT_ON_ERROR));
-
 	}
 
 }

@@ -676,7 +676,6 @@ class BaseStore {
 	public function entityFresh(): Entity {
 
 		return new $this->_EntityClass;
-
 	}
 
 	/**
@@ -712,7 +711,6 @@ class BaseStore {
 		$entity->resetUpdatedFields();
 
 		return $entity;
-
 	}
 
 	/**
@@ -751,7 +749,6 @@ class BaseStore {
 		$entity->resetUpdatedFields();
 
 		return $entity;
-
 	}
 
 	/**
@@ -775,7 +772,6 @@ class BaseStore {
 		$this->chronicleDocument($entity->getUid(), $entity->getSid(), $entity->getCid(), $entity->getId(), $entity->getUuid(), 3);
 		// return result
 		return $entity;
-
 	}
 
 	/**
@@ -795,7 +791,6 @@ class BaseStore {
 			->where($cmd->expr()->eq('id', $cmd->createNamedParameter($id)));
 		// execute command and return result
 		return $cmd->executeStatement();
-
 	}
 
 	/**
@@ -815,7 +810,6 @@ class BaseStore {
 			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)));
 		// execute command and return result
 		return $cmd->executeStatement();
-
 	}
 
 	/**
@@ -835,7 +829,6 @@ class BaseStore {
 			->where($cmd->expr()->eq('sid', $cmd->createNamedParameter($sid)));
 		// execute command and return result
 		return $cmd->executeStatement();
-
 	}
 
 	/**
@@ -855,7 +848,6 @@ class BaseStore {
 			->where($cmd->expr()->eq('cid', $cmd->createNamedParameter($cid)));
 		// execute command and return result
 		return $cmd->executeStatement();
-
 	}
 
 	/**
@@ -891,7 +883,6 @@ class BaseStore {
 		$cmd->executeStatement();
 		// return stamp
 		return base64_encode((string)$stamp);
-
 	}
 
 	/**
@@ -991,7 +982,6 @@ class BaseStore {
 
 		// return stamp
 		return $chronicle;
-
 	}
 
 	/**

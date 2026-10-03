@@ -42,7 +42,6 @@ class MailCollectionObject implements ICollectionObject {
 			$this->parameters = $parameters;
 		}
 		return $this;
-
 	}
 
 	/**

@@ -214,7 +214,6 @@ class ServicesStore {
 		$entity->resetUpdatedFields();
 
 		return $entity;
-
 	}
 
 	/**
@@ -251,7 +250,6 @@ class ServicesStore {
 		$entity->resetUpdatedFields();
 
 		return $entity;
-
 	}
 
 	/**
@@ -274,7 +272,6 @@ class ServicesStore {
 
 		// return result
 		return $entity;
-
 	}
 
 	/**
@@ -294,7 +291,6 @@ class ServicesStore {
 			->where($cmd->expr()->eq('uid', $cmd->createNamedParameter($uid)));
 		// execute command and return result
 		return $cmd->executeStatement();
-
 	}
 
 }

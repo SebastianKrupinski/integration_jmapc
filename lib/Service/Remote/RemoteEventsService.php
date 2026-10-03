@@ -31,7 +31,6 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 use Exception;
-
 use JmapClient\Client;
 use JmapClient\Requests\Calendar\CalendarGet;
 use JmapClient\Requests\Calendar\CalendarParameters as CalendarParametersRequest;
@@ -1339,7 +1338,6 @@ class RemoteEventsService {
 
 		// generate signature
 		return md5(json_encode($o, JSON_PARTIAL_OUTPUT_ON_ERROR));
-
 	}
 
 	/**
@@ -1368,7 +1366,6 @@ class RemoteEventsService {
 		}
 
 		return ['address' => $address, 'name' => $name];
-
 	}
 
 	/**
@@ -1389,7 +1386,6 @@ class RemoteEventsService {
 			}
 		}
 		return $dow;
-
 	}
 
 	/**
@@ -1409,7 +1405,6 @@ class RemoteEventsService {
 		}
 
 		return $dow;
-
 	}
 
 }

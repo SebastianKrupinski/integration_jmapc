@@ -84,6 +84,5 @@ class Disconnect extends Command {
 		}
 
 		return self::SUCCESS;
-
 	}
 }

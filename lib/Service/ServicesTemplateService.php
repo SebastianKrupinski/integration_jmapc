@@ -40,7 +40,6 @@ class ServicesTemplateService {
 	public function findByDomain(string $domain): array {
 
 		return $this->_Store->fetchByDomain($domain);
-
 	}
 
 }

@@ -267,7 +267,6 @@ class TasksService {
 
 		// return statistics
 		return $statistics;
-
 	}
 
 	public function discoverRemoteAlteration(CollectionEntity $collection): DeltaObject {
@@ -379,7 +378,6 @@ class TasksService {
 		}
 		// return operation status
 		return $status;
-
 	}
 
 	/**
@@ -470,7 +468,6 @@ class TasksService {
 		}
 		// return operation status
 		return $status;
-
 	}
 
 	/**

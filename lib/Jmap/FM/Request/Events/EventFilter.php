@@ -6,6 +6,7 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: 2024 Sebastian Krupinski <krupinski01@gmail.com>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
+
 namespace OCA\JMAPC\Jmap\FM\Request\Events;
 
 use JmapClient\Requests\Calendar\EventFilter as EventFilterJmap;
@@ -17,7 +18,6 @@ class EventFilter extends EventFilterJmap {
 		$this->condition('inCalendars', [$value]);
 
 		return $this;
-
 	}
 
 }

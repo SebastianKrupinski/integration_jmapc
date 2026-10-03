@@ -110,7 +110,6 @@ class Service implements IService, IMessageSend {
 			return (bool)$this->serviceAbilities[$value];
 		}
 		return false;
-
 	}
 
 	/**
@@ -152,7 +151,6 @@ class Service implements IService, IMessageSend {
 		$this->serviceLabel = $value;
 		$this->serviceData->setLabel($this->serviceLabel);
 		return $this;
-
 	}
 
 	/**
@@ -198,7 +196,6 @@ class Service implements IService, IMessageSend {
 			}
 		}
 		return $this->serviceIdentity;
-
 	}
 
 	/**
@@ -224,7 +221,6 @@ class Service implements IService, IMessageSend {
 			$this->serviceData->setOauthRefreshLocation($value->getRefreshLocation());
 		}
 		return $this;
-
 	}
 
 	/**
@@ -252,7 +248,6 @@ class Service implements IService, IMessageSend {
 			$this->serviceLocation = $location;
 		}
 		return $this->serviceLocation;
-
 	}
 
 	/**
@@ -270,7 +265,6 @@ class Service implements IService, IMessageSend {
 		$this->serviceData->setPort($value->getPort());
 
 		return $this;
-
 	}
 
 	/**
@@ -284,7 +278,6 @@ class Service implements IService, IMessageSend {
 			$this->serviceAddressPrimary = new Address($this->serviceData->getAddressPrimary());
 		}
 		return $this->serviceAddressPrimary;
-
 	}
 
 	/**
@@ -297,7 +290,6 @@ class Service implements IService, IMessageSend {
 		$this->serviceAddressPrimary = $value;
 		$this->serviceData->setAddressPrimary($value->getAddress());
 		return $this;
-
 	}
 
 	/**
@@ -318,7 +310,6 @@ class Service implements IService, IMessageSend {
 			}
 		}
 		return $this->serviceAddressAlternate;
-
 	}
 
 	/**
@@ -337,7 +328,6 @@ class Service implements IService, IMessageSend {
 			$this->serviceData->setAddressAlternate(json_encode($list));
 		}
 		return $this;
-
 	}
 
 	/**
@@ -362,103 +352,86 @@ class Service implements IService, IMessageSend {
 			$this->mailService->initialize($client);
 		}
 		return $this->mailService;
-
 	}
 
 	public function collectionList(string $location, string $scope, array $options = []): array {
 
 		return $this->mailService()->collectionList($location, $scope, $options);
-
 	}
 
 	public function collectionFetch(string $location, string $id, array $options = []): mixed {
 
 		return $this->mailService()->collectionFetch($location, $id, $options);
-
 	}
 
 	public function collectionCreate(string $location, string $label, array $options = []): mixed {
 
 		return $this->mailService()->collectionCreate($location, $label, $options);
-
 	}
 
 	public function collectionUpdate(string $location, string $id, string $label, array $options = []): string {
 
 		return $this->mailService()->collectionUpdate($location, $id, $label, $options);
-
 	}
 
 	public function collectionDelete(string $location, string $id, array $options = []): string {
 
 		return $this->mailService()->collectionDelete($location, $id, $options);
-
 	}
 
 	public function collectionMove(string $sourceLocation, string $id, string $destinationLocation, array $options = []): string {
 
 		return $this->mailService()->collectionMove($sourceLocation, $id, $destinationLocation, $options);
-
 	}
 
 	public function entityList(string $location, ?IRange $range = null, ?string $sort = null, string $particulars = 'D', array $options = []): array {
 
 		return $this->mailService()->entityList($location, $range, $sort, $particulars, $options);
-
 	}
 
 	public function entityFetch(string $location, string $id, string $particulars = 'D', array $options = []): object {
 
 		return $this->mailService()->entityFetch($location, $id, $particulars, $options);
-
 	}
 
 	public function entityCreate(string $location, IMessage $message, array $options = []): string {
 
 		return $this->mailService()->entityCreate($location, $message, $options);
-
 	}
 
 	public function entityUpdate(string $location, string $id, IMessage $message, array $options = []): string {
 
 		return $this->mailService()->entityUpdate($location, $id, $message, $options);
-
 	}
 
 	public function entityDelete(string $location, string $id, array $options = []): string {
 
 		return $this->mailService()->entityDelete($location, $id, $options);
-
 	}
 
 	public function entityCopy(string $sourceLocation, string $id, string $destinationLocation, array $options = []): string {
 
 		return $this->mailService()->entityCopy($sourceLocation, $id, $destinationLocation, $options);
-
 	}
 
 	public function entityMove(string $sourceLocation, string $id, string $destinationLocation, array $options = []): string {
 
 		return $this->mailService()->entityMove($sourceLocation, $id, $destinationLocation, $options);
-
 	}
 
 	public function entityForward(string $location, string $id, IMessage $message, array $options = []): string {
 
 		return $this->mailService()->entityForward($location, $id, $message, $options);
-
 	}
 
 	public function entityReply(string $location, string $id, IMessage $message, array $options = []): string {
 
 		return $this->mailService()->entityReply($location, $id, $message, $options);
-
 	}
 
 	public function entitySend(IMessage $message, array $options = []): string {
 
 		return $this->mailService()->entitySend($message, $options);
-
 	}
 
 	/**
@@ -479,7 +452,6 @@ class Service implements IService, IMessageSend {
 	public function blobFetch(string $id, array $options = []): object {
 
 		return $this->mailService()->blobFetch($id, $options);
-
 	}
 
 }

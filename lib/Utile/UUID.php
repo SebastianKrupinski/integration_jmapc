@@ -69,7 +69,6 @@ class UUID {
 		$hash = md5($nstr . $name);
 
 		return sprintf('%08s-%04s-%04x-%04x-%12s',
-
 			// 32 bits for "time_low"
 			substr($hash, 0, 8),
 
@@ -99,7 +98,6 @@ class UUID {
 	 */
 	public static function v4() {
 		return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-
 			// 32 bits for "time_low"
 			mt_rand(0, 0xffff), mt_rand(0, 0xffff),
 
@@ -152,7 +150,6 @@ class UUID {
 		$hash = sha1($nstr . $name);
 
 		return sprintf('%08s-%04s-%04x-%04x-%12s',
-
 			// 32 bits for "time_low"
 			substr($hash, 0, 8),
 

@@ -162,7 +162,9 @@ class JmapClientAdapterTest extends TestCase {
 		$factory->method('createStream')->willReturn($stream);
 		$messages = [];
 		$logger = $this->createMock(LoggerInterface::class);
-		$logger->method('debug')->willReturnCallback(static function (string $message, array $context) use (&$messages): void { $messages[] = ['message' => $message, 'context' => $context]; });
+		$logger->method('debug')->willReturnCallback(static function (string $message, array $context) use (&$messages): void {
+			$messages[] = ['message' => $message, 'context' => $context];
+		});
 		$client = new JmapClientAdapter($this->ncClient, $this->factory, $factory, [], $logger);
 		$this->ncClient->method('request')->willReturn($this->ncResponse(200, '', ['Content-Type' => ['application/json']]));
 		$response = $client->sendRequest($this->factory->createRequest('GET', 'https://jmap.example.com/api'));
@@ -173,7 +175,9 @@ class JmapClientAdapterTest extends TestCase {
 	public function testLogsEmptyJsonBodyAsNull(): void {
 		$messages = [];
 		$logger = $this->createMock(LoggerInterface::class);
-		$logger->method('debug')->willReturnCallback(static function (string $message, array $context) use (&$messages): void { $messages[] = ['message' => $message, 'context' => $context]; });
+		$logger->method('debug')->willReturnCallback(static function (string $message, array $context) use (&$messages): void {
+			$messages[] = ['message' => $message, 'context' => $context];
+		});
 		$client = new JmapClientAdapter($this->ncClient, $this->factory, $this->factory, [], $logger);
 		$this->ncClient->method('request')->willReturn($this->ncResponse(200, '{"ok":true}', ['Content-Type' => ['application/json']]));
 		$client->sendRequest($this->factory->createRequest('GET', 'https://jmap.example.com/api')->withHeader('Content-Type', 'application/json'));
@@ -192,7 +196,9 @@ class JmapClientAdapterTest extends TestCase {
 	public function testOmitsUnsafeBodies(string $contentType, string $body, string $expected): void {
 		$messages = [];
 		$logger = $this->createMock(LoggerInterface::class);
-		$logger->method('debug')->willReturnCallback(static function (string $message, array $context) use (&$messages): void { $messages[] = ['message' => $message, 'context' => $context]; });
+		$logger->method('debug')->willReturnCallback(static function (string $message, array $context) use (&$messages): void {
+			$messages[] = ['message' => $message, 'context' => $context];
+		});
 		$client = new JmapClientAdapter($this->ncClient, $this->factory, $this->factory, [], $logger);
 		$this->ncClient->method('request')->willReturn($this->ncResponse(200, $body, ['Content-Type' => [$contentType]]));
 		$response = $client->sendRequest($this->factory->createRequest('GET', 'https://jmap.example.com/api'));

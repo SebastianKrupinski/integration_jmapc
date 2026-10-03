@@ -245,7 +245,6 @@ class ContactsService {
 
 		// return statistics
 		return $statistics;
-
 	}
 
 	public function discoverRemoteAlteration(CollectionEntity $collection): DeltaObject {
@@ -357,7 +356,6 @@ class ContactsService {
 		}
 		// return operation status
 		return $status;
-
 	}
 
 	/**
@@ -448,7 +446,6 @@ class ContactsService {
 		}
 		// return operation status
 		return $status;
-
 	}
 
 	/**
@@ -474,6 +471,5 @@ class ContactsService {
 		}
 
 	}
-
 
 }

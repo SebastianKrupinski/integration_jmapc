@@ -133,7 +133,6 @@ class LocalEventsService {
 	public function entityList(int $cid, string $particulars): array {
 
 		return $this->_Store->entityListByCollection($cid);
-
 	}
 
 	/**
@@ -151,7 +150,6 @@ class LocalEventsService {
 		$lcc = $this->_Store->chronicleReminisce($cid, $signature);
 		// return collection differences
 		return $lcc;
-
 	}
 
 	/**
@@ -420,7 +418,6 @@ class LocalEventsService {
 
 		// return event object
 		return $do;
-
 	}
 
 	/**
@@ -661,7 +658,6 @@ class LocalEventsService {
 		*/
 
 		return $do;
-
 	}
 
 	/**
@@ -1063,7 +1059,6 @@ class LocalEventsService {
 
 		// generate signature
 		return md5(json_encode($o, JSON_PARTIAL_OUTPUT_ON_ERROR));
-
 	}
 
 	/**
@@ -1094,7 +1089,6 @@ class LocalEventsService {
 		}
 
 		return $values;
-
 	}
 
 }

@@ -72,7 +72,6 @@ class MailMessagePartObject {
 		}
 
 		return $parameters;
-
 	}
 
 	public function setBlobId(string $value): self {

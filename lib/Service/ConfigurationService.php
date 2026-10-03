@@ -124,7 +124,6 @@ class ConfigurationService {
 		}
 		// return configuration parameters
 		return $parameters;
-
 	}
 
 	/**
@@ -261,7 +260,6 @@ class ConfigurationService {
 		}
 		// return configuration parameters
 		return $parameters;
-
 	}
 
 	/**
@@ -646,7 +644,6 @@ class ConfigurationService {
 	public function encrypt(string $value): string {
 
 		return $this->_cs->encrypt($value);
-
 	}
 
 	/**
@@ -659,7 +656,6 @@ class ConfigurationService {
 	public function decrypt(string $value): string {
 
 		return $this->_cs->decrypt($value);
-
 	}
 
 }

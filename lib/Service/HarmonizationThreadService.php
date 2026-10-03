@@ -145,7 +145,9 @@ class HarmonizationThreadService {
 					return $entry['NcUser'] == $uid;
 				});
 			}
-			$rs = array_map(function ($entry) { return (object)['TID' => intval($entry['ThreadId']), 'UID' => $entry['NcUser']];}, $matches);
+			$rs = array_map(function ($entry) {
+				return (object)['TID' => intval($entry['ThreadId']), 'UID' => $entry['NcUser']];
+			}, $matches);
 			return $rs;
 		} else {
 			return [];

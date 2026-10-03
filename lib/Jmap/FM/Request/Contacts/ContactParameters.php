@@ -23,10 +23,10 @@ declare(strict_types=1);
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 namespace OCA\JMAPC\Jmap\FM\Request\Contacts;
 
 use JmapClient\Requests\RequestParameters;
-
 use function PHPUnit\Framework\isEmpty;
 
 class ContactParameters extends RequestParameters {

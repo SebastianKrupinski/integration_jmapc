@@ -893,7 +893,6 @@ class MIME {
 		$extension = strtolower(end($extension));
 
 		return MIME::fromExtension($extension);
-
 	}
 
 	/**

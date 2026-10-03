@@ -37,7 +37,6 @@ use OCA\JMAPC\Store\Common\Filters\FilterComparisonOperator;
 use OCA\JMAPC\Store\Common\Range\RangeDate;
 use OCA\JMAPC\Store\Local\CollectionEntity as CollectionEntityData;
 use OCA\JMAPC\Store\Local\TaskEntity as TaskEntityData;
-
 use OCA\JMAPC\Store\Local\TaskStore;
 use Sabre\CalDAV\ICalendar;
 use Sabre\CalDAV\Xml\Property\SupportedCalendarComponentSet;

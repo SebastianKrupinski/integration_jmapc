@@ -33,7 +33,6 @@ use OCA\JMAPC\Service\HarmonizationService;
 use OCA\JMAPC\Service\ServicesService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
-
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;

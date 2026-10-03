@@ -12,7 +12,6 @@ namespace OCA\JMAPC\Settings;
 use OCA\JMAPC\AppInfo\Application;
 use OCA\JMAPC\Service\ConfigurationService;
 use OCP\AppFramework\Http\TemplateResponse;
-
 use OCP\AppFramework\Services\IInitialState;
 use OCP\Settings\ISettings;
 use OCP\Util;

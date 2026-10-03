@@ -109,7 +109,6 @@ class RemoteService {
 		}
 		// return
 		return $client;
-
 	}
 
 	/**
@@ -244,7 +243,6 @@ class RemoteService {
 		}
 
 		return null;
-
 	}
 
 	public static function cookieStoreDeposit(mixed $id, array $value): void {

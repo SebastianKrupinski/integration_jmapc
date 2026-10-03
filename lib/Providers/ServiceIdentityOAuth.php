@@ -58,7 +58,6 @@ class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 	public function type(): string {
 
 		return 'OAUTH';
-
 	}
 
 	/**
@@ -68,7 +67,6 @@ class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 	public function label(): string {
 
 		return 'Bearer Authentication';
-
 	}
 
 	/**
@@ -78,7 +76,6 @@ class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 	public function getAccessId(): string {
 
 		return $this->_AccessId;
-
 	}
 
 	/**
@@ -98,7 +95,6 @@ class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 	public function getAccessToken(): string {
 
 		return $this->_AccessToken;
-
 	}
 
 	/**
@@ -118,7 +114,6 @@ class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 	public function getAccessScope(): array {
 
 		return $this->_AccessScope;
-
 	}
 
 	/**
@@ -138,7 +133,6 @@ class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 	public function getAccessExpiry(): int {
 
 		return $this->_AccessExpiry;
-
 	}
 
 	/**
@@ -158,7 +152,6 @@ class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 	public function getRefreshToken(): string {
 
 		return $this->_RefreshToken;
-
 	}
 
 	/**
@@ -178,7 +171,6 @@ class ServiceIdentityOAuth implements IServiceIdentityOAuth {
 	public function getRefreshLocation(): string {
 
 		return $this->_RefreshLocation;
-
 	}
 
 	/**

@@ -27,7 +27,6 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Service\Remote;
 
 use Exception;
-
 use JmapClient\Client;
 use JmapClient\Requests\Blob\BlobGet;
 use JmapClient\Requests\Core\SubscriptionGet;
@@ -184,7 +183,6 @@ class RemoteCoreService {
 		$response = $bundle->response(0);
 		// convert json object to message object and return
 		return $response->object(0);
-
 	}
 
 	/**
@@ -201,7 +199,6 @@ class RemoteCoreService {
 		$response = json_decode($response, true);
 
 		return  $response;
-
 		/*
 		// construct set request
 		$r0 = new BlobSet($this->dataAccount, null, $this->resourceNamespace, $this->resourceEntityLabel)

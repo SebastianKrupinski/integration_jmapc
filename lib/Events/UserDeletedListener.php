@@ -30,7 +30,6 @@ use Exception;
 use OCA\JMAPC\Service\CoreService;
 use OCA\JMAPC\Service\ServicesService;
 use OCP\EventDispatcher\Event;
-
 use OCP\EventDispatcher\IEventListener;
 use OCP\User\Events\UserDeletedEvent;
 use Psr\Log\LoggerInterface;

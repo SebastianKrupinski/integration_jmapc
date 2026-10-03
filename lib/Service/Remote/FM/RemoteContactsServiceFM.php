@@ -203,7 +203,6 @@ class RemoteContactsServiceFM extends RemoteContactsService {
 		}
 
 		return $do;
-
 	}
 
 	/**
@@ -337,7 +336,6 @@ class RemoteContactsServiceFM extends RemoteContactsService {
 		}
 
 		return $do;
-
 	}
 
 }

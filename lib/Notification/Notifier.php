@@ -134,7 +134,6 @@ class Notifier implements INotifier {
 				$notification->setRichMessage($content);
 
 				return $notification;
-
 			case 'events_harmonized':
 				$p = $notification->getSubjectParameters();
 				$content = "The following changes where performed \n";
@@ -170,7 +169,6 @@ class Notifier implements INotifier {
 				$notification->setRichMessage($content);
 
 				return $notification;
-
 			case 'tasks_harmonized':
 				$p = $notification->getSubjectParameters();
 				$content = "The following changes where performed \n";
