@@ -1,0 +1,10 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:7d4b1a3e-0c1f-4c47-9c5e-1b0e2f3a4b04
+FN:Bob Johnson
+N:Johnson;Bob;;;
+EMAIL;X-ID=email-1;TYPE=work:bob.johnson@example.com
+ORG;X-ID=org-1:ACME Corporation;Engineering;Research
+TITLE;X-ID=title-1:Senior Software Engineer
+ROLE;X-ID=role-1:Team Lead
+END:VCARD
