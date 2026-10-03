@@ -21,10 +21,13 @@ use OCA\JMAPC\Objects\Event\EventParticipantStatusTypes;
 use OCA\JMAPC\Objects\Event\EventParticipantTypes;
 use OCA\JMAPC\Service\Remote\RemoteEventsService;
 use OCA\JMAPC\Service\Remote\RemoteService;
+use OCA\JMAPC\Tests\Jmap\RequiresStalwart;
 use OCA\JMAPC\Tests\Jmap\TestClientFactory;
 use OCA\JMAPC\Tests\Unit\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Uid\UuidV4;
 
+#[Group('DB')]
 class EventsEntityTest extends TestCase {
 
 	private Client $remoteClient;
@@ -32,12 +35,17 @@ class EventsEntityTest extends TestCase {
 
 	public function setUp(): void {
 		parent::setUp();
+		TestClientFactory::checkRequirements($this);
 		$this->remoteClient = TestClientFactory::InstanceClient();
 		$this->eventsService = RemoteService::eventsService($this->remoteClient);
 	}
 
 	public function tearDown(): void {
 		parent::tearDown();
+
+		if (!isset($this->eventsService)) {
+			return;
+		}
 
 		$collections = $this->eventsService->collectionList();
 
@@ -333,6 +341,7 @@ class EventsEntityTest extends TestCase {
 		$this->assertCount(1, $delta->deletions);
 	}
 
+	#[RequiresStalwart('0.16.0', 'Stalwart before 0.16 does not support all event variations')]
 	public function testEntityVariations(): void {
 		// Create a collection for this test
 		$collection = new EventCollectionObject();

@@ -7,7 +7,7 @@ declare(strict_types=1);
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-namespace OCA\JMAPC\Tests\Unit\Store\Local;
+namespace OCA\JMAPC\Tests\Database\Store\Local;
 
 use OCA\JMAPC\Store\Local\FileCollectionEntity;
 use OCA\JMAPC\Store\Local\FilesStore;

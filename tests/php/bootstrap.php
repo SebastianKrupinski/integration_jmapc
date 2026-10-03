@@ -11,6 +11,7 @@ require dirname(__DIR__, 4) . '/tests/bootstrap.php';
 
 \OC::$composerAutoloader->addPsr4('OCA\\JMAPC\\', dirname(__DIR__, 2) . '/lib');
 \OC::$composerAutoloader->addPsr4('OCA\\JMAPC\\Tests\\Unit\\', __DIR__ . '/unit');
+\OC::$composerAutoloader->addPsr4('OCA\\JMAPC\\Tests\\Database\\', __DIR__ . '/database');
 \OC::$composerAutoloader->addPsr4('OCA\\JMAPC\\Tests\\Jmap\\', __DIR__ . '/jmap');
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
