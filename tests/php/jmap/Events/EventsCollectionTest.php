@@ -14,7 +14,9 @@ use OCA\JMAPC\Service\Remote\RemoteEventsService;
 use OCA\JMAPC\Service\Remote\RemoteService;
 use OCA\JMAPC\Tests\Jmap\TestClientFactory;
 use OCA\JMAPC\Tests\Unit\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 
+#[Group('DB')]
 class EventsCollectionTest extends TestCase {
 
 	private Client $remoteClient;
@@ -22,12 +24,17 @@ class EventsCollectionTest extends TestCase {
 
 	public function setUp(): void {
 		parent::setUp();
+		TestClientFactory::checkRequirements($this);
 		$this->remoteClient = TestClientFactory::InstanceClient();
 		$this->eventsService = RemoteService::eventsService($this->remoteClient);
 	}
 
 	public function tearDown(): void {
 		parent::tearDown();
+
+		if (!isset($this->eventsService)) {
+			return;
+		}
 
 		$collections = $this->eventsService->collectionList();
 

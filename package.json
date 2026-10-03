@@ -11,8 +11,8 @@
 		"build": "rspack build --env production",
 		"dev": "rspack build --env development",
 		"watch": "rspack build --env development --watch",
-		"lint": "eslint --ext .js,.vue src",
-		"lint:fix": "eslint --ext .js,.vue src --fix",
+		"lint": "eslint --ext .js,.ts,.vue src",
+		"lint:fix": "eslint --ext .js,.ts,.vue src --fix",
 		"stylelint": "stylelint src/**/*.scss src/**/*.vue src/**/*.vue",
 		"stylelint:fix": "stylelint src/**/*.scss src/**/*.vue --fix"
 	},
@@ -30,6 +30,7 @@
 		"@nextcloud/initial-state": "^3.0.0",
 		"@nextcloud/l10n": "^3.4.0",
 		"@nextcloud/logger": "^3.0.2",
+		"@nextcloud/router": "^3.2.0",
 		"@nextcloud/vue": "^9.1.0",
 		"vue": "^3.5.22",
 		"vue-material-design-icons": "^5.3.1"

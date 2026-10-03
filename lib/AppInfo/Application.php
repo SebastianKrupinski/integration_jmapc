@@ -26,6 +26,7 @@ use OCP\User\Events\UserDeletedEvent;
  *
  * @package OCA\JMAPC\AppInfo
  */
+
 class Application extends App implements IBootstrap {
 	// assign application identification
 	public const APP_ID = 'integration_jmapc';

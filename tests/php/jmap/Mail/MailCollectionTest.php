@@ -14,7 +14,9 @@ use OCA\JMAPC\Service\Remote\RemoteMailService;
 use OCA\JMAPC\Service\Remote\RemoteService;
 use OCA\JMAPC\Tests\Jmap\TestClientFactory;
 use OCA\JMAPC\Tests\Unit\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 
+#[Group('DB')]
 class MailCollectionTest extends TestCase {
 
 	private Client $remoteClient;
@@ -22,12 +24,17 @@ class MailCollectionTest extends TestCase {
 
 	public function setUp(): void {
 		parent::setUp();
+		TestClientFactory::checkRequirements($this);
 		$this->remoteClient = TestClientFactory::InstanceClient();
 		$this->mailService = RemoteService::mailService($this->remoteClient);
 	}
 
 	public function tearDown(): void {
 		parent::tearDown();
+
+		if (!isset($this->mailService)) {
+			return;
+		}
 
 		$collections = $this->mailService->collectionList();
 

@@ -25,10 +25,13 @@ use OCA\JMAPC\Objects\Contact\ContactTitleTypes;
 use OCA\JMAPC\Objects\DeltaObject;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
 use OCA\JMAPC\Service\Remote\RemoteService;
+use OCA\JMAPC\Tests\Jmap\RequiresStalwart;
 use OCA\JMAPC\Tests\Jmap\TestClientFactory;
 use OCA\JMAPC\Tests\Unit\TestCase;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Uid\UuidV4;
 
+#[Group('DB')]
 class ContactsEntityTest extends TestCase {
 
 	private Client $remoteClient;
@@ -36,12 +39,17 @@ class ContactsEntityTest extends TestCase {
 
 	public function setUp(): void {
 		parent::setUp();
+		TestClientFactory::checkRequirements($this);
 		$this->remoteClient = TestClientFactory::InstanceClient();
 		$this->contactsService = RemoteService::contactsService($this->remoteClient);
 	}
 
 	public function tearDown(): void {
 		parent::tearDown();
+
+		if (!isset($this->contactsService)) {
+			return;
+		}
 
 		$collections = $this->contactsService->collectionList();
 
@@ -214,6 +222,7 @@ class ContactsEntityTest extends TestCase {
 		$this->assertEquals('Alice', $filteredContact->Name->First);
 	}
 
+	#[RequiresStalwart('0.16.0', 'Stalwart before 0.16 does not support sorting contacts by name')]
 	public function testEntityListWithSort(): void {
 		// Create a collection for this test
 		$collection = new ContactCollectionObject();
