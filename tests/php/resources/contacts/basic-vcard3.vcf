@@ -1,0 +1,9 @@
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN
+UID:7d4b1a3e-0c1f-4c47-9c5e-1b0e2f3a4b02
+FN:Mary Major
+N:Major;Mary;;;
+EMAIL;X-ID=email-1;TYPE=HOME:mary.major@example.com
+TEL;X-ID=tel-1;TYPE=CELL:+1-555-0110
+END:VCARD
