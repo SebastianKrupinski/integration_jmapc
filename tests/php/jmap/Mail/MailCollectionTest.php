@@ -5,13 +5,13 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: Sebastian Krupinski <krupinski01@gmail.com>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
-namespace OCA\JMAPC\Tests\Integration\Mail;
+namespace OCA\JMAPC\Tests\Jmap\Mail;
 
 use JmapClient\Client;
 use OCA\JMAPC\Objects\Mail\MailCollectionObject;
 use OCA\JMAPC\Service\Remote\RemoteMailService;
 use OCA\JMAPC\Service\Remote\RemoteService;
-use OCA\JMAPC\Tests\Integration\TestClientFactory;
+use OCA\JMAPC\Tests\Jmap\TestClientFactory;
 use OCA\JMAPC\Tests\Unit\TestCase;
 
 class MailCollectionTest extends TestCase {

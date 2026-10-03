@@ -5,7 +5,7 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: Sebastian Krupinski <krupinski01@gmail.com>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
-namespace OCA\JMAPC\Tests\Integration\Contacts;
+namespace OCA\JMAPC\Tests\Jmap\Contacts;
 
 use DateTime;
 use DateTimeZone;
@@ -24,7 +24,7 @@ use OCA\JMAPC\Objects\Contact\ContactTitleTypes;
 use OCA\JMAPC\Objects\DeltaObject;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
 use OCA\JMAPC\Service\Remote\RemoteService;
-use OCA\JMAPC\Tests\Integration\TestClientFactory;
+use OCA\JMAPC\Tests\Jmap\TestClientFactory;
 use OCA\JMAPC\Tests\Unit\TestCase;
 use Symfony\Component\Uid\UuidV4;
 
