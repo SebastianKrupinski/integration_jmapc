@@ -30,6 +30,7 @@ class UserSettings implements ISettings {
 	 */
 	public function getForm(): TemplateResponse {
 		Util::addScript(Application::APP_ID, Application::APP_ID . '-UserSettings');
+		Util::addStyle(Application::APP_ID, Application::APP_ID . '-UserSettings');
 
 		// retrieve system configuration
 		$configuration['system_mail'] = $this->configurationService->isMailAppAvailable();

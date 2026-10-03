@@ -1,5 +1,6 @@
 /build/
 /js/
+/css/
 /node_modules/
 /vendor/
 /vendor-bin/*/vendor
