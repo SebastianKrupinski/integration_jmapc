@@ -635,7 +635,9 @@ class RemoteMailService {
 		$from = $message->getFrom()->getAddress();
 		// convert to, cc and bcc address object arrays to single strings array
 		$to = array_map(
-			function ($entry) { return $entry->getAddress(); },
+			function ($entry) {
+				return $entry->getAddress();
+			},
 			array_merge($message->getTo(), $message->getCc(), $message->getBcc())
 		);
 		unset($cc, $bcc);
@@ -685,7 +687,6 @@ class RemoteMailService {
 		}
 
 		return (new MailMessageObject())->fromJmap($parameters);
-
 	}
 
 	protected function findAttachmentParts(object &$part, array &$matches) {

@@ -28,7 +28,6 @@ namespace OCA\JMAPC\Providers\DAV\Contacts\Cached;
 
 use OCA\DAV\CardDAV\Integration\ExternalAddressBook;
 use OCA\DAV\CardDAV\Integration\IAddressBookProvider;
-
 use OCA\JMAPC\AppInfo\Application;
 use OCA\JMAPC\Store\Local\CollectionEntity;
 use OCA\JMAPC\Store\Local\ContactStore;

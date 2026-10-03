@@ -31,9 +31,7 @@ use OCA\JMAPC\Service\ServicesService;
 use OCP\IUserManager;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
-
 use Symfony\Component\Console\Input\InputInterface;
-
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Harmonize extends Command {
@@ -78,6 +76,5 @@ class Harmonize extends Command {
 		$output->writeln("<info>Ended harmonization for User $uid</info>");
 
 		return self::SUCCESS;
-
 	}
 }

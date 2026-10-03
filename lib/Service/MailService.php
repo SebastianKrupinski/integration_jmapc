@@ -94,95 +94,80 @@ class MailService {
 	public function collectionList(string $location, string $scope, array $options = []): array {
 
 		return $this->remoteMailService->collectionList($this->serviceSelectedAccount, $location, $scope);
-
 	}
 
 	public function collectionFetch(string $location, string $id, array $options = []): object {
 
 		return $this->remoteMailService->collectionFetch($this->serviceSelectedAccount, $location, $id);
-
 	}
 
 	public function collectionCreate(string $location, string $label, array $options = []): string {
 
 		return $this->remoteMailService->collectionCreate($this->serviceSelectedAccount, $location, $label);
-
 	}
 
 	public function collectionUpdate(string $location, string $id, string $label, array $options = []): string {
 
 		return $this->remoteMailService->collectionUpdate($this->serviceSelectedAccount, $location, $id, $label);
-
 	}
 
 	public function collectionDelete(string $location, string $id, array $options = []): string {
 
 		return $this->remoteMailService->collectionDelete($this->serviceSelectedAccount, $location, $id);
-
 	}
 
 	public function collectionMove(string $sourceLocation, string $id, string $destinationLocation, array $options = []): string {
 
 		return $this->remoteMailService->collectionMove($this->serviceSelectedAccount, $sourceLocation, $id, $destinationLocation);
-
 	}
 
 	public function entityList(string $location, ?IRange $range = null, ?string $sort = null, string $particulars = 'D', array $options = []): array {
 
 		return $this->remoteMailService->entityList($this->serviceSelectedAccount, $location, $range, $sort, $particulars);
-
 	}
 
 	public function entityFetch(string $location, string $id, string $particulars = 'D', array $options = []): object {
 
 		return $this->remoteMailService->entityFetch($this->serviceSelectedAccount, $location, $id, $particulars);
-
 	}
 
 	public function entityCreate(string $location, IMessage $message, array $options = []): string {
 
 		return $this->remoteMailService->entityCreate($this->serviceSelectedAccount, $location, $message);
-
 	}
 
 	public function entityUpdate(string $location, string $id, IMessage $message, array $options = []): string {
 
 		return $this->remoteMailService->entityUpdate($this->serviceSelectedAccount, $location, $id, $message);
-
 	}
 
 	public function entityDelete(string $location, string $id, array $options = []): string {
 
 		return $this->remoteMailService->entityDelete($this->serviceSelectedAccount, $location, $id);
-
 	}
 
 	public function entityCopy(string $sourceLocation, string $id, string $destinationLocation, array $options = []): string {
 
 		// perform action
 		return $this->remoteMailService->entityCopy($this->serviceSelectedAccount, $sourceLocation, $id, $destinationLocation);
-
 	}
 
 	public function entityMove(string $sourceLocation, string $id, string $destinationLocation, array $options = []): string {
 
 		// perform action
 		return $this->remoteMailService->entityMove($this->serviceSelectedAccount, $sourceLocation, $id, $destinationLocation);
-
 	}
 
 	public function entityForward(string $location, string $id, IMessage $message, array $options = []): string {
 
 		// perform action
 		return $this->remoteMailService->entityForward($this->serviceSelectedAccount, $location, $id, $message);
-
 	}
 
 	public function entityReply(string $location, string $id, IMessage $message, array $options = []): string {
 
 		// perform action
 		return $this->remoteMailService->entityReply($this->serviceSelectedAccount, $location, $id, $message);
-
 	}
 
 	public function entitySend(IMessage $message, array $options = []): string {
@@ -195,13 +180,11 @@ class MailService {
 		}
 		// perform action
 		return $this->remoteMailService->entitySend($selectedIdentity, $message, $this->serviceCollectionRoles['drafts'], $this->serviceCollectionRoles['sent']);
-
 	}
 
 	public function blobFetch(string $id): object {
 
 		return $this->remoteMailService->blobFetch($this->serviceSelectedAccount, $id);
-
 	}
 
 }

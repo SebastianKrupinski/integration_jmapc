@@ -29,9 +29,7 @@ namespace OCA\JMAPC\Service\Remote;
 use DateTimeImmutable;
 use DateTimeZone;
 use Exception;
-
 use JmapClient\Client;
-
 use JmapClient\Requests\Tasks\TaskChanges;
 use JmapClient\Requests\Tasks\TaskGet;
 use JmapClient\Requests\Tasks\TaskListGet;
@@ -597,7 +595,6 @@ class RemoteTasksService {
 		}
 
 		return $eo;
-
 	}
 
 	/**
@@ -624,9 +621,7 @@ class RemoteTasksService {
 		}
 
 		return $to;
-
 	}
-
 
 	public function generateSignature(TaskObject $eo): string {
 
@@ -648,7 +643,6 @@ class RemoteTasksService {
 
 		// generate signature
 		return md5(json_encode($o, JSON_PARTIAL_OUTPUT_ON_ERROR));
-
 	}
 
 }

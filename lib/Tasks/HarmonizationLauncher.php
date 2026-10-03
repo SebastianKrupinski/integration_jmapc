@@ -29,7 +29,6 @@ namespace OCA\JMAPC\Tasks;
 use OCA\JMAPC\Service\ConfigurationService;
 use OCA\JMAPC\Service\HarmonizationService;
 use OCA\JMAPC\Service\HarmonizationThreadService;
-
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\TimedJob;
 use Psr\Log\LoggerInterface;

@@ -110,7 +110,6 @@ class MailMessageObject implements \OCP\Mail\Provider\IMessage {
 		}
 
 		return $message;
-
 	}
 
 	/**
@@ -436,7 +435,6 @@ class MailMessageObject implements \OCP\Mail\Provider\IMessage {
 
 		$this->messageHtml = $value;
 		return $this;
-
 	}
 
 	/**
@@ -449,7 +447,6 @@ class MailMessageObject implements \OCP\Mail\Provider\IMessage {
 	public function getBodyHtml(): ?string {
 
 		return $this->messageHtml;
-
 	}
 
 	/**
@@ -465,7 +462,6 @@ class MailMessageObject implements \OCP\Mail\Provider\IMessage {
 
 		$this->messageText = $value;
 		return $this;
-
 	}
 
 	/**
@@ -478,7 +474,6 @@ class MailMessageObject implements \OCP\Mail\Provider\IMessage {
 	public function getBodyPlain(): ?string {
 
 		return $this->messageText;
-
 	}
 
 	/**
@@ -495,7 +490,6 @@ class MailMessageObject implements \OCP\Mail\Provider\IMessage {
 		$this->bodyContents = $value;
 		$this->analyzeContents();
 		return $this;
-
 	}
 
 	/**
@@ -508,7 +502,6 @@ class MailMessageObject implements \OCP\Mail\Provider\IMessage {
 	public function getContents(): MailMessagePartObject {
 
 		return $this->bodyContents;
-
 	}
 
 	protected function analyzeContents() {

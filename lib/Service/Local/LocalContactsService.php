@@ -48,7 +48,6 @@ use OCA\JMAPC\Objects\OriginTypes;
 use OCA\JMAPC\Store\Local\CollectionEntity;
 use OCA\JMAPC\Store\Local\ContactEntity;
 use OCA\JMAPC\Store\Local\ContactStore;
-
 use Sabre\VObject\Component\VCard;
 use Sabre\VObject\Reader;
 
@@ -123,7 +122,6 @@ class LocalContactsService {
 	public function entityList(int $cid, string $particulars): array {
 
 		return $this->_Store->entityListByCollection($cid);
-
 	}
 
 	/**
@@ -141,7 +139,6 @@ class LocalContactsService {
 		$lcc = $this->_Store->chronicleReminisce($cid, $signature);
 		// return collection differences
 		return $lcc;
-
 	}
 
 	/**
@@ -658,7 +655,6 @@ class LocalContactsService {
 
 		// return event object
 		return $do;
-
 	}
 
 	/**
@@ -1009,7 +1005,6 @@ class LocalContactsService {
 		*/
 
 		return $do;
-
 	}
 
 	public function generateSignature(ContactObject $eo): string {
@@ -1031,7 +1026,6 @@ class LocalContactsService {
 		);
 		// generate signature
 		return md5(json_encode($o, JSON_PARTIAL_OUTPUT_ON_ERROR));
-
 	}
 
 	public function sanitizeString(?string $value): ?string {

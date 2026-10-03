@@ -245,7 +245,6 @@ class EventsService {
 
 		// return statistics
 		return $statistics;
-
 	}
 
 	public function discoverRemoteAlteration(CollectionEntity $collection): DeltaObject {
@@ -357,7 +356,6 @@ class EventsService {
 		}
 		// return operation status
 		return $status;
-
 	}
 
 	/**
@@ -448,7 +446,6 @@ class EventsService {
 		}
 		// return operation status
 		return $status;
-
 	}
 
 	/**

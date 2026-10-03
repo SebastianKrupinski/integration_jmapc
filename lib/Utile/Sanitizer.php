@@ -61,7 +61,6 @@ class Sanitizer {
 		}
 		// return result
 		return $name;
-
 	}
 
 	/**
@@ -80,7 +79,6 @@ class Sanitizer {
 
 		// return result
 		return $name;
-
 	}
 
 }

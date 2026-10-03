@@ -30,9 +30,7 @@ use OCA\JMAPC\Service\CoreService;
 use OCP\IUserManager;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
-
 use Symfony\Component\Console\Input\InputInterface;
-
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Connect extends Command {
@@ -91,6 +89,5 @@ class Connect extends Command {
 		$output->writeln("<info>User $uid connected to $account_provider as $account_bauth_id</info>");
 
 		return self::SUCCESS;
-
 	}
 }

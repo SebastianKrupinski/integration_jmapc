@@ -29,7 +29,6 @@ namespace OCA\JMAPC\Service\Remote;
 use DateTimeImmutable;
 use DateTimeZone;
 use Exception;
-
 use JmapClient\Client;
 use JmapClient\Requests\Contacts\AddressBookGet;
 use JmapClient\Requests\Contacts\AddressBookParameters as AddressBookParametersRequest;
@@ -958,7 +957,6 @@ class RemoteContactsService {
 		}
 
 		return $do;
-
 	}
 
 	/**
@@ -1188,7 +1186,6 @@ class RemoteContactsService {
 		}
 
 		return $to;
-
 	}
 
 	public function generateSignature(ContactObject $eo): string {
@@ -1210,7 +1207,6 @@ class RemoteContactsService {
 		);
 		// generate signature
 		return md5(json_encode($o, JSON_PARTIAL_OUTPUT_ON_ERROR));
-
 	}
 
 }

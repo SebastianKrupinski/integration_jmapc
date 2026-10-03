@@ -50,7 +50,6 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	public function type(): string {
 
 		return 'BAUTH';
-
 	}
 
 	/**
@@ -60,7 +59,6 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	public function label(): string {
 
 		return 'Basic Authentication';
-
 	}
 
 	/**
@@ -70,7 +68,6 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	public function getIdentity(): string {
 
 		return $this->_identity;
-
 	}
 
 	/**
@@ -90,7 +87,6 @@ class ServiceIdentityBAuth implements IServiceIdentityBAuth {
 	public function getSecret(): string {
 
 		return $this->_secret;
-
 	}
 
 	/**

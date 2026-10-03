@@ -30,7 +30,6 @@ use OCA\JMAPC\Service\ServicesService;
 use OCA\JMAPC\Store\Local\ServiceEntity;
 use OCP\Mail\Provider\IProvider;
 use OCP\Mail\Provider\IService;
-
 use Psr\Container\ContainerInterface;
 
 class Provider implements IProvider {
@@ -101,7 +100,6 @@ class Provider implements IProvider {
 		}
 
 		return $this->servicesCache[$uid];
-
 	}
 
 	/**
@@ -134,7 +132,6 @@ class Provider implements IProvider {
 		}
 
 		return $this->servicesCache[$uid][$id];
-
 	}
 
 	/**
@@ -160,7 +157,6 @@ class Provider implements IProvider {
 		}
 
 		return null;
-
 	}
 
 	protected function instanceService(string $uid, ServiceEntity $service): Service {
@@ -188,7 +184,6 @@ class Provider implements IProvider {
 	public function freshService(string $uid = ''): IService {
 
 		return new Service($this->container, $uid, null);
-
 	}
 
 	/**
@@ -204,7 +199,6 @@ class Provider implements IProvider {
 	public function createService(string $uid, IService $service): string {
 
 		return '';
-
 	}
 
 	/**
@@ -220,7 +214,6 @@ class Provider implements IProvider {
 	public function modifyService(string $uid, IService $service): string {
 
 		return '';
-
 	}
 
 	/**

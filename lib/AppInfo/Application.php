@@ -22,6 +22,7 @@ declare(strict_types=1);
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 namespace OCA\JMAPC\AppInfo;
 
 use OCA\JMAPC\Events\UserDeletedListener;
@@ -32,11 +33,9 @@ use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
-
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\Config\IMountProviderCollection;
 use OCP\Notification\IManager as INotificationManager;
-
 use OCP\User\Events\UserDeletedEvent;
 
 /**

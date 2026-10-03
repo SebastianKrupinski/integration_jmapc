@@ -56,7 +56,6 @@ class ServiceLocation implements IServiceLocationUri {
 	public function type(): string {
 
 		return 'URI';
-
 	}
 
 	/**
@@ -80,7 +79,6 @@ class ServiceLocation implements IServiceLocationUri {
 	public function getScheme(): string {
 
 		return $this->_scheme;
-
 	}
 
 	/**
@@ -100,7 +98,6 @@ class ServiceLocation implements IServiceLocationUri {
 	public function getHost(): string {
 
 		return $this->_host;
-
 	}
 
 	/**
@@ -120,7 +117,6 @@ class ServiceLocation implements IServiceLocationUri {
 	public function getPort(): int {
 
 		return $this->_port;
-
 	}
 
 	/**
@@ -140,7 +136,6 @@ class ServiceLocation implements IServiceLocationUri {
 	public function getPath(): string {
 
 		return $this->_path;
-
 	}
 
 	/**

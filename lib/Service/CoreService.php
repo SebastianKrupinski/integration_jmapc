@@ -211,7 +211,6 @@ class CoreService {
 		$this->TaskService->add(\OCA\JMAPC\Tasks\HarmonizationLauncher::class, ['uid' => $uid, 'sid' => $service->getId()]);
 
 		return true;
-
 	}
 
 	/**
@@ -347,7 +346,6 @@ class CoreService {
 		}
 		// return response
 		return $data;
-
 	}
 
 	/**
@@ -385,7 +383,6 @@ class CoreService {
 		}
 		// return response
 		return $data;
-
 	}
 
 	/**

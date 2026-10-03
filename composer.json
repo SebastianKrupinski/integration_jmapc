@@ -11,46 +11,52 @@
             "role": "Just another Minion in the cogs of time"
         }
     ],
+    "require": {
+        "php": ">=8.2 <=8.5",
+        "sebastiankrupinski/jmap-client-php": "^2.1.0"
+    },
+    "require-dev": {
+        "bamarni/composer-bin-plugin": "^1.8"
+    },
     "config": {
         "platform": {
             "php": "8.2"
         },
         "sort-packages": true,
+        "optimize-autoloader": true,
+        "autoloader-suffix": "JMAPC",
         "allow-plugins": {
             "bamarni/composer-bin-plugin": true,
             "php-http/discovery": true
-        },
-        "optimize-autoloader": true,
-        "autoloader-suffix": "jmapc"
-    },
-    "require": {
-        "php": ">=8.0 <=8.3",
-        "sebastiankrupinski/jmap-client-php": "^2.1.0"
-    },
-    "require-dev": {
-        "bamarni/composer-bin-plugin": "^1.8"
+        }
     },
     "autoload": {
         "psr-4": {
             "OCA\\JMAPC\\": "lib/"
         }
     },
-    "autoload-dev": {
-        "psr-4": {
-            "OCA\\JMAPC\\Tests\\Integration\\": "tests/integration/php/",
-            "OCA\\JMAPC\\Tests\\Unit\\": "tests/unit/php/"
+    "extra": {
+        "bamarni-bin": {
+            "bin-links": true,
+            "forward-command": false
         }
     },
     "scripts": {
-        "lint": "find . -name \\*.php -not -path './vendor/*' -print0 | xargs -0 -n1 php -l",
+        "lint": "find . -name \\*.php -not -path './vendor/*' -not -path './build/*' -print0 | xargs -0 -n1 php -l",
         "cs:check": "php-cs-fixer fix --dry-run --diff",
         "cs:fix": "php-cs-fixer fix",
-        "psalm": "psalm.phar --threads=1",
-        "psalm:update-baseline": "psalm.phar --threads=1 --update-baseline",
-        "psalm:update-baseline:force": "psalm.phar --threads=1 --update-baseline --set-baseline=tests/psalm-baseline.xml",
-        "psalm:clear": "psalm.phar --clear-cache && psalm.phar --clear-global-cache",
-        "psalm:fix": "psalm.phar --alter --issues=InvalidReturnType,InvalidNullableReturnType,MissingParamType,InvalidFalsableReturnType",
-        "test:unit": "phpunit -c tests/unit/php.unit.xml --fail-on-warning",
-        "test:integration": "phpunit -c tests/integration/php.integration.xml --fail-on-warning"
+        "psalm": "php ./vendor/bin/psalm.phar --config=psalm.xml --no-cache --threads=$(nproc)",
+        "psalm:dev": "@psalm",
+        "psalm:baseline": "php ./vendor/bin/psalm.phar --config=psalm.xml --threads=1 --update-baseline",
+        "psalm:fix": "php ./vendor/bin/psalm.phar --config=psalm.xml --alter --no-cache --threads=1",
+        "test:unit": "phpunit -c tests/php/phpunit.xml --testsuite 'Unit Tests'",
+        "test:integration:db": "phpunit -c tests/php/phpunit.xml --testsuite 'Database Tests'",
+        "test:integration:jmap": "phpunit -c tests/php/phpunit.xml --testsuite 'JMAP Tests'",
+        "post-install-cmd": [
+            "@composer bin all install --ansi"
+        ],
+        "post-update-cmd": [
+            "@composer bin all install --ansi"
+        ]
     }
 }
