@@ -54,4 +54,16 @@ class LocalEventsServiceTest extends TestCase {
 
 		$this->assertFalse(isset($vEvent->CATEGORIES));
 	}
+
+	public function testFromEventObjectDuration(): void {
+		$event = new EventObject();
+		$event->UUID = 'duration';
+		$event->StartsOn = new \DateTimeImmutable('2026-11-13T15:00:00Z');
+		$event->Duration = new \DateInterval('P1DT2H45M');
+
+		$vEvent = $this->eventsService->fromEventObject($event)->VEVENT;
+
+		$this->assertSame('P1DT2H45M', (string)$vEvent->DURATION);
+		$this->assertFalse(isset($vEvent->DTEND));
+	}
 }

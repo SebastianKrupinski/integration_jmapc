@@ -800,7 +800,7 @@ class LocalEventsService {
 		}
 		// Duration
 		if ($so->Duration !== null && $so->EndsOn === null) {
-			$do->add('DURATION', $so->Duration);
+			$do->add('DURATION', $this->toDurationPeriod($so->Duration));
 		}
 		// Label
 		if ($so->Label !== null) {

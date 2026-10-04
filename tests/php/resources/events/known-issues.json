@@ -43,7 +43,7 @@
 	},
 	"duration": {
 		"icalendar": {
-			"/@error": "DURATION is written as a DateInterval that sabre cannot serialize"
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
 			"/EndsOn": "JSCalendar stores the end as a duration, the event comes back with an end",
