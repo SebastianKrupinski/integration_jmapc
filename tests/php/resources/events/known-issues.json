@@ -2,7 +2,6 @@
 	"alarms": {
 		"icalendar": {},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/Notifications/alarm-1/Id": "alarm ids are not read back",
 			"/Notifications/alarm-2/Id": "alarm ids are not read back"
 		},
@@ -10,31 +9,22 @@
 	},
 	"all-day": {
 		"icalendar": {},
-		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"basic": {
 		"icalendar": {},
-		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"details": {
 		"icalendar": {},
-		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"duration": {
 		"icalendar": {},
-		"jmap": {
-			"/EndsOn": "JSCalendar stores the end as a duration, the event comes back with an end",
-			"/EndsTZ": "JSCalendar stores the end as a duration, the event comes back with an end"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"participants": {
@@ -45,7 +35,6 @@
 			"/Participants/att-3/Address": "attendee addresses are not written"
 		},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/Participants/att-1/Roles": "participant roles are read back keyed by role name",
 			"/Participants/att-1/Status": "participant status is not read back",
 			"/Participants/att-1/Type": "participant kind is not read back",
@@ -63,7 +52,6 @@
 	"recurring-daily": {
 		"icalendar": {},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}
@@ -71,7 +59,6 @@
 	"recurring-exclusion": {
 		"icalendar": {},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
@@ -80,7 +67,6 @@
 	"recurring-monthly": {
 		"icalendar": {},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
@@ -91,8 +77,6 @@
 			"/@warnings": "fromEventInstanceObject reads OccurrencePattern on mutations, which do not have one"
 		},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/OccurrenceMutations/2026-11-11T09:00:00/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/OccurrenceMutations/2026-11-11T09:00:00/mutationTz": "the mutation time zone is filled in from the event time zone",
 			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
@@ -102,7 +86,6 @@
 	"recurring-weekly": {
 		"icalendar": {},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}
@@ -110,7 +93,6 @@
 	"recurring-yearly": {
 		"icalendar": {},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
 			"/OccurrencePattern/OnMonthOfYear": "recurrence months of the year are lost",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
@@ -119,23 +101,17 @@
 	},
 	"tags": {
 		"icalendar": {},
-		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"time-zone": {
 		"icalendar": {},
-		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"unicode": {
 		"icalendar": {},
-		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration"
-		},
+		"jmap": {},
 		"server": {}
 	}
 }

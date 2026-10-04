@@ -31,6 +31,42 @@ final class EventFixtures extends ObjectFixtures {
 		return ['Origin', 'ID', 'CID', 'Signature', 'CCID', 'CEID', 'CESN', 'CreatedOn', 'ModifiedOn'];
 	}
 
+	/**
+	 * Compares the end of the event and of each mutation as an end date time,
+	 * JSCalendar only has start and duration so either form comes back as the other
+	 */
+	protected static function normalize(array $values): array {
+		$prefixes = [''];
+		foreach (array_keys($values) as $path) {
+			if (preg_match('#^(/OccurrenceMutations/[^/]+)/#', $path, $matches) === 1) {
+				$prefixes[] = $matches[1];
+			}
+		}
+		foreach (array_unique($prefixes) as $prefix) {
+			$duration = $values[$prefix . '/Duration'] ?? null;
+			if ($duration === null) {
+				continue;
+			}
+			unset($values[$prefix . '/Duration']);
+			if (isset($values[$prefix . '/EndsOn']) || !isset($values[$prefix . '/StartsOn'])) {
+				continue;
+			}
+			$starts = new \DateTimeImmutable($values[$prefix . '/StartsOn']);
+			if (isset($values[$prefix . '/StartsTZ'])) {
+				$starts = $starts->setTimezone(new \DateTimeZone($values[$prefix . '/StartsTZ']));
+				$values[$prefix . '/EndsTZ'] ??= $values[$prefix . '/StartsTZ'];
+			}
+			$interval = new \DateInterval(ltrim($duration, '-'));
+			if (str_starts_with($duration, '-')) {
+				$ends = $starts->sub($interval);
+			} else {
+				$ends = $starts->add($interval);
+			}
+			$values[$prefix . '/EndsOn'] = $ends->format(DATE_ATOM);
+		}
+		return $values;
+	}
+
 	public static function calendar(string $name): VCalendar {
 		return Reader::read(self::source($name));
 	}
