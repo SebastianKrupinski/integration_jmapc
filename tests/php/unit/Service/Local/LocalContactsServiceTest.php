@@ -103,4 +103,14 @@ class LocalContactsServiceTest extends TestCase {
 
 		$this->assertFalse(isset($vcard->CATEGORIES));
 	}
+
+	public function testToContactObjectTypesLowerCase(): void {
+		$contact = $this->contactsService->toContactObject(Reader::read(
+			"BEGIN:VCARD\r\nVERSION:3.0\r\nUID:types\r\nFN:Test\r\n"
+			. "EMAIL;X-ID=email-1;TYPE=HOME:a@example.com\r\nTEL;X-ID=tel-1;TYPE=WORK,Voice:+1-555-0100\r\nEND:VCARD\r\n"
+		));
+
+		$this->assertSame('home', $contact->Email['email-1']->Context);
+		$this->assertSame('work,voice', $contact->Phone['tel-1']->Context);
+	}
 }

@@ -16,14 +16,8 @@
 	},
 	"basic-vcard3": {
 		"vcard": {},
-		"jmap": {
-			"/Email/email-1/Context": "vCard types are case-insensitive and come back lowercased",
-			"/Phone/tel-1/Context": "vCard types are case-insensitive and come back lowercased"
-		},
-		"server": {
-			"/Email/email-1/Context": "vCard types are case-insensitive and come back lowercased",
-			"/Phone/tel-1/Context": "vCard types are case-insensitive and come back lowercased"
-		}
+		"jmap": {},
+		"server": {}
 	},
 	"complete": {
 		"vcard": {},
