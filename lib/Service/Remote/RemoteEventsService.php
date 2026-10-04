@@ -890,7 +890,7 @@ class RemoteEventsService {
 				$mutation->mutationExclusion = true;
 			} else {
 				/** @var EventMutationObject $mutation */
-				$mutation = $this->toEventInstanceObject($entry, new EventMutationObject());
+				$mutation = $this->toEventInstanceObject($entry, new EventMutationObject(), $do->StartsTZ);
 			}
 			$mutation->mutationId = $entry->mutationId() ?? new DateTimeImmutable($id);
 			// null when the server sends none, the iCalendar conversion falls back to the event start time zone
@@ -906,14 +906,15 @@ class RemoteEventsService {
 	 *
 	 * @since Release 1.0.0
 	 *
+	 * @param DateTimeZone|null $baseTimeZone time zone of the base event, overrides without their own time zone use it
 	 */
-	public function toEventInstanceObject(EventParametersResponse|EventMutationParametersResponse $so, EventObject|EventMutationObject $do): EventObject|EventMutationObject {
+	public function toEventInstanceObject(EventParametersResponse|EventMutationParametersResponse $so, EventObject|EventMutationObject $do, ?DateTimeZone $baseTimeZone = null): EventObject|EventMutationObject {
 		// sequence
 		if ($so->sequence() !== null) {
 			$do->Sequence = $so->sequence();
 		}
 		// time zone, start is a local date time in this zone (floating without one)
-		$timeZone = null;
+		$timeZone = $baseTimeZone;
 		if ($so->timezone() !== null) {
 			$timeZone = new DateTimeZone($so->timezone());
 		}

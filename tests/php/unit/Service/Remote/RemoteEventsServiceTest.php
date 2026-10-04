@@ -282,4 +282,22 @@ class RemoteEventsServiceTest extends TestCase {
 
 		$this->assertSame([6, 12], $event->OccurrencePattern->OnMonthOfYear);
 	}
+
+	public function testToEventObjectMutationInheritsTimeZone(): void {
+		$event = $this->eventsService->toEventObject(new EventParametersResponse([
+			'calendarIds' => ['calendar-1' => true],
+			'timeZone' => 'Europe/Berlin',
+			'start' => '2026-11-04T09:00:00',
+			'duration' => 'PT30M',
+			'recurrenceOverrides' => [
+				'2026-11-11T09:00:00' => ['start' => '2026-11-11T13:00:00', 'duration' => 'PT30M'],
+			],
+		]));
+
+		$mutation = $event->OccurrenceMutations['2026-11-11T09:00:00'];
+		$this->assertSame('2026-11-11T13:00:00+01:00', $mutation->StartsOn->format(DATE_ATOM));
+		$this->assertSame('Europe/Berlin', $mutation->StartsTZ->getName());
+		$this->assertSame('2026-11-11T13:30:00+01:00', $mutation->EndsOn->format(DATE_ATOM));
+		$this->assertSame('Europe/Berlin', $mutation->EndsTZ->getName());
+	}
 }
