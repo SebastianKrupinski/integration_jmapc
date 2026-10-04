@@ -33,18 +33,14 @@
 			"/Tags": "CATEGORIES are not written back to the vCard"
 		},
 		"jmap": {
-			"/@warnings": "RemoteContactsService reads tags as objects with a Value property",
 			"/Phone/tel-1/URI": "the tel: URI value type is not kept",
-			"/Phone/tel-2/URI": "the tel: URI value type is not kept",
-			"/Tags": "tags are not sent as keywords"
+			"/Phone/tel-2/URI": "the tel: URI value type is not kept"
 		},
 		"server": {
-			"/@warnings": "RemoteContactsService reads tags as objects with a Value property",
 			"/Email/email-2/Context": "vCard types are sent as contexts, the server keeps only private and work",
 			"/Phone/tel-1/Context": "vCard types are sent as contexts, the server keeps cell as the mobile feature",
 			"/Phone/tel-1/URI": "the tel: URI value type is not kept",
-			"/Phone/tel-2/URI": "the tel: URI value type is not kept",
-			"/Tags": "tags are not sent as keywords"
+			"/Phone/tel-2/URI": "the tel: URI value type is not kept"
 		}
 	},
 	"email-phone": {
@@ -75,14 +71,8 @@
 		"vcard": {
 			"/Tags": "CATEGORIES are not written back to the vCard"
 		},
-		"jmap": {
-			"/@warnings": "RemoteContactsService reads tags as objects with a Value property",
-			"/Tags": "tags are not sent as keywords"
-		},
-		"server": {
-			"/@warnings": "RemoteContactsService reads tags as objects with a Value property",
-			"/Tags": "tags are not sent as keywords"
-		}
+		"jmap": {},
+		"server": {}
 	},
 	"organization": {
 		"vcard": {

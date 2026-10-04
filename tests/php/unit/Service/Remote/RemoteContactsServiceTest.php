@@ -13,6 +13,7 @@ use OCA\JMAPC\Objects\Contact\ContactAnniversaryObject;
 use OCA\JMAPC\Objects\Contact\ContactAnniversaryTypes;
 use OCA\JMAPC\Objects\Contact\ContactObject;
 use OCA\JMAPC\Objects\Contact\ContactPhysicalLocationObject;
+use OCA\JMAPC\Objects\Contact\ContactTagCollection;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
 use OCA\JMAPC\Store\Remote\Filters\ContactFilter;
 use OCA\JMAPC\Store\Remote\Sort\ContactSort;
@@ -156,5 +157,30 @@ class RemoteContactsServiceTest extends TestCase {
 		]));
 
 		$this->assertSame('Dr. Eva Maria von Berg Jr.', $contact->Label);
+	}
+
+	public function testFromContactObjectTags(): void {
+		$contact = new ContactObject();
+		$contact->Tags = new ContactTagCollection(['Work', '', 'VIP']);
+
+		$card = null;
+		$this->contactsService->fromContactObject($contact)->bind($card);
+
+		$this->assertEquals((object)['Work' => true, 'VIP' => true], $card->keywords);
+	}
+
+	public function testFromContactObjectNoTags(): void {
+		$card = null;
+		$this->contactsService->fromContactObject(new ContactObject())->bind($card);
+
+		$this->assertObjectNotHasProperty('keywords', $card);
+	}
+
+	public function testToContactObjectTags(): void {
+		$contact = $this->contactsService->toContactObject(new ContactParametersResponse([
+			'keywords' => ['Work' => true, 'VIP' => true],
+		]));
+
+		$this->assertSame(['Work', 'VIP'], iterator_to_array($contact->Tags));
 	}
 }

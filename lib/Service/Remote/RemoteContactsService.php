@@ -1168,16 +1168,14 @@ class RemoteContactsService {
 			}
 		}
 		// tags
-		if (!empty($so->Tags)) {
-			$tags = [];
-			foreach ($so->Tags as $tag) {
-				if ($tag->Value !== null) {
-					$tags[] = $tag->Value;
-				}
+		$tags = [];
+		foreach ($so->Tags as $tag) {
+			if ($tag !== '') {
+				$tags[] = $tag;
 			}
-			if (!empty($tags)) {
-				$to->tags(...$tags);
-			}
+		}
+		if ($tags !== []) {
+			$to->tags(...$tags);
 		}
 		// notes
 		foreach ($so->Notes ?? [] as $id => $entry) {
