@@ -857,6 +857,10 @@ class RemoteContactsService {
 				$entity = new ContactPhoneObject();
 				$entity->Id = (string)$id;
 				$entity->Number = $entry->number();
+				// a phone number is either free text or a tel: URI
+				if ($entity->Number !== null && str_starts_with(strtolower($entity->Number), 'tel:')) {
+					$entity->URI = 'uri';
+				}
 				$entity->Label = $entry->label();
 				$entity->Priority = $entry->priority();
 				$entity->Context = !empty($entry->context()) ? $entry->context()[0] : null;

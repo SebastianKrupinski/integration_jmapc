@@ -223,4 +223,19 @@ class RemoteContactsServiceTest extends TestCase {
 
 		$this->assertSame("123 Main Street\nSpringfield, IL 62701", $contact->PhysicalLocations['adr-1']->Label);
 	}
+
+	public function testToContactObjectPhoneUri(): void {
+		$contact = $this->contactsService->toContactObject(new ContactParametersResponse([
+			'phones' => [
+				'tel-1' => ['number' => 'tel:+1-555-0200'],
+				'tel-2' => ['number' => 'TEL:+1-555-0201'],
+				'tel-3' => ['number' => '+1-555-0202'],
+			],
+		]));
+
+		$this->assertSame('uri', $contact->Phone['tel-1']->URI);
+		$this->assertSame('tel:+1-555-0200', $contact->Phone['tel-1']->Number);
+		$this->assertSame('uri', $contact->Phone['tel-2']->URI);
+		$this->assertNull($contact->Phone['tel-3']->URI);
+	}
 }
