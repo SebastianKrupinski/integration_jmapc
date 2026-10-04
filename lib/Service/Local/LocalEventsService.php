@@ -11,6 +11,7 @@ namespace OCA\JMAPC\Service\Local;
 
 use DateInterval;
 use Datetime;
+use DateTimeImmutable;
 use DateTimeZone;
 use OC\Files\Node\LazyUserFolder;
 use OCA\DAV\CalDAV\EventReader;
@@ -30,7 +31,6 @@ use OCA\JMAPC\Objects\Event\EventParticipantRoleTypes;
 use OCA\JMAPC\Objects\Event\EventParticipantStatusTypes;
 use OCA\JMAPC\Objects\Event\EventParticipantTypes;
 use OCA\JMAPC\Objects\Event\EventSensitivityTypes;
-use OCA\JMAPC\Objects\Event\EventTagCollection;
 use OCA\JMAPC\Objects\OriginTypes;
 use OCA\JMAPC\Store\Local\CollectionEntity;
 use OCA\JMAPC\Store\Local\EventEntity;
@@ -379,11 +379,6 @@ class LocalEventsService {
 		$do = new EventObject();
 		// Origin
 		$do->Origin = OriginTypes::Internal;
-		// universal id
-		if (isset($so->UID)) {
-			$do->UUID = trim($so->UID->getValue());
-		}
-
 		foreach ($so->getComponents() as $vComponent) {
 			if ($vComponent->name !== 'VEVENT') {
 				continue;
@@ -395,7 +390,22 @@ class LocalEventsService {
 				$this->toEventInstanceObject($vComponent, $instance, $so->VEVENT);
 				$do->OccurrenceMutations[$id->format('Y-m-d\TH:i:s')] = $instance;
 			} else {
+				// universal id, from the event and not the calendar (RFC 7986 5.3)
+				if (isset($vComponent->UID)) {
+					$do->UUID = trim($vComponent->UID->getValue());
+				}
 				$do = $this->toEventInstanceObject($vComponent, $do);
+				// excluded occurrences
+				foreach ($vComponent->select('EXDATE') as $entry) {
+					$timeZone = isset($entry['TZID']) ? (string)$entry['TZID'] : null;
+					foreach ($entry->getDateTimes() as $exclusionId) {
+						$instance = new EventMutationObject();
+						$instance->mutationId = $exclusionId;
+						$instance->mutationTz = $timeZone;
+						$instance->mutationExclusion = true;
+						$do->OccurrenceMutations[$exclusionId->format('Y-m-d\TH:i:s')] = $instance;
+					}
+				}
 			}
 		}
 
@@ -426,9 +436,11 @@ class LocalEventsService {
 		if (isset($so->{'LAST-MODIFIED'})) {
 			$do->ModifiedOn = $so->{'LAST-MODIFIED'}->getDateTime();
 		}
-		// sequence
+		// sequence, 0 when missing (RFC 5545 3.8.7.4)
 		if (isset($so->SEQUENCE)) {
 			$do->Sequence = (int)$so->SEQUENCE->getValue();
+		} else {
+			$do->Sequence = 0;
 		}
 		// time zone
 		if (isset($so->{'X-TIMEZONE'})) {
@@ -439,6 +451,8 @@ class LocalEventsService {
 		if (isset($so->DTSTART)) {
 			$do->StartsOn = $so->DTSTART->getDateTime();
 			$do->StartsTZ = $do->StartsOn->getTimezone();
+			// all day events start on a date (VALUE=DATE) instead of a date time
+			$do->Timeless = !$so->DTSTART->hasTime();
 		}
 		// Ends Date/Time
 		// Ends Time Zone
@@ -474,7 +488,7 @@ class LocalEventsService {
 		// availability
 		if (isset($so->TRANSP)) {
 			$do->Availability = match (strtoupper($so->TRANSP?->getValue() ?? 'default')) {
-				'FREE' => EventAvailabilityTypes::Free,
+				'TRANSPARENT' => EventAvailabilityTypes::Free,
 				default => EventAvailabilityTypes::Busy,
 			};
 		}
@@ -495,8 +509,13 @@ class LocalEventsService {
 			$do->Color = trim($so->COLOR->getValue());
 		}
 		// tag(s)
-		if (isset($so->CATEGORIES)) {
-			$do->Tags = new EventTagCollection($so->CATEGORIES->getParts());
+		foreach ($so->select('CATEGORIES') as $entry) {
+			foreach ($entry->getParts() as $tag) {
+				$tag = trim($tag);
+				if ($tag !== '') {
+					$do->Tags[] = $tag;
+				}
+			}
 		}
 		// participant(s)
 		foreach (['ORGANIZER', 'ATTENDEE'] as $name) {
@@ -569,8 +588,11 @@ class LocalEventsService {
 					'SECONDLY' => EventOccurrencePrecisionTypes::Secondly,
 				};
 			}
+			// interval, 1 when missing (RFC 5545 3.3.10)
 			if (isset($parts['INTERVAL'])) {
 				$entity->Interval = (int)$parts['INTERVAL'];
+			} else {
+				$entity->Interval = 1;
 			}
 			if (isset($parts['COUNT'])) {
 				$entity->Iterations = (int)$parts['COUNT'];
@@ -672,15 +694,19 @@ class LocalEventsService {
 		}
 		// common properties
 		$this->fromEventInstanceObject($so, $vComponent);
+		$baseComponent = $vComponent;
 		// mutated instances
 		foreach ($so->OccurrenceMutations as $id => $mutation) {
-			// Exclusion Mutations
+			// Exclusion Mutations, excluded occurrences are listed on the base instance
 			if ($mutation->mutationExclusion === true) {
-				/** @var VEvent $vComponent */
-				$vComponent = $do->add('VEVENT');
-				$vComponent->add('EXDATE', $mutation->mutationId);
-				if ($mutation->mutationTz) {
-					$vComponent->{'EXDATE'}->add('TZID', $mutation->mutationTz);
+				if ($so->Timeless === true) {
+					$baseComponent->add('EXDATE', $mutation->mutationId->format('Ymd'), ['VALUE' => 'DATE']);
+				} else {
+					$exclusion = DateTimeImmutable::createFromInterface($mutation->mutationId);
+					if ($mutation->mutationTz) {
+						$exclusion = $exclusion->setTimezone(new DateTimeZone($mutation->mutationTz));
+					}
+					$baseComponent->add('EXDATE', $exclusion);
 				}
 				continue;
 			}
@@ -761,19 +787,20 @@ class LocalEventsService {
 		}
 		// Starts Date, Time and Zone
 		if ($so->StartsOn !== null) {
-			if (isset($so->Timeless)) {
-				$do->add('DTSTART', $so->StartsOn);
+			// all day events are written as dates, which have no time zone
+			if ($so->Timeless === true) {
+				$do->add('DTSTART', $so->StartsOn->format('Ymd'), ['VALUE' => 'DATE']);
 			} else {
 				$do->add('DTSTART', $so->StartsOn);
+				if ($so->StartsTZ !== null) {
+					$do->DTSTART->add('TZID', $so->StartsTZ->getName());
+				} elseif ($so->TimeZone !== null) {
+					$do->DTSTART->add('TZID', $so->TimeZone->getName());
+				} elseif ($bo !== null && $bo->StartsTZ !== null) {
+					$do->DTSTART->add('TZID', $bo->StartsTZ->getName());
+				}
 			}
-			if ($so->StartsTZ !== null) {
-				$do->DTSTART->add('TZID', $so->StartsTZ->getName());
-			} elseif ($so->TimeZone !== null) {
-				$do->DTSTART->add('TZID', $so->TimeZone->getName());
-			} elseif ($bo !== null && $bo->StartsTZ !== null) {
-				$do->DTSTART->add('TZID', $bo->StartsTZ->getName());
-			}
-		} elseif ($so->mutationId !== null) {
+		} elseif ($so instanceof EventMutationObject && $so->mutationId !== null) {
 			$do->add('DTSTART', $so->mutationId);
 			if ($so->mutationTz !== null) {
 				$do->DTSTART->add('TZID', $so->mutationTz);
@@ -783,20 +810,20 @@ class LocalEventsService {
 		}
 		// End Date, Time and Zone
 		if ($so->EndsOn !== null) {
-			if (isset($so->Timeless)) {
-				$do->add('DTEND', $so->EndsOn);
+			if ($so->Timeless === true) {
+				$do->add('DTEND', $so->EndsOn->format('Ymd'), ['VALUE' => 'DATE']);
 			} else {
 				$do->add('DTEND', $so->EndsOn);
-			}
-			if ($so->EndsTZ !== null) {
-				$do->DTEND->add('TZID', $so->EndsTZ->getName());
-			} elseif ($so->TimeZone !== null) {
-				$do->DTEND->add('TZID', $so->TimeZone->getName());
+				if ($so->EndsTZ !== null) {
+					$do->DTEND->add('TZID', $so->EndsTZ->getName());
+				} elseif ($so->TimeZone !== null) {
+					$do->DTEND->add('TZID', $so->TimeZone->getName());
+				}
 			}
 		}
 		// Duration
 		if ($so->Duration !== null && $so->EndsOn === null) {
-			$do->add('DURATION', $so->Duration);
+			$do->add('DURATION', $this->toDurationPeriod($so->Duration));
 		}
 		// Label
 		if ($so->Label !== null) {
@@ -836,15 +863,21 @@ class LocalEventsService {
 			$do->add('COLOR', trim($so->Color));
 		}
 		// Tag(s)
-		if ($so->Tags->count() > 0) {
-			$do->add('CATEGORIES', implode(', ', (array)$so->Tags));
+		$tags = [];
+		foreach ($so->Tags as $tag) {
+			if ($tag !== '') {
+				$tags[] = $tag;
+			}
+		}
+		if ($tags !== []) {
+			$do->add('CATEGORIES', $tags);
 		}
 		// Participant(s)
 		foreach ($so->Participants as $entry) {
 			if (in_array(EventParticipantRoleTypes::Owner, iterator_to_array($entry->Roles), true)) {
 				$entity = $do->add('ORGANIZER', 'mailto:' . $entry->Address);
 			} else {
-				$entity = $do->add('ATTENDEE', 'mailto:' . $entry->address);
+				$entity = $do->add('ATTENDEE', 'mailto:' . $entry->Address);
 			}
 			/** @var Property $entity */
 			// Participant Type
@@ -909,8 +942,8 @@ class LocalEventsService {
 					break;
 			}
 		}
-		// Occurrence
-		if ($so->OccurrencePattern !== null) {
+		// Occurrence, mutations have no pattern of their own
+		if ($so instanceof EventObject && $so->OccurrencePattern !== null) {
 			$soRule = $so->OccurrencePattern;
 			$doRule = [];
 			// Occurrence Precision
@@ -1047,22 +1080,51 @@ class LocalEventsService {
 	/**
 	 * convert event object date interval to local duration period
 	 *
+	 * iCalendar durations have no years or months (RFC 5545 3.3.6), those are
+	 * converted to days, measured from the Unix epoch when the interval has no day count
+	 *
 	 * @since Release 1.0.0
 	 *
 	 * @param DateInterval $period
 	 *
-	 * @return string
+	 * @return string e.g. "P1DT2H45M", "-PT15M" or "PT0S"
 	 */
 	private function toDurationPeriod(DateInterval $period): string {
 
-		return match (true) {
-			($period->y > 0) => $period->format('%rP%yY%mM%dDT%hH%iM'),
-			($period->m > 0) => $period->format('%rP%mM%dDT%hH%iM'),
-			($period->d > 0) => $period->format('%rP%dDT%hH%iM'),
-			($period->h > 0) => $period->format('%rPT%hH%iM'),
-			default => $period->format('%rPT%iM')
-		};
+		$days = $period->days;
+		if ($days === false) {
+			$epoch = new DateTimeImmutable('@0');
+			$length = clone $period;
+			$length->invert = 0;
+			$days = $epoch->diff($epoch->add($length))->days;
+		}
 
+		$date = '';
+		if ($days > 0) {
+			$date .= $days . 'D';
+		}
+		$time = '';
+		if ($period->h > 0) {
+			$time .= $period->h . 'H';
+		}
+		if ($period->i > 0) {
+			$time .= $period->i . 'M';
+		}
+		if ($period->s > 0) {
+			$time .= $period->s . 'S';
+		}
+		if ($date === '' && $time === '') {
+			$time = '0S';
+		}
+
+		$value = 'P' . $date;
+		if ($time !== '') {
+			$value .= 'T' . $time;
+		}
+		if ($period->invert === 1) {
+			$value = '-' . $value;
+		}
+		return $value;
 	}
 
 	private function convertToInt(array $values): array {

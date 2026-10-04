@@ -43,7 +43,6 @@ use OCA\JMAPC\Objects\Event\EventNotificationPatterns;
 use OCA\JMAPC\Objects\Event\EventNotificationTypes;
 use OCA\JMAPC\Objects\Event\EventObject;
 use OCA\JMAPC\Objects\Event\EventOccurrenceObject;
-use OCA\JMAPC\Objects\Event\EventOccurrencePatternTypes;
 use OCA\JMAPC\Objects\Event\EventOccurrencePrecisionTypes;
 use OCA\JMAPC\Objects\Event\EventParticipantObject;
 use OCA\JMAPC\Objects\Event\EventParticipantRoleTypes;
@@ -786,8 +785,9 @@ class RemoteEventsService {
 		// source origin
 		$do->Origin = OriginTypes::External;
 		// collection id
-		if ($so->in() !== []) {
-			$do->CID = $so->in()[0];
+		$collections = $so->in();
+		if ($collections !== null && $collections !== []) {
+			$do->CID = $collections[0];
 		}
 		// entity id
 		if ($so->id() !== null) {
@@ -824,12 +824,10 @@ class RemoteEventsService {
 			}
 			// Daily
 			if ($soRule->frequency() === 'daily') {
-				$doRule->Pattern = EventOccurrencePatternTypes::Absolute;
 				$doRule->Precision = EventOccurrencePrecisionTypes::Daily;
 			}
 			// Weekly
 			if ($soRule->frequency() === 'weekly') {
-				$doRule->Pattern = EventOccurrencePatternTypes::Absolute;
 				$doRule->Precision = EventOccurrencePrecisionTypes::Weekly;
 				$doRule->OnDayOfWeek = $this->fromDaysOfWeek($soRule->byDayOfWeek());
 			}
@@ -838,12 +836,10 @@ class RemoteEventsService {
 				$doRule->Precision = EventOccurrencePrecisionTypes::Monthly;
 				// Absolute
 				if ($soRule->byDayOfMonth() !== []) {
-					$doRule->Pattern = EventOccurrencePatternTypes::Absolute;
 					$doRule->OnDayOfMonth = $soRule->byDayOfMonth();
 				}
 				// Relative
 				else {
-					$doRule->Pattern = EventOccurrencePatternTypes::Relative;
 					$doRule->OnDayOfWeek = $this->fromDaysOfWeek($soRule->byDayOfWeek());
 					$doRule->OnPosition = $soRule->byPosition();
 				}
@@ -853,23 +849,20 @@ class RemoteEventsService {
 				$doRule->Precision = EventOccurrencePrecisionTypes::Yearly;
 				// nth day of year
 				if ($soRule->byDayOfYear() !== []) {
-					$doRule->Pattern = EventOccurrencePatternTypes::Absolute;
 					$doRule->OnDayOfYear = $soRule->byDayOfYear();
 					$doRule->OnDayOfWeek = $this->fromDaysOfWeek($soRule->byDayOfWeek());
 				}
 				// nth week of year
 				elseif ($soRule->byWeekOfYear() !== []) {
-					$doRule->Pattern = EventOccurrencePatternTypes::Relative;
 					$doRule->OnWeekOfYear = $soRule->byWeekOfYear();
 					$doRule->OnDayOfWeek = $this->fromDaysOfWeek($soRule->byDayOfWeek());
 				}
 				// nth month of year
 				elseif ($soRule->byMonthOfYear() !== []) {
+					$doRule->OnMonthOfYear = $this->fromMonthsOfYear($soRule->byMonthOfYear());
 					if ($soRule->byDayOfMonth() !== []) {
-						$doRule->Pattern = EventOccurrencePatternTypes::Absolute;
 						$doRule->OnDayOfMonth = $soRule->byDayOfMonth();
 					} else {
-						$doRule->Pattern = EventOccurrencePatternTypes::Relative;
 						$doRule->OnDayOfWeek = $this->fromDaysOfWeek($soRule->byDayOfWeek());
 						$doRule->OnPosition = $soRule->byPosition();
 					}
@@ -882,10 +875,17 @@ class RemoteEventsService {
 		$this->toEventInstanceObject($so, $do);
 		// mutations
 		foreach ($so->recurrenceMutations() as $id => $entry) {
-			/** @var EventMutationObject $mutation */
-			$mutation = $this->toEventInstanceObject($entry, new EventMutationObject());
+			// excluded occurrences carry no event properties
+			if ($entry->excluded()) {
+				$mutation = new EventMutationObject();
+				$mutation->mutationExclusion = true;
+			} else {
+				/** @var EventMutationObject $mutation */
+				$mutation = $this->toEventInstanceObject($entry, new EventMutationObject(), $do->StartsTZ);
+			}
 			$mutation->mutationId = $entry->mutationId() ?? new DateTimeImmutable($id);
-			$mutation->mutationTz = $entry->mutationTimeZone() ?? $do->TimeZone->getName();
+			// null when the server sends none, the iCalendar conversion falls back to the event start time zone
+			$mutation->mutationTz = $entry->mutationTimeZone();
 			$do->OccurrenceMutations[$id] = $mutation;
 		}
 
@@ -897,25 +897,31 @@ class RemoteEventsService {
 	 *
 	 * @since Release 1.0.0
 	 *
+	 * @param DateTimeZone|null $baseTimeZone time zone of the base event, overrides without their own time zone use it
 	 */
-	public function toEventInstanceObject(EventParametersResponse|EventMutationParametersResponse $so, EventObject|EventMutationObject $do): EventObject|EventMutationObject {
+	public function toEventInstanceObject(EventParametersResponse|EventMutationParametersResponse $so, EventObject|EventMutationObject $do, ?DateTimeZone $baseTimeZone = null): EventObject|EventMutationObject {
 		// sequence
 		if ($so->sequence() !== null) {
 			$do->Sequence = $so->sequence();
 		}
-		// time zone
+		// time zone, start is a local date time in this zone (floating without one)
+		$timeZone = $baseTimeZone;
 		if ($so->timezone() !== null) {
-			$do->TimeZone = new DateTimeZone($so->timezone());
+			$timeZone = new DateTimeZone($so->timezone());
 		}
 		// start date/time
 		if ($so->starts() !== null) {
-			$do->StartsOn = $so->starts();
-			$do->StartsTZ = $do->TimeZone;
+			$starts = $so->starts();
+			if ($timeZone !== null) {
+				$starts = new DateTimeImmutable($starts->format('Y-m-d\TH:i:s'), $timeZone);
+			}
+			$do->StartsOn = $starts;
+			$do->StartsTZ = $timeZone;
 		}
 		// end date/time
-		if ($so->ends() !== null) {
-			$do->EndsOn = $so->ends();
-			$do->EndsTZ = $do->TimeZone;
+		if ($do->StartsOn !== null && $so->duration() !== null) {
+			$do->EndsOn = $do->StartsOn->add($so->duration());
+			$do->EndsTZ = $timeZone;
 		}
 		// duration
 		if ($so->duration() !== null) {
@@ -972,13 +978,9 @@ class RemoteEventsService {
 		if ($so->color() !== null) {
 			$do->Color = $so->color();
 		}
-		// categories(s)
-		foreach ($so->categories() as $id => $entry) {
-			$do->Categories[] = $entry;
-		}
-		// tag(s)
-		foreach ($so->tags() as $id => $entry) {
-			$do->Tags[] = $entry;
+		// tag(s), a map of keyword => true
+		foreach (array_keys($so->tags()) as $tag) {
+			$do->Tags[] = (string)$tag;
 		}
 		// Organizer - Address and Name
 		if ($so->sender() !== null) {
@@ -990,7 +992,12 @@ class RemoteEventsService {
 		foreach ($so->participants() as $id => $entry) {
 			$entity = new EventParticipantObject();
 			$entity->Id = (string)$id;
+			// the calendar address is the scheduling address, email is only contact information
 			$entity->Address = $entry->address();
+			$calendarAddress = $entry->calendarAddress();
+			if ($calendarAddress !== null && stripos($calendarAddress, 'mailto:') === 0) {
+				$entity->Address = substr($calendarAddress, strlen('mailto:'));
+			}
 			$entity->Name = $entry->name();
 			$entity->Description = $entry->description();
 			$entity->Comment = $entry->comment();
@@ -1009,8 +1016,16 @@ class RemoteEventsService {
 				default => EventParticipantStatusTypes::None,
 			};
 
-			foreach ($entry->roles() as $role => $value) {
-				$entity->Roles[$role] = EventParticipantRoleTypes::from($role);
+			// roles, a map of role => true, roles without an equivalent are left out
+			foreach (array_keys($entry->roles()) as $role) {
+				$type = EventParticipantRoleTypes::tryFrom((string)$role);
+				if ($type !== null) {
+					$entity->Roles[] = $type;
+				}
+			}
+			// attendee is the default role, servers leave it out like iCalendar leaves out ROLE
+			if ($entity->Roles->count() === 0) {
+				$entity->Roles[] = EventParticipantRoleTypes::Attendee;
 			}
 			$do->Participants[$id] = $entity;
 		}
@@ -1018,6 +1033,7 @@ class RemoteEventsService {
 		foreach ($so->notifications() as $id => $entry) {
 			$trigger = $entry->trigger();
 			$entity = new EventNotificationObject();
+			$entity->Id = (string)$id;
 			$entity->Type = match (strtolower($entry->action() ?? 'display')) {
 				'email' => EventNotificationTypes::Email,
 				'audio' => EventNotificationTypes::Audible,
@@ -1087,9 +1103,12 @@ class RemoteEventsService {
 				$doRule->until($soRule->Concludes);
 			}
 			if ($soRule->OnDayOfWeek !== []) {
-				foreach ($soRule->OnDayOfWeek as $id => $day) {
-					$nDay = $doRule->byDayOfWeek($id);
-					$nDay->day($day);
+				foreach ($this->toDaysOfWeek($soRule->OnDayOfWeek) as $day) {
+					$nDay = $doRule->byDayOfWeek();
+					$nDay->day($day['day']);
+					if ($day['ordinal'] !== null) {
+						$nDay->ordinal($day['ordinal']);
+					}
 				}
 			}
 			if ($soRule->OnDayOfMonth !== []) {
@@ -1134,7 +1153,11 @@ class RemoteEventsService {
 			if ($mutation->mutationTz) {
 				$entity->mutationTimeZone($mutation->mutationTz);
 			}
-			$this->fromEventInstanceObject($mutation, $entity);
+			if ($mutation->mutationExclusion === true) {
+				$entity->excluded(true);
+			} else {
+				$this->fromEventInstanceObject($mutation, $entity);
+			}
 			$do->recurrenceMutations($mutationId, $entity);
 		}
 
@@ -1152,13 +1175,18 @@ class RemoteEventsService {
 		if ($so->Sequence !== null) {
 			$do->sequence($so->Sequence);
 		}
-		// time zone
-		if ($so->TimeZone !== null) {
-			$do->timezone($so->TimeZone->getName());
+		// time zone, the start time zone takes precedence like in the iCalendar conversion
+		$timeZone = $so->StartsTZ ?? $so->TimeZone;
+		if ($timeZone !== null) {
+			$do->timezone($timeZone->getName());
 		}
-		// start date/time
+		// start date/time, sent as a local date time in the time zone
 		if ($so->StartsOn !== null) {
-			$do->starts($so->StartsOn);
+			$starts = DateTimeImmutable::createFromInterface($so->StartsOn);
+			if ($timeZone !== null) {
+				$starts = $starts->setTimezone($timeZone);
+			}
+			$do->starts($starts);
 		}
 		// duration
 		if ($so->Duration !== null) {
@@ -1230,6 +1258,7 @@ class RemoteEventsService {
 			$entity = $do->participants($entry->Id);
 			if ($entry->Address !== null) {
 				$entity->address($entry->Address);
+				$entity->calendarAddress('mailto:' . $entry->Address);
 				$entity->send('imip', 'mailto:' . $entry->Address);
 			}
 			if ($entry->Name !== null) {
@@ -1250,7 +1279,7 @@ class RemoteEventsService {
 				});
 			}
 			if ($entry->Status !== null) {
-				$entity->kind(match ($entry->Status ?? EventParticipantStatusTypes::None) {
+				$entity->status(match ($entry->Status ?? EventParticipantStatusTypes::None) {
 					EventParticipantStatusTypes::Accepted => 'accepted',
 					EventParticipantStatusTypes::Declined => 'declined',
 					EventParticipantStatusTypes::Tentative => 'tentative',
@@ -1352,7 +1381,30 @@ class RemoteEventsService {
 	}
 
 	/**
+	 * convert remote months of the year to event object months of the year
+	 *
+	 * JSCalendar months are strings, leap months ("5L") have no event object equivalent and are left out
+	 *
+	 * @param array $months - remote months of the year values(s), e.g. "6"
+	 *
+	 * @return list<int> event object months of the year values(s)
+	 */
+	private function fromMonthsOfYear(array $months): array {
+
+		$moy = [];
+		foreach ($months as $month) {
+			if (is_int($month) || ctype_digit((string)$month)) {
+				$moy[] = (int)$month;
+			}
+		}
+		return $moy;
+	}
+
+	/**
 	 * convert remote days of the week to event object days of the week
+	 *
+	 * JSCalendar days are lower case with the occurrence in the period as nthOfPeriod,
+	 * event object days use the iCalendar form, e.g. {"day": "mo", "nthOfPeriod": 2} => "2MO"
 	 *
 	 * @since Release 1.0.0
 	 *
@@ -1364,9 +1416,14 @@ class RemoteEventsService {
 
 		$dow = [];
 		foreach ($days as $entry) {
-			if (isset($entry['day'])) {
-				$dow[] = $entry['day'];
+			if (!isset($entry['day'])) {
+				continue;
 			}
+			$day = strtoupper($entry['day']);
+			if (isset($entry['nthOfPeriod'])) {
+				$day = $entry['nthOfPeriod'] . $day;
+			}
+			$dow[] = $day;
 		}
 		return $dow;
 	}
@@ -1376,15 +1433,22 @@ class RemoteEventsService {
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param array $days - internal days of the week values(s)
+	 * @param array $days - event object days of the week values(s), e.g. "MO" or "2MO"
 	 *
-	 * @return array event object days of the week values(s)
+	 * @return list<array{day: string, ordinal: int|null}> remote days of the week values(s)
 	 */
 	private function toDaysOfWeek(array $days): array {
 
 		$dow = [];
-		foreach ($days as $key => $value) {
-			# code...
+		foreach ($days as $value) {
+			if (preg_match('/^([+-]?\d+)?(MO|TU|WE|TH|FR|SA|SU)$/i', trim((string)$value), $matches) !== 1) {
+				continue;
+			}
+			$ordinal = null;
+			if ($matches[1] !== '') {
+				$ordinal = (int)$matches[1];
+			}
+			$dow[] = ['day' => strtolower($matches[2]), 'ordinal' => $ordinal];
 		}
 
 		return $dow;

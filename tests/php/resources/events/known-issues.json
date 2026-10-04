@@ -1,0 +1,77 @@
+{
+	"alarms": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"all-day": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"basic": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"details": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"duration": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"participants": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"recurring-daily": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"recurring-exclusion": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"recurring-monthly": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"recurring-mutation": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"recurring-weekly": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"recurring-yearly": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"tags": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"time-zone": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	},
+	"unicode": {
+		"icalendar": {},
+		"jmap": {},
+		"server": {}
+	}
+}
