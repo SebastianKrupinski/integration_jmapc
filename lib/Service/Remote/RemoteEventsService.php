@@ -886,7 +886,7 @@ class RemoteEventsService {
 			/** @var EventMutationObject $mutation */
 			$mutation = $this->toEventInstanceObject($entry, new EventMutationObject());
 			$mutation->mutationId = $entry->mutationId() ?? new DateTimeImmutable($id);
-			$mutation->mutationTz = $entry->mutationTimeZone() ?? $do->TimeZone->getName();
+			$mutation->mutationTz = $entry->mutationTimeZone() ?? $do->StartsTZ?->getName();
 			$do->OccurrenceMutations[$id] = $mutation;
 		}
 
@@ -904,19 +904,24 @@ class RemoteEventsService {
 		if ($so->sequence() !== null) {
 			$do->Sequence = $so->sequence();
 		}
-		// time zone
+		// time zone, start is a local date time in this zone (floating without one)
+		$timeZone = null;
 		if ($so->timezone() !== null) {
-			$do->TimeZone = new DateTimeZone($so->timezone());
+			$timeZone = new DateTimeZone($so->timezone());
 		}
 		// start date/time
 		if ($so->starts() !== null) {
-			$do->StartsOn = $so->starts();
-			$do->StartsTZ = $do->TimeZone;
+			$starts = $so->starts();
+			if ($timeZone !== null) {
+				$starts = new DateTimeImmutable($starts->format('Y-m-d\TH:i:s'), $timeZone);
+			}
+			$do->StartsOn = $starts;
+			$do->StartsTZ = $timeZone;
 		}
 		// end date/time
-		if ($so->ends() !== null) {
-			$do->EndsOn = $so->ends();
-			$do->EndsTZ = $do->TimeZone;
+		if ($do->StartsOn !== null && $so->duration() !== null) {
+			$do->EndsOn = $do->StartsOn->add($so->duration());
+			$do->EndsTZ = $timeZone;
 		}
 		// duration
 		if ($so->duration() !== null) {
@@ -1153,13 +1158,18 @@ class RemoteEventsService {
 		if ($so->Sequence !== null) {
 			$do->sequence($so->Sequence);
 		}
-		// time zone
-		if ($so->TimeZone !== null) {
-			$do->timezone($so->TimeZone->getName());
+		// time zone, the start time zone takes precedence like in the iCalendar conversion
+		$timeZone = $so->StartsTZ ?? $so->TimeZone;
+		if ($timeZone !== null) {
+			$do->timezone($timeZone->getName());
 		}
-		// start date/time
+		// start date/time, sent as a local date time in the time zone
 		if ($so->StartsOn !== null) {
-			$do->starts($so->StartsOn);
+			$starts = DateTimeImmutable::createFromInterface($so->StartsOn);
+			if ($timeZone !== null) {
+				$starts = $starts->setTimezone($timeZone);
+			}
+			$do->starts($starts);
 		}
 		// duration
 		if ($so->Duration !== null) {

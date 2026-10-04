@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Tests\Unit\Service\Remote;
 
+use JmapClient\Responses\Calendar\EventParameters as EventParametersResponse;
+use OCA\JMAPC\Objects\Event\EventObject;
 use OCA\JMAPC\Service\Remote\RemoteEventsService;
 use OCA\JMAPC\Store\Remote\Filters\EventFilter;
 use OCA\JMAPC\Store\Remote\Sort\EventSort;
@@ -60,5 +62,60 @@ class RemoteEventsServiceTest extends TestCase {
 		$this->assertArrayHasKey('start', $attributes);
 		$this->assertArrayHasKey('uid', $attributes);
 		$this->assertArrayHasKey('recurrence', $attributes);
+	}
+
+	public function testFromEventObjectStartTimeZone(): void {
+		$event = new EventObject();
+		$event->StartsOn = new \DateTimeImmutable('2026-11-12T14:00:00', new \DateTimeZone('Europe/Berlin'));
+		$event->StartsTZ = new \DateTimeZone('Europe/Berlin');
+		$event->EndsOn = new \DateTimeImmutable('2026-11-12T15:30:00', new \DateTimeZone('Europe/Berlin'));
+
+		$card = null;
+		$this->eventsService->fromEventObject($event)->bind($card);
+
+		$this->assertSame('Europe/Berlin', $card->timeZone);
+		$this->assertSame('2026-11-12T14:00:00', $card->start);
+		$this->assertSame('PT1H30M', $card->duration);
+	}
+
+	public function testFromEventObjectStartConvertedToEventTimeZone(): void {
+		$event = new EventObject();
+		$event->StartsOn = new \DateTimeImmutable('2026-11-12T13:00:00', new \DateTimeZone('UTC'));
+		$event->TimeZone = new \DateTimeZone('Europe/Berlin');
+
+		$card = null;
+		$this->eventsService->fromEventObject($event)->bind($card);
+
+		$this->assertSame('Europe/Berlin', $card->timeZone);
+		$this->assertSame('2026-11-12T14:00:00', $card->start);
+	}
+
+	public function testToEventObjectStartTimeZone(): void {
+		$event = $this->eventsService->toEventObject(new EventParametersResponse([
+			'calendarIds' => ['calendar-1' => true],
+			'timeZone' => 'Europe/Berlin',
+			'start' => '2026-11-12T14:00:00',
+			'duration' => 'PT1H30M',
+		]));
+
+		$this->assertSame('2026-11-12T14:00:00+01:00', $event->StartsOn->format(DATE_ATOM));
+		$this->assertSame('Europe/Berlin', $event->StartsTZ->getName());
+		$this->assertSame('2026-11-12T15:30:00+01:00', $event->EndsOn->format(DATE_ATOM));
+		$this->assertSame('Europe/Berlin', $event->EndsTZ->getName());
+		$this->assertNull($event->TimeZone);
+	}
+
+	public function testToEventObjectMutationWithoutTimeZone(): void {
+		$event = $this->eventsService->toEventObject(new EventParametersResponse([
+			'calendarIds' => ['calendar-1' => true],
+			'start' => '2026-11-04T09:00:00',
+			'duration' => 'PT30M',
+			'recurrenceOverrides' => [
+				'2026-11-11T09:00:00' => ['start' => '2026-11-11T13:00:00'],
+			],
+		]));
+
+		$this->assertCount(1, $event->OccurrenceMutations);
+		$this->assertNull($event->OccurrenceMutations['2026-11-11T09:00:00']->mutationTz);
 	}
 }

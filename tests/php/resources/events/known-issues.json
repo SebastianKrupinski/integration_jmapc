@@ -5,11 +5,9 @@
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/EndsTZ": "start and end time zones are not read back",
 			"/Notifications/alarm-1/Id": "alarm ids are not read back",
 			"/Notifications/alarm-2/Id": "alarm ids are not read back",
-			"/Sequence": "the sequence is read back as 0 when the event has none",
-			"/StartsTZ": "start and end time zones are not read back"
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
@@ -19,9 +17,7 @@
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/EndsTZ": "start and end time zones are not read back",
-			"/Sequence": "the sequence is read back as 0 when the event has none",
-			"/StartsTZ": "start and end time zones are not read back"
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
@@ -31,9 +27,7 @@
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/EndsTZ": "start and end time zones are not read back",
-			"/Sequence": "the sequence is read back as 0 when the event has none",
-			"/StartsTZ": "start and end time zones are not read back"
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
@@ -53,8 +47,8 @@
 		},
 		"jmap": {
 			"/EndsOn": "JSCalendar stores the end as a duration, the event comes back with an end",
-			"/Sequence": "the sequence is read back as 0 when the event has none",
-			"/StartsTZ": "start and end time zones are not read back"
+			"/EndsTZ": "JSCalendar stores the end as a duration, the event comes back with an end",
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
@@ -68,7 +62,6 @@
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/EndsTZ": "start and end time zones are not read back",
 			"/Participants/att-1/Roles": "participant roles are read back keyed by role name",
 			"/Participants/att-1/Status": "participant status is not read back",
 			"/Participants/att-1/Type": "participant kind is not read back",
@@ -80,8 +73,7 @@
 			"/Participants/org-1/Roles": "participant roles are read back keyed by role name",
 			"/Participants/org-1/Status": "participant status is not read back",
 			"/Participants/org-1/Type": "participant kind is not read back",
-			"/Sequence": "the sequence is read back as 0 when the event has none",
-			"/StartsTZ": "start and end time zones are not read back"
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
@@ -91,10 +83,8 @@
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/EndsTZ": "start and end time zones are not read back",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
-			"/Sequence": "the sequence is read back as 0 when the event has none",
-			"/StartsTZ": "start and end time zones are not read back"
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
@@ -104,11 +94,9 @@
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/EndsTZ": "start and end time zones are not read back",
 			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
-			"/Sequence": "the sequence is read back as 0 when the event has none",
-			"/StartsTZ": "start and end time zones are not read back"
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
@@ -118,11 +106,9 @@
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/EndsTZ": "start and end time zones are not read back",
 			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
-			"/Sequence": "the sequence is read back as 0 when the event has none",
-			"/StartsTZ": "start and end time zones are not read back"
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
@@ -133,7 +119,13 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "reading mutations fails on a missing time zone"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/OccurrenceMutations/2026-11-11T09:00:00/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/OccurrenceMutations/2026-11-11T09:00:00/Sequence": "the sequence is read back as 0 when the event has none",
+			"/OccurrenceMutations/2026-11-11T09:00:00/mutationTz": "the mutation time zone is filled in from the event time zone",
+			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
+			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
@@ -143,10 +135,8 @@
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/EndsTZ": "start and end time zones are not read back",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
-			"/Sequence": "the sequence is read back as 0 when the event has none",
-			"/StartsTZ": "start and end time zones are not read back"
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
@@ -156,12 +146,10 @@
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/EndsTZ": "start and end time zones are not read back",
 			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
 			"/OccurrencePattern/OnMonthOfYear": "recurrence months of the year are lost",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
-			"/Sequence": "the sequence is read back as 0 when the event has none",
-			"/StartsTZ": "start and end time zones are not read back"
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
@@ -171,11 +159,7 @@
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/EndsOn": "the time zone is lost, local times come back as UTC",
-			"/EndsTZ": "start and end time zones are not read back",
-			"/Sequence": "the sequence is read back as 0 when the event has none",
-			"/StartsOn": "the time zone is lost, local times come back as UTC",
-			"/StartsTZ": "start and end time zones are not read back"
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
@@ -185,9 +169,7 @@
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/EndsTZ": "start and end time zones are not read back",
-			"/Sequence": "the sequence is read back as 0 when the event has none",
-			"/StartsTZ": "start and end time zones are not read back"
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	}
