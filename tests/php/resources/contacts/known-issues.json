@@ -11,9 +11,7 @@
 		}
 	},
 	"anniversaries": {
-		"vcard": {
-			"/Anniversaries/birth/Location": "BIRTHPLACE is not written back to the vCard"
-		},
+		"vcard": {},
 		"jmap": {
 			"/Label": "the full name is not sent as name.full"
 		},

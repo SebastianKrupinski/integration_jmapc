@@ -421,10 +421,10 @@ class LocalContactsService {
 			$do->Anniversaries[ContactAnniversaryTypes::Birth->value] = $entity;
 		}
 		// death day
-		if (isset($so->DEATHDAY)) {
+		if (isset($so->DEATHDATE)) {
 			$entity = new ContactAnniversaryObject();
 			$entity->Type = ContactAnniversaryTypes::Death;
-			$entity->When = $so->DEATHDAY->getDatetime();
+			$entity->When = $so->DEATHDATE->getDateTime();
 			$do->Anniversaries[ContactAnniversaryTypes::Death->value] = $entity;
 		}
 		// nuptial day
@@ -436,15 +436,17 @@ class LocalContactsService {
 		}
 		// birth place
 		if (isset($so->BIRTHPLACE)) {
-			if (isset($do->Anniversaries[ContactAnniversaryTypes::Birth->value])) {
+			if (!isset($do->Anniversaries[ContactAnniversaryTypes::Birth->value])) {
 				$do->Anniversaries[ContactAnniversaryTypes::Birth->value] = new ContactAnniversaryObject();
+				$do->Anniversaries[ContactAnniversaryTypes::Birth->value]->Type = ContactAnniversaryTypes::Birth;
 			}
 			$do->Anniversaries[ContactAnniversaryTypes::Birth->value]->Location = $this->sanitizeString($so->BIRTHPLACE->getValue());
 		}
 		// death place
 		if (isset($so->DEATHPLACE)) {
-			if (isset($do->Anniversaries[ContactAnniversaryTypes::Death->value])) {
+			if (!isset($do->Anniversaries[ContactAnniversaryTypes::Death->value])) {
 				$do->Anniversaries[ContactAnniversaryTypes::Death->value] = new ContactAnniversaryObject();
+				$do->Anniversaries[ContactAnniversaryTypes::Death->value]->Type = ContactAnniversaryTypes::Death;
 			}
 			$do->Anniversaries[ContactAnniversaryTypes::Death->value]->Location = $this->sanitizeString($so->DEATHPLACE->getValue());
 		}
@@ -723,19 +725,25 @@ class LocalContactsService {
 		foreach ($so->Anniversaries as $entry) {
 			switch ($entry->Type) {
 				case ContactAnniversaryTypes::Birth:
-					$do->add('BDAY', $entry->When);
+					if ($entry->When !== null) {
+						$do->add('BDAY', $entry->When);
+					}
 					if ($entry->Location !== null) {
 						$do->add('BIRTHPLACE', $entry->Location);
 					}
 					break;
 				case ContactAnniversaryTypes::Death:
-					$do->add('DEATHDAY', $entry->When);
+					if ($entry->When !== null) {
+						$do->add('DEATHDATE', $entry->When);
+					}
 					if ($entry->Location !== null) {
 						$do->add('DEATHPLACE', $entry->Location);
 					}
 					break;
 				case ContactAnniversaryTypes::Nuptial:
-					$do->add('ANNIVERSARY', $entry->When);
+					if ($entry->When !== null) {
+						$do->add('ANNIVERSARY', $entry->When);
+					}
 					break;
 			}
 		}
