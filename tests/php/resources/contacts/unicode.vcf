@@ -1,0 +1,8 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:7d4b1a3e-0c1f-4c47-9c5e-1b0e2f3a4b09
+FN:José Ñúñez 山田
+N:Ñúñez;José;;;
+EMAIL;X-ID=email-1:jose@example.com
+NOTE;X-ID=note-1:Ünïcödé ✓ 日本語
+END:VCARD

@@ -1,0 +1,10 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:7d4b1a3e-0c1f-4c47-9c5e-1b0e2f3a4b03
+FN:Jane Smith
+N:Smith;Jane;;;
+EMAIL;X-ID=email-1;TYPE=work;PREF=1:jane.smith@example.com
+EMAIL;X-ID=email-2;TYPE=home;PREF=2:jane@example.org
+TEL;X-ID=tel-1;VALUE=uri;TYPE=cell;PREF=1:tel:+1-555-0100
+TEL;X-ID=tel-2;VALUE=uri;TYPE=work,voice;PREF=2:tel:+1-555-0101
+END:VCARD
