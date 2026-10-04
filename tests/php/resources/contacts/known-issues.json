@@ -24,8 +24,6 @@
 	},
 	"complete": {
 		"vcard": {
-			"/@warnings": "fromContactObject reads organization unit 0 and a Language property that titles do not have",
-			"/Organizations/org-1/Units": "ORG units are not written back to the vCard",
 			"/Tags": "CATEGORIES are not written back to the vCard"
 		},
 		"jmap": {
@@ -69,10 +67,7 @@
 		"server": {}
 	},
 	"organization": {
-		"vcard": {
-			"/@warnings": "fromContactObject reads organization unit 0 and a Language property that titles do not have",
-			"/Organizations/org-1/Units": "ORG units are not written back to the vCard"
-		},
+		"vcard": {},
 		"jmap": {},
 		"server": {
 			"/Titles/role-1/Relation": "the server links titles to the only organization"

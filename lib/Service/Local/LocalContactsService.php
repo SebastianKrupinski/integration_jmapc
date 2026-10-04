@@ -523,13 +523,13 @@ class LocalContactsService {
 			foreach ($so->ORG as $entry) {
 				$parameters = $entry->parameters();
 				$entity = new ContactOrganizationObject();
-				$entity->Label = $this->sanitizeString($entry->getValue());
 				$parts = $entry->getParts();
-				if (isset($parts[1])) {
-					$entity->Units[1] = $this->sanitizeString($parts[1]);
-				}
-				if (isset($parts[2])) {
-					$entity->Units[2] = $this->sanitizeString($parts[2]);
+				$entity->Label = $this->sanitizeString($parts[0] ?? null);
+				foreach (array_slice($parts, 1) as $unit) {
+					$unit = $this->sanitizeString($unit);
+					if ($unit !== null) {
+						$entity->Units[] = $unit;
+					}
 				}
 				$entity->SortName = $this->sanitizeString(($parameters['SORT-AS'] ?? null)?->getValue());
 				$entity->Id = $parameters['X-ID']->getValue();
@@ -887,14 +887,11 @@ class LocalContactsService {
 		// organization(s)
 		foreach ($so->Organizations as $index => $entry) {
 			/** @var \Sabre\VObject\Property $property */
-			$property = $do->add(
-				'ORG',
-				$entry->Label,
-				[
-					$entry->Units[0] ? $entry->Units[0] : null,
-					$entry->Units[1] ? $entry->Units[1] : null
-				]
-			);
+			$parts = [$entry->Label ?? ''];
+			foreach ($entry->Units as $unit) {
+				$parts[] = $unit;
+			}
+			$property = $do->add('ORG', $parts);
 			if ($entry->SortName !== null) {
 				$property->add('SORT-AS', $entry->SortName);
 			}
@@ -941,9 +938,6 @@ class LocalContactsService {
 			}
 			if ($entry->Context !== null) {
 				$property->add('TYPE', $entry->Context);
-			}
-			if ($entry->Language !== null) {
-				$property->add('LANGUAGE', $entry->Language);
 			}
 		}
 		unset($index, $entry, $property);

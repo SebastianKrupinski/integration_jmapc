@@ -10,6 +10,8 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Tests\Unit\Service\Local;
 
 use OCA\JMAPC\Objects\Contact\ContactAnniversaryTypes;
+use OCA\JMAPC\Objects\Contact\ContactObject;
+use OCA\JMAPC\Objects\Contact\ContactOrganizationObject;
 use OCA\JMAPC\Service\Local\LocalContactsService;
 use OCA\JMAPC\Tests\Unit\TestCase;
 use Sabre\VObject\Reader;
@@ -56,5 +58,32 @@ class LocalContactsServiceTest extends TestCase {
 		$this->assertFalse(isset($vcard->DEATHDATE));
 		$this->assertSame('Minneapolis', (string)$vcard->BIRTHPLACE);
 		$this->assertSame('Boston', (string)$vcard->DEATHPLACE);
+	}
+
+	public function testToContactObjectOrganizationUnits(): void {
+		$contact = $this->contactsService->toContactObject(Reader::read(
+			"BEGIN:VCARD\r\nVERSION:4.0\r\nUID:org\r\nFN:Test\r\n"
+			. "ORG;X-ID=org-1:ACME Corporation;Engineering;;Research\r\nEND:VCARD\r\n"
+		));
+
+		$organization = $contact->Organizations['org-1'];
+		$this->assertSame('ACME Corporation', $organization->Label);
+		$this->assertSame(['Engineering', 'Research'], iterator_to_array($organization->Units));
+	}
+
+	public function testFromContactObjectOrganizationUnits(): void {
+		$contact = new ContactObject();
+		$organization = new ContactOrganizationObject();
+		$organization->Id = 'org-1';
+		$organization->Label = 'ACME Corporation';
+		$organization->Units[] = 'Engineering';
+		$organization->Units[] = 'Research';
+		$contact->Organizations['org-1'] = $organization;
+
+		$vcard = $this->contactsService->fromContactObject($contact);
+
+		$this->assertSame(['ACME Corporation', 'Engineering', 'Research'], $vcard->ORG->getParts());
+		$this->assertSame('org-1', (string)$vcard->ORG['X-ID']);
+		$this->assertCount(1, $vcard->ORG->parameters());
 	}
 }
