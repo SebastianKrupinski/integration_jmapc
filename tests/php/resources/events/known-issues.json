@@ -1,0 +1,135 @@
+{
+	"alarms": {
+		"icalendar": {
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"all-day": {
+		"icalendar": {
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"basic": {
+		"icalendar": {
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"details": {
+		"icalendar": {
+			"/Sequence": "SEQUENCE is written as 0 when the event has none",
+			"/Tags": "CATEGORIES are written as one comma joined value"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"duration": {
+		"icalendar": {
+			"/@error": "DURATION is written as a DateInterval that sabre cannot serialize"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"participants": {
+		"icalendar": {
+			"/@warnings": "fromEventInstanceObject reads the attendee address from $address instead of $Address",
+			"/Participants/att-1/Address": "attendee addresses are not written",
+			"/Participants/att-2/Address": "attendee addresses are not written",
+			"/Participants/att-3/Address": "attendee addresses are not written",
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"recurring-daily": {
+		"icalendar": {
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"recurring-exclusion": {
+		"icalendar": {
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"recurring-monthly": {
+		"icalendar": {
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"recurring-mutation": {
+		"icalendar": {
+			"/@warnings": "fromEventInstanceObject reads OccurrencePattern on mutations, which do not have one",
+			"/OccurrenceMutations/2026-11-11T09:00:00/Sequence": "SEQUENCE is written as 0 when the event has none",
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"recurring-weekly": {
+		"icalendar": {
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"recurring-yearly": {
+		"icalendar": {
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"time-zone": {
+		"icalendar": {
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	},
+	"unicode": {
+		"icalendar": {
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+		},
+		"server": {}
+	}
+}
