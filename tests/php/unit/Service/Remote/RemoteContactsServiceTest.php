@@ -183,4 +183,22 @@ class RemoteContactsServiceTest extends TestCase {
 
 		$this->assertSame(['Work', 'VIP'], iterator_to_array($contact->Tags));
 	}
+
+	public function testFromContactObjectLanguage(): void {
+		$contact = new ContactObject();
+		$contact->Language = 'de';
+
+		$card = null;
+		$this->contactsService->fromContactObject($contact)->bind($card);
+
+		$this->assertSame('de', $card->language);
+	}
+
+	public function testToContactObjectLanguage(): void {
+		$contact = $this->contactsService->toContactObject(new ContactParametersResponse([
+			'language' => 'de',
+		]));
+
+		$this->assertSame('de', $contact->Language);
+	}
 }

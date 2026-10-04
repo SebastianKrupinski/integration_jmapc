@@ -59,11 +59,9 @@
 	"name-full": {
 		"vcard": {},
 		"jmap": {
-			"/Language": "the language is not sent",
 			"/TimeZone": "the time zone is not sent"
 		},
 		"server": {
-			"/Language": "the language is not sent",
 			"/TimeZone": "the time zone is not sent"
 		}
 	},

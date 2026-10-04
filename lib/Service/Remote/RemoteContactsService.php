@@ -787,6 +787,10 @@ class RemoteContactsService {
 		if ($so->kind() !== null) {
 			$do->Kind = $so->kind();
 		}
+		// language
+		if ($so->language() !== null) {
+			$do->Language = $so->language();
+		}
 		// name
 		if ($so->name() !== null) {
 			$nameParams = $so->name();
@@ -978,6 +982,10 @@ class RemoteContactsService {
 		// kind
 		if ($so->Kind !== null) {
 			$to->kind($so->Kind);
+		}
+		// language
+		if ($so->Language !== null) {
+			$to->language($so->Language);
 		}
 		// name
 		if ($so->Name !== null) {
