@@ -272,4 +272,14 @@ class RemoteEventsServiceTest extends TestCase {
 
 		$this->assertSame(['MO', '2WE'], $event->OccurrencePattern->OnDayOfWeek);
 	}
+
+	public function testToEventObjectMonthsOfYearAsStrings(): void {
+		$event = $this->eventsService->toEventObject(new EventParametersResponse([
+			'calendarIds' => ['calendar-1' => true],
+			'start' => '2027-06-10T00:00:00',
+			'recurrenceRule' => ['@type' => 'RecurrenceRule', 'frequency' => 'yearly', 'byMonth' => ['6', '5L', '12'], 'byMonthDay' => [10]],
+		]));
+
+		$this->assertSame([6, 12], $event->OccurrencePattern->OnMonthOfYear);
+	}
 }

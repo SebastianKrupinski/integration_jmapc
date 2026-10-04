@@ -866,7 +866,7 @@ class RemoteEventsService {
 				}
 				// nth month of year
 				elseif ($soRule->byMonthOfYear() !== []) {
-					$doRule->OnMonthOfYear = $soRule->byMonthOfYear();
+					$doRule->OnMonthOfYear = $this->fromMonthsOfYear($soRule->byMonthOfYear());
 					if ($soRule->byDayOfMonth() !== []) {
 						$doRule->Pattern = EventOccurrencePatternTypes::Absolute;
 						$doRule->OnDayOfMonth = $soRule->byDayOfMonth();
@@ -1376,6 +1376,26 @@ class RemoteEventsService {
 		}
 
 		return ['address' => $address, 'name' => $name];
+	}
+
+	/**
+	 * convert remote months of the year to event object months of the year
+	 *
+	 * JSCalendar months are strings, leap months ("5L") have no event object equivalent and are left out
+	 *
+	 * @param array $months - remote months of the year values(s), e.g. "6"
+	 *
+	 * @return list<int> event object months of the year values(s)
+	 */
+	private function fromMonthsOfYear(array $months): array {
+
+		$moy = [];
+		foreach ($months as $month) {
+			if (is_int($month) || ctype_digit((string)$month)) {
+				$moy[] = (int)$month;
+			}
+		}
+		return $moy;
 	}
 
 	/**
