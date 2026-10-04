@@ -884,8 +884,14 @@ class RemoteEventsService {
 		$this->toEventInstanceObject($so, $do);
 		// mutations
 		foreach ($so->recurrenceMutations() as $id => $entry) {
-			/** @var EventMutationObject $mutation */
-			$mutation = $this->toEventInstanceObject($entry, new EventMutationObject());
+			// excluded occurrences carry no event properties
+			if ($entry->excluded()) {
+				$mutation = new EventMutationObject();
+				$mutation->mutationExclusion = true;
+			} else {
+				/** @var EventMutationObject $mutation */
+				$mutation = $this->toEventInstanceObject($entry, new EventMutationObject());
+			}
 			$mutation->mutationId = $entry->mutationId() ?? new DateTimeImmutable($id);
 			// null when the server sends none, the iCalendar conversion falls back to the event start time zone
 			$mutation->mutationTz = $entry->mutationTimeZone();
@@ -1143,7 +1149,11 @@ class RemoteEventsService {
 			if ($mutation->mutationTz) {
 				$entity->mutationTimeZone($mutation->mutationTz);
 			}
-			$this->fromEventInstanceObject($mutation, $entity);
+			if ($mutation->mutationExclusion === true) {
+				$entity->excluded(true);
+			} else {
+				$this->fromEventInstanceObject($mutation, $entity);
+			}
 			$do->recurrenceMutations($mutationId, $entity);
 		}
 

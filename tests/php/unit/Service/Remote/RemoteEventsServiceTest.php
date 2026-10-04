@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Tests\Unit\Service\Remote;
 
 use JmapClient\Responses\Calendar\EventParameters as EventParametersResponse;
+use OCA\JMAPC\Objects\Event\EventMutationObject;
 use OCA\JMAPC\Objects\Event\EventObject;
 use OCA\JMAPC\Objects\Event\EventParticipantObject;
 use OCA\JMAPC\Objects\Event\EventParticipantRoleTypes;
@@ -202,5 +203,39 @@ class RemoteEventsServiceTest extends TestCase {
 		]));
 
 		$this->assertSame('America/New_York', $event->OccurrenceMutations['2026-11-11T09:00:00']->mutationTz);
+	}
+
+	public function testFromEventObjectExclusion(): void {
+		$event = new EventObject();
+		$event->StartsOn = new \DateTimeImmutable('2026-11-03T09:00:00Z');
+		$exclusion = new EventMutationObject();
+		$exclusion->mutationId = new \DateTimeImmutable('2026-11-10T09:00:00Z');
+		$exclusion->mutationExclusion = true;
+		$exclusion->Label = 'not sent';
+		$event->OccurrenceMutations['2026-11-10T09:00:00'] = $exclusion;
+
+		$card = null;
+		$this->eventsService->fromEventObject($event)->bind($card);
+
+		$override = $card->recurrenceOverrides->{'2026-11-10T09:00:00'};
+		$this->assertTrue($override->excluded);
+		$this->assertObjectNotHasProperty('title', $override);
+	}
+
+	public function testToEventObjectExclusion(): void {
+		$event = $this->eventsService->toEventObject(new EventParametersResponse([
+			'calendarIds' => ['calendar-1' => true],
+			'start' => '2026-11-03T09:00:00',
+			'recurrenceOverrides' => [
+				'2026-11-10T09:00:00' => ['excluded' => true],
+				'2026-11-17T09:00:00' => ['title' => 'Moved'],
+			],
+		]));
+
+		$exclusion = $event->OccurrenceMutations['2026-11-10T09:00:00'];
+		$this->assertTrue($exclusion->mutationExclusion);
+		$this->assertNull($exclusion->Sequence);
+		$this->assertNull($event->OccurrenceMutations['2026-11-17T09:00:00']->mutationExclusion);
+		$this->assertSame('Moved', $event->OccurrenceMutations['2026-11-17T09:00:00']->Label);
 	}
 }

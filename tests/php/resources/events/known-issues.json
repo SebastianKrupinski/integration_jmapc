@@ -39,7 +39,6 @@
 	"recurring-exclusion": {
 		"icalendar": {},
 		"jmap": {
-			"/OccurrenceMutations/2026-11-10T09:00:00": "excluded occurrences are sent as plain overrides, JSCalendar marks them with excluded which the library does not support yet",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}
