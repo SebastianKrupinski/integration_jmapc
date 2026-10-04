@@ -33,8 +33,7 @@
 	},
 	"details": {
 		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none",
-			"/Tags": "CATEGORIES are written as one comma joined value"
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
@@ -150,6 +149,16 @@
 			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
 			"/OccurrencePattern/OnMonthOfYear": "recurrence months of the year are lost",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
+			"/Sequence": "the sequence is read back as 0 when the event has none"
+		},
+		"server": {}
+	},
+	"tags": {
+		"icalendar": {
+			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+		},
+		"jmap": {
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}

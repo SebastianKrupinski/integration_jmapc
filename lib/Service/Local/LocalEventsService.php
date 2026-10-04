@@ -30,7 +30,6 @@ use OCA\JMAPC\Objects\Event\EventParticipantRoleTypes;
 use OCA\JMAPC\Objects\Event\EventParticipantStatusTypes;
 use OCA\JMAPC\Objects\Event\EventParticipantTypes;
 use OCA\JMAPC\Objects\Event\EventSensitivityTypes;
-use OCA\JMAPC\Objects\Event\EventTagCollection;
 use OCA\JMAPC\Objects\OriginTypes;
 use OCA\JMAPC\Store\Local\CollectionEntity;
 use OCA\JMAPC\Store\Local\EventEntity;
@@ -495,8 +494,13 @@ class LocalEventsService {
 			$do->Color = trim($so->COLOR->getValue());
 		}
 		// tag(s)
-		if (isset($so->CATEGORIES)) {
-			$do->Tags = new EventTagCollection($so->CATEGORIES->getParts());
+		foreach ($so->select('CATEGORIES') as $entry) {
+			foreach ($entry->getParts() as $tag) {
+				$tag = trim($tag);
+				if ($tag !== '') {
+					$do->Tags[] = $tag;
+				}
+			}
 		}
 		// participant(s)
 		foreach (['ORGANIZER', 'ATTENDEE'] as $name) {
@@ -836,8 +840,14 @@ class LocalEventsService {
 			$do->add('COLOR', trim($so->Color));
 		}
 		// Tag(s)
-		if ($so->Tags->count() > 0) {
-			$do->add('CATEGORIES', implode(', ', (array)$so->Tags));
+		$tags = [];
+		foreach ($so->Tags as $tag) {
+			if ($tag !== '') {
+				$tags[] = $tag;
+			}
+		}
+		if ($tags !== []) {
+			$do->add('CATEGORIES', $tags);
 		}
 		// Participant(s)
 		foreach ($so->Participants as $entry) {
