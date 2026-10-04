@@ -29,19 +29,7 @@
 	},
 	"participants": {
 		"icalendar": {},
-		"jmap": {
-			"/Participants/att-1/Roles": "participant roles are read back keyed by role name",
-			"/Participants/att-1/Status": "participant status is not read back",
-			"/Participants/att-1/Type": "participant kind is not read back",
-			"/Participants/att-2/Roles": "participant roles are read back keyed by role name",
-			"/Participants/att-2/Status": "participant status is not read back",
-			"/Participants/att-2/Type": "participant kind is not read back",
-			"/Participants/att-3/Roles": "participant roles are read back keyed by role name",
-			"/Participants/att-3/Type": "participant kind is not read back",
-			"/Participants/org-1/Roles": "participant roles are read back keyed by role name",
-			"/Participants/org-1/Status": "participant status is not read back",
-			"/Participants/org-1/Type": "participant kind is not read back"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"recurring-daily": {

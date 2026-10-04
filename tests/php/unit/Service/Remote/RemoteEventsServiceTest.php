@@ -10,6 +10,10 @@ namespace OCA\JMAPC\Tests\Unit\Service\Remote;
 
 use JmapClient\Responses\Calendar\EventParameters as EventParametersResponse;
 use OCA\JMAPC\Objects\Event\EventObject;
+use OCA\JMAPC\Objects\Event\EventParticipantObject;
+use OCA\JMAPC\Objects\Event\EventParticipantRoleTypes;
+use OCA\JMAPC\Objects\Event\EventParticipantStatusTypes;
+use OCA\JMAPC\Objects\Event\EventParticipantTypes;
 use OCA\JMAPC\Service\Remote\RemoteEventsService;
 use OCA\JMAPC\Store\Remote\Filters\EventFilter;
 use OCA\JMAPC\Store\Remote\Sort\EventSort;
@@ -137,5 +141,42 @@ class RemoteEventsServiceTest extends TestCase {
 
 		$this->assertSame([6], $event->OccurrencePattern->OnMonthOfYear);
 		$this->assertSame([10], $event->OccurrencePattern->OnDayOfMonth);
+	}
+
+	public function testFromEventObjectParticipant(): void {
+		$event = new EventObject();
+		$participant = new EventParticipantObject();
+		$participant->Id = 'att-1';
+		$participant->Address = 'room101@example.com';
+		$participant->Type = EventParticipantTypes::Location;
+		$participant->Status = EventParticipantStatusTypes::Tentative;
+		$participant->Roles[] = EventParticipantRoleTypes::Informational;
+		$event->Participants['att-1'] = $participant;
+
+		$card = null;
+		$this->eventsService->fromEventObject($event)->bind($card);
+
+		$this->assertSame('location', $card->participants->{'att-1'}->kind);
+		$this->assertSame('tentative', $card->participants->{'att-1'}->participationStatus);
+		$this->assertEquals((object)['informational' => true], $card->participants->{'att-1'}->roles);
+	}
+
+	public function testToEventObjectParticipant(): void {
+		$event = $this->eventsService->toEventObject(new EventParametersResponse([
+			'calendarIds' => ['calendar-1' => true],
+			'participants' => [
+				'att-1' => [
+					'email' => 'room101@example.com',
+					'kind' => 'location',
+					'participationStatus' => 'tentative',
+					'roles' => ['attendee' => true, 'x-unknown' => true, 'optional' => true],
+				],
+			],
+		]));
+
+		$participant = $event->Participants['att-1'];
+		$this->assertSame(EventParticipantTypes::Location, $participant->Type);
+		$this->assertSame(EventParticipantStatusTypes::Tentative, $participant->Status);
+		$this->assertSame([EventParticipantRoleTypes::Attendee, EventParticipantRoleTypes::Optional], iterator_to_array($participant->Roles));
 	}
 }

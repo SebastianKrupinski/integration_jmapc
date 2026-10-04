@@ -1012,8 +1012,12 @@ class RemoteEventsService {
 				default => EventParticipantStatusTypes::None,
 			};
 
-			foreach ($entry->roles() as $role => $value) {
-				$entity->Roles[$role] = EventParticipantRoleTypes::from($role);
+			// roles, a map of role => true, roles without an equivalent are left out
+			foreach (array_keys($entry->roles()) as $role) {
+				$type = EventParticipantRoleTypes::tryFrom((string)$role);
+				if ($type !== null) {
+					$entity->Roles[] = $type;
+				}
 			}
 			$do->Participants[$id] = $entity;
 		}
@@ -1258,7 +1262,7 @@ class RemoteEventsService {
 				});
 			}
 			if ($entry->Status !== null) {
-				$entity->kind(match ($entry->Status ?? EventParticipantStatusTypes::None) {
+				$entity->status(match ($entry->Status ?? EventParticipantStatusTypes::None) {
 					EventParticipantStatusTypes::Accepted => 'accepted',
 					EventParticipantStatusTypes::Declined => 'declined',
 					EventParticipantStatusTypes::Tentative => 'tentative',
