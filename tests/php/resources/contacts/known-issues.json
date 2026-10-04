@@ -1,12 +1,8 @@
 {
 	"address": {
 		"vcard": {},
-		"jmap": {
-			"/PhysicalLocations/adr-1/Label": "the address label is not sent as the full address"
-		},
-		"server": {
-			"/PhysicalLocations/adr-1/Label": "the address label is not sent as the full address"
-		}
+		"jmap": {},
+		"server": {}
 	},
 	"anniversaries": {
 		"vcard": {},

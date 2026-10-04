@@ -201,4 +201,26 @@ class RemoteContactsServiceTest extends TestCase {
 
 		$this->assertSame('de', $contact->Language);
 	}
+
+	public function testFromContactObjectAddressLabel(): void {
+		$contact = new ContactObject();
+		$address = new ContactPhysicalLocationObject();
+		$address->Label = "123 Main Street\nSpringfield, IL 62701";
+		$contact->PhysicalLocations['adr-1'] = $address;
+
+		$card = null;
+		$this->contactsService->fromContactObject($contact)->bind($card);
+
+		$this->assertSame("123 Main Street\nSpringfield, IL 62701", $card->addresses->{'adr-1'}->full);
+	}
+
+	public function testToContactObjectAddressLabel(): void {
+		$contact = $this->contactsService->toContactObject(new ContactParametersResponse([
+			'addresses' => [
+				'adr-1' => ['full' => "123 Main Street\nSpringfield, IL 62701"],
+			],
+		]));
+
+		$this->assertSame("123 Main Street\nSpringfield, IL 62701", $contact->PhysicalLocations['adr-1']->Label);
+	}
 }

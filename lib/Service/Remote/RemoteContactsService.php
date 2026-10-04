@@ -868,6 +868,7 @@ class RemoteContactsService {
 			foreach ($so->addresses() as $id => $entry) {
 				$entity = new ContactPhysicalLocationObject();
 				$entity->Id = (string)$id;
+				$entity->Label = $entry->full();
 				$entity->Coordinates = $entry->coordinates();
 				if ($entry->timeZone() !== null) {
 					$entity->TimeZone = $entry->timeZone()->getName();
@@ -1080,6 +1081,9 @@ class RemoteContactsService {
 		// addresses
 		foreach ($so->PhysicalLocations ?? [] as $id => $entry) {
 			$addressParams = $to->addresses((string)$id);
+			if ($entry->Label !== null) {
+				$addressParams->full($entry->Label);
+			}
 			if ($entry->Box !== null || $entry->Unit !== null || $entry->Street !== null
 				|| $entry->Locality !== null || $entry->Region !== null || $entry->Code !== null
 				|| $entry->Country !== null) {
