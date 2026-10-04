@@ -786,8 +786,9 @@ class RemoteEventsService {
 		// source origin
 		$do->Origin = OriginTypes::External;
 		// collection id
-		if ($so->in() !== []) {
-			$do->CID = $so->in()[0];
+		$collections = $so->in();
+		if ($collections !== null && $collections !== []) {
+			$do->CID = $collections[0];
 		}
 		// entity id
 		if ($so->id() !== null) {

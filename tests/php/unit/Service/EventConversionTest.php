@@ -43,6 +43,9 @@ class EventConversionTest extends TestCase {
 
 	/**
 	 * event -> JSCalendar request -> JSON -> JSCalendar response -> event
+	 *
+	 * The request is placed in a calendar the way entityCreate() does, servers
+	 * always return calendarIds
 	 */
 	#[DataProvider('fixtures')]
 	public function testJmapRoundTrip(string $name): void {
@@ -52,7 +55,7 @@ class EventConversionTest extends TestCase {
 		$service = new RemoteEventsService();
 		$actual = EventFixtures::attempt(static function () use ($service, $expected) {
 			$event = null;
-			$service->fromEventObject($expected)->bind($event);
+			$service->fromEventObject($expected)->in('calendar-1')->bind($event);
 			$wire = json_decode(json_encode($event, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
 			return $service->toEventObject(new EventParametersResponse($wire));
 		}, $warnings, $error);

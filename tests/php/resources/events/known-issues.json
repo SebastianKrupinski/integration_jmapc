@@ -4,7 +4,12 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/EndsTZ": "start and end time zones are not read back",
+			"/Notifications/alarm-1/Id": "alarm ids are not read back",
+			"/Notifications/alarm-2/Id": "alarm ids are not read back",
+			"/Sequence": "the sequence is read back as 0 when the event has none",
+			"/StartsTZ": "start and end time zones are not read back"
 		},
 		"server": {}
 	},
@@ -13,7 +18,10 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/EndsTZ": "start and end time zones are not read back",
+			"/Sequence": "the sequence is read back as 0 when the event has none",
+			"/StartsTZ": "start and end time zones are not read back"
 		},
 		"server": {}
 	},
@@ -22,7 +30,10 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/EndsTZ": "start and end time zones are not read back",
+			"/Sequence": "the sequence is read back as 0 when the event has none",
+			"/StartsTZ": "start and end time zones are not read back"
 		},
 		"server": {}
 	},
@@ -32,7 +43,7 @@
 			"/Tags": "CATEGORIES are written as one comma joined value"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/@error": "reading tags back fails, the keyword map is turned into a collection with a null key"
 		},
 		"server": {}
 	},
@@ -41,7 +52,9 @@
 			"/@error": "DURATION is written as a DateInterval that sabre cannot serialize"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/EndsOn": "JSCalendar stores the end as a duration, the event comes back with an end",
+			"/Sequence": "the sequence is read back as 0 when the event has none",
+			"/StartsTZ": "start and end time zones are not read back"
 		},
 		"server": {}
 	},
@@ -54,7 +67,21 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/EndsTZ": "start and end time zones are not read back",
+			"/Participants/att-1/Roles": "participant roles are read back keyed by role name",
+			"/Participants/att-1/Status": "participant status is not read back",
+			"/Participants/att-1/Type": "participant kind is not read back",
+			"/Participants/att-2/Roles": "participant roles are read back keyed by role name",
+			"/Participants/att-2/Status": "participant status is not read back",
+			"/Participants/att-2/Type": "participant kind is not read back",
+			"/Participants/att-3/Roles": "participant roles are read back keyed by role name",
+			"/Participants/att-3/Type": "participant kind is not read back",
+			"/Participants/org-1/Roles": "participant roles are read back keyed by role name",
+			"/Participants/org-1/Status": "participant status is not read back",
+			"/Participants/org-1/Type": "participant kind is not read back",
+			"/Sequence": "the sequence is read back as 0 when the event has none",
+			"/StartsTZ": "start and end time zones are not read back"
 		},
 		"server": {}
 	},
@@ -63,7 +90,11 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/EndsTZ": "start and end time zones are not read back",
+			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
+			"/Sequence": "the sequence is read back as 0 when the event has none",
+			"/StartsTZ": "start and end time zones are not read back"
 		},
 		"server": {}
 	},
@@ -72,7 +103,12 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/EndsTZ": "start and end time zones are not read back",
+			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
+			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
+			"/Sequence": "the sequence is read back as 0 when the event has none",
+			"/StartsTZ": "start and end time zones are not read back"
 		},
 		"server": {}
 	},
@@ -81,7 +117,12 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/EndsTZ": "start and end time zones are not read back",
+			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
+			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
+			"/Sequence": "the sequence is read back as 0 when the event has none",
+			"/StartsTZ": "start and end time zones are not read back"
 		},
 		"server": {}
 	},
@@ -92,7 +133,7 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/@error": "reading mutations fails on a missing time zone"
 		},
 		"server": {}
 	},
@@ -101,7 +142,11 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/EndsTZ": "start and end time zones are not read back",
+			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
+			"/Sequence": "the sequence is read back as 0 when the event has none",
+			"/StartsTZ": "start and end time zones are not read back"
 		},
 		"server": {}
 	},
@@ -110,7 +155,13 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/EndsTZ": "start and end time zones are not read back",
+			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
+			"/OccurrencePattern/OnMonthOfYear": "recurrence months of the year are lost",
+			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
+			"/Sequence": "the sequence is read back as 0 when the event has none",
+			"/StartsTZ": "start and end time zones are not read back"
 		},
 		"server": {}
 	},
@@ -119,7 +170,12 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/EndsOn": "the time zone is lost, local times come back as UTC",
+			"/EndsTZ": "start and end time zones are not read back",
+			"/Sequence": "the sequence is read back as 0 when the event has none",
+			"/StartsOn": "the time zone is lost, local times come back as UTC",
+			"/StartsTZ": "start and end time zones are not read back"
 		},
 		"server": {}
 	},
@@ -128,7 +184,10 @@
 			"/Sequence": "SEQUENCE is written as 0 when the event has none"
 		},
 		"jmap": {
-			"/@error": "EventParameters::in() fails on events without calendarIds (jmap-client-php)"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/EndsTZ": "start and end time zones are not read back",
+			"/Sequence": "the sequence is read back as 0 when the event has none",
+			"/StartsTZ": "start and end time zones are not read back"
 		},
 		"server": {}
 	}
