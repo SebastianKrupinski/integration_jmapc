@@ -425,9 +425,11 @@ class LocalEventsService {
 		if (isset($so->{'LAST-MODIFIED'})) {
 			$do->ModifiedOn = $so->{'LAST-MODIFIED'}->getDateTime();
 		}
-		// sequence
+		// sequence, 0 when missing (RFC 5545 3.8.7.4)
 		if (isset($so->SEQUENCE)) {
 			$do->Sequence = (int)$so->SEQUENCE->getValue();
+		} else {
+			$do->Sequence = 0;
 		}
 		// time zone
 		if (isset($so->{'X-TIMEZONE'})) {

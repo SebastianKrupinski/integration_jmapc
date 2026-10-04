@@ -1,54 +1,39 @@
 {
 	"alarms": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/Notifications/alarm-1/Id": "alarm ids are not read back",
-			"/Notifications/alarm-2/Id": "alarm ids are not read back",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/Notifications/alarm-2/Id": "alarm ids are not read back"
 		},
 		"server": {}
 	},
 	"all-day": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration"
 		},
 		"server": {}
 	},
 	"basic": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration"
 		},
 		"server": {}
 	},
 	"details": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration"
 		},
 		"server": {}
 	},
 	"duration": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
 			"/EndsOn": "JSCalendar stores the end as a duration, the event comes back with an end",
-			"/EndsTZ": "JSCalendar stores the end as a duration, the event comes back with an end",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/EndsTZ": "JSCalendar stores the end as a duration, the event comes back with an end"
 		},
 		"server": {}
 	},
@@ -57,8 +42,7 @@
 			"/@warnings": "fromEventInstanceObject reads the attendee address from $address instead of $Address",
 			"/Participants/att-1/Address": "attendee addresses are not written",
 			"/Participants/att-2/Address": "attendee addresses are not written",
-			"/Participants/att-3/Address": "attendee addresses are not written",
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+			"/Participants/att-3/Address": "attendee addresses are not written"
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
@@ -72,114 +56,85 @@
 			"/Participants/att-3/Type": "participant kind is not read back",
 			"/Participants/org-1/Roles": "participant roles are read back keyed by role name",
 			"/Participants/org-1/Status": "participant status is not read back",
-			"/Participants/org-1/Type": "participant kind is not read back",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/Participants/org-1/Type": "participant kind is not read back"
 		},
 		"server": {}
 	},
 	"recurring-daily": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}
 	},
 	"recurring-exclusion": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
-			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}
 	},
 	"recurring-monthly": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
-			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}
 	},
 	"recurring-mutation": {
 		"icalendar": {
-			"/@warnings": "fromEventInstanceObject reads OccurrencePattern on mutations, which do not have one",
-			"/OccurrenceMutations/2026-11-11T09:00:00/Sequence": "SEQUENCE is written as 0 when the event has none",
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
+			"/@warnings": "fromEventInstanceObject reads OccurrencePattern on mutations, which do not have one"
 		},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/OccurrenceMutations/2026-11-11T09:00:00/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/OccurrenceMutations/2026-11-11T09:00:00/Sequence": "the sequence is read back as 0 when the event has none",
 			"/OccurrenceMutations/2026-11-11T09:00:00/mutationTz": "the mutation time zone is filled in from the event time zone",
 			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
-			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}
 	},
 	"recurring-weekly": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}
 	},
 	"recurring-yearly": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
 			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
 			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
 			"/OccurrencePattern/OnMonthOfYear": "recurrence months of the year are lost",
-			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}
 	},
 	"tags": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration"
 		},
 		"server": {}
 	},
 	"time-zone": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration"
 		},
 		"server": {}
 	},
 	"unicode": {
-		"icalendar": {
-			"/Sequence": "SEQUENCE is written as 0 when the event has none"
-		},
+		"icalendar": {},
 		"jmap": {
-			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
-			"/Sequence": "the sequence is read back as 0 when the event has none"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration"
 		},
 		"server": {}
 	}

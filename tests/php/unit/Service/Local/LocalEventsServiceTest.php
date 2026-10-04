@@ -66,4 +66,14 @@ class LocalEventsServiceTest extends TestCase {
 		$this->assertSame('P1DT2H45M', (string)$vEvent->DURATION);
 		$this->assertFalse(isset($vEvent->DTEND));
 	}
+
+	public function testToEventObjectSequenceDefault(): void {
+		$event = $this->eventsService->toEventObject(Reader::read(
+			"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:sequence\r\nDTSTART:20261121T100000Z\r\nEND:VEVENT\r\n"
+			. "BEGIN:VEVENT\r\nUID:sequence\r\nRECURRENCE-ID:20261128T100000Z\r\nDTSTART:20261128T110000Z\r\nSEQUENCE:3\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+		));
+
+		$this->assertSame(0, $event->Sequence);
+		$this->assertSame(3, $event->OccurrenceMutations['2026-11-28T10:00:00']->Sequence);
+	}
 }
