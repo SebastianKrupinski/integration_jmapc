@@ -11,6 +11,8 @@ namespace OCA\JMAPC\Tests\Unit\Service\Remote;
 use JmapClient\Responses\Calendar\EventParameters as EventParametersResponse;
 use OCA\JMAPC\Objects\Event\EventMutationObject;
 use OCA\JMAPC\Objects\Event\EventObject;
+use OCA\JMAPC\Objects\Event\EventOccurrenceObject;
+use OCA\JMAPC\Objects\Event\EventOccurrencePrecisionTypes;
 use OCA\JMAPC\Objects\Event\EventParticipantObject;
 use OCA\JMAPC\Objects\Event\EventParticipantRoleTypes;
 use OCA\JMAPC\Objects\Event\EventParticipantStatusTypes;
@@ -237,5 +239,37 @@ class RemoteEventsServiceTest extends TestCase {
 		$this->assertNull($exclusion->Sequence);
 		$this->assertNull($event->OccurrenceMutations['2026-11-17T09:00:00']->mutationExclusion);
 		$this->assertSame('Moved', $event->OccurrenceMutations['2026-11-17T09:00:00']->Label);
+	}
+
+	public function testFromEventObjectDaysOfWeek(): void {
+		$event = new EventObject();
+		$event->StartsOn = new \DateTimeImmutable('2026-11-09T10:00:00Z');
+		$rule = new EventOccurrenceObject();
+		$rule->Precision = EventOccurrencePrecisionTypes::Monthly;
+		$rule->OnDayOfWeek = ['MO', '2TU', '-1FR', 'XX'];
+		$event->OccurrencePattern = $rule;
+
+		$card = null;
+		$this->eventsService->fromEventObject($event)->bind($card);
+
+		$this->assertEquals([
+			(object)['@type' => 'NDay', 'day' => 'mo'],
+			(object)['@type' => 'NDay', 'day' => 'tu', 'nthOfPeriod' => 2],
+			(object)['@type' => 'NDay', 'day' => 'fr', 'nthOfPeriod' => -1],
+		], $card->recurrenceRule->byDay);
+	}
+
+	public function testToEventObjectDaysOfWeek(): void {
+		$event = $this->eventsService->toEventObject(new EventParametersResponse([
+			'calendarIds' => ['calendar-1' => true],
+			'start' => '2026-11-02T16:00:00',
+			'recurrenceRule' => [
+				'@type' => 'RecurrenceRule',
+				'frequency' => 'weekly',
+				'byDay' => [['day' => 'mo'], ['day' => 'we', 'nthOfPeriod' => 2]],
+			],
+		]));
+
+		$this->assertSame(['MO', '2WE'], $event->OccurrencePattern->OnDayOfWeek);
 	}
 }

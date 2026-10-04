@@ -1102,9 +1102,12 @@ class RemoteEventsService {
 				$doRule->until($soRule->Concludes);
 			}
 			if ($soRule->OnDayOfWeek !== []) {
-				foreach ($soRule->OnDayOfWeek as $id => $day) {
-					$nDay = $doRule->byDayOfWeek($id);
-					$nDay->day($day);
+				foreach ($this->toDaysOfWeek($soRule->OnDayOfWeek) as $day) {
+					$nDay = $doRule->byDayOfWeek();
+					$nDay->day($day['day']);
+					if ($day['ordinal'] !== null) {
+						$nDay->ordinal($day['ordinal']);
+					}
 				}
 			}
 			if ($soRule->OnDayOfMonth !== []) {
@@ -1378,6 +1381,9 @@ class RemoteEventsService {
 	/**
 	 * convert remote days of the week to event object days of the week
 	 *
+	 * JSCalendar days are lower case with the occurrence in the period as nthOfPeriod,
+	 * event object days use the iCalendar form, e.g. {"day": "mo", "nthOfPeriod": 2} => "2MO"
+	 *
 	 * @since Release 1.0.0
 	 *
 	 * @param array $days - remote days of the week values(s)
@@ -1388,9 +1394,14 @@ class RemoteEventsService {
 
 		$dow = [];
 		foreach ($days as $entry) {
-			if (isset($entry['day'])) {
-				$dow[] = $entry['day'];
+			if (!isset($entry['day'])) {
+				continue;
 			}
+			$day = strtoupper($entry['day']);
+			if (isset($entry['nthOfPeriod'])) {
+				$day = $entry['nthOfPeriod'] . $day;
+			}
+			$dow[] = $day;
 		}
 		return $dow;
 	}
@@ -1400,15 +1411,22 @@ class RemoteEventsService {
 	 *
 	 * @since Release 1.0.0
 	 *
-	 * @param array $days - internal days of the week values(s)
+	 * @param array $days - event object days of the week values(s), e.g. "MO" or "2MO"
 	 *
-	 * @return array event object days of the week values(s)
+	 * @return list<array{day: string, ordinal: int|null}> remote days of the week values(s)
 	 */
 	private function toDaysOfWeek(array $days): array {
 
 		$dow = [];
-		foreach ($days as $key => $value) {
-			# code...
+		foreach ($days as $value) {
+			if (preg_match('/^([+-]?\d+)?(MO|TU|WE|TH|FR|SA|SU)$/i', trim((string)$value), $matches) !== 1) {
+				continue;
+			}
+			$ordinal = null;
+			if ($matches[1] !== '') {
+				$ordinal = (int)$matches[1];
+			}
+			$dow[] = ['day' => strtolower($matches[2]), 'ordinal' => $ordinal];
 		}
 
 		return $dow;
