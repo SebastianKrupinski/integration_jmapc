@@ -887,7 +887,8 @@ class RemoteEventsService {
 			/** @var EventMutationObject $mutation */
 			$mutation = $this->toEventInstanceObject($entry, new EventMutationObject());
 			$mutation->mutationId = $entry->mutationId() ?? new DateTimeImmutable($id);
-			$mutation->mutationTz = $entry->mutationTimeZone() ?? $do->StartsTZ?->getName();
+			// null when the server sends none, the iCalendar conversion falls back to the event start time zone
+			$mutation->mutationTz = $entry->mutationTimeZone();
 			$do->OccurrenceMutations[$id] = $mutation;
 		}
 

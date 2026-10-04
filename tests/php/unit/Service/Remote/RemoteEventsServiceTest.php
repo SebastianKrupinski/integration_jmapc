@@ -190,4 +190,17 @@ class RemoteEventsServiceTest extends TestCase {
 
 		$this->assertSame('alarm-1', $event->Notifications['alarm-1']->Id);
 	}
+
+	public function testToEventObjectMutationTimeZone(): void {
+		$event = $this->eventsService->toEventObject(new EventParametersResponse([
+			'calendarIds' => ['calendar-1' => true],
+			'timeZone' => 'Europe/Berlin',
+			'start' => '2026-11-04T09:00:00',
+			'recurrenceOverrides' => [
+				'2026-11-11T09:00:00' => ['start' => '2026-11-11T13:00:00', 'recurrenceIdTimeZone' => 'America/New_York'],
+			],
+		]));
+
+		$this->assertSame('America/New_York', $event->OccurrenceMutations['2026-11-11T09:00:00']->mutationTz);
+	}
 }
