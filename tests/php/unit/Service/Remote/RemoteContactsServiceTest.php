@@ -139,4 +139,22 @@ class RemoteContactsServiceTest extends TestCase {
 		$this->assertSame('work', $contact->PhysicalLocations['work']->Context);
 		$this->assertNull($contact->PhysicalLocations['none']->Context);
 	}
+
+	public function testFromContactObjectFullName(): void {
+		$contact = new ContactObject();
+		$contact->Label = 'Dr. Eva Maria von Berg Jr.';
+
+		$card = null;
+		$this->contactsService->fromContactObject($contact)->bind($card);
+
+		$this->assertSame('Dr. Eva Maria von Berg Jr.', $card->name->full);
+	}
+
+	public function testToContactObjectFullName(): void {
+		$contact = $this->contactsService->toContactObject(new ContactParametersResponse([
+			'name' => ['full' => 'Dr. Eva Maria von Berg Jr.'],
+		]));
+
+		$this->assertSame('Dr. Eva Maria von Berg Jr.', $contact->Label);
+	}
 }

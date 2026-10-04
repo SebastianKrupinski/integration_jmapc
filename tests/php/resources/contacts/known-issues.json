@@ -2,40 +2,27 @@
 	"address": {
 		"vcard": {},
 		"jmap": {
-			"/Label": "the full name is not sent as name.full",
 			"/PhysicalLocations/adr-1/Label": "the address label is not sent as the full address"
 		},
 		"server": {
-			"/Label": "the full name is not sent as name.full",
 			"/PhysicalLocations/adr-1/Label": "the address label is not sent as the full address"
 		}
 	},
 	"anniversaries": {
 		"vcard": {},
-		"jmap": {
-			"/Label": "the full name is not sent as name.full"
-		},
-		"server": {
-			"/Label": "the full name is not sent as name.full"
-		}
+		"jmap": {},
+		"server": {}
 	},
 	"basic": {
 		"vcard": {},
-		"jmap": {
-			"/Label": "the full name is not sent as name.full"
-		},
-		"server": {
-			"/Label": "the full name is not sent as name.full"
-		}
+		"jmap": {},
+		"server": {}
 	},
 	"basic-vcard3": {
 		"vcard": {},
-		"jmap": {
-			"/Label": "the full name is not sent as name.full"
-		},
+		"jmap": {},
 		"server": {
 			"/Email/email-1/Context": "vCard types are sent as contexts, the server keeps only private and work",
-			"/Label": "the full name is not sent as name.full",
 			"/Phone/tel-1/Context": "vCard types are sent as contexts, the server keeps cell as the mobile feature"
 		}
 	},
@@ -47,7 +34,6 @@
 		},
 		"jmap": {
 			"/@warnings": "RemoteContactsService reads tags as objects with a Value property",
-			"/Label": "the full name is not sent as name.full",
 			"/Phone/tel-1/URI": "the tel: URI value type is not kept",
 			"/Phone/tel-2/URI": "the tel: URI value type is not kept",
 			"/Tags": "tags are not sent as keywords"
@@ -55,7 +41,6 @@
 		"server": {
 			"/@warnings": "RemoteContactsService reads tags as objects with a Value property",
 			"/Email/email-2/Context": "vCard types are sent as contexts, the server keeps only private and work",
-			"/Label": "the full name is not sent as name.full",
 			"/Phone/tel-1/Context": "vCard types are sent as contexts, the server keeps cell as the mobile feature",
 			"/Phone/tel-1/URI": "the tel: URI value type is not kept",
 			"/Phone/tel-2/URI": "the tel: URI value type is not kept",
@@ -65,13 +50,11 @@
 	"email-phone": {
 		"vcard": {},
 		"jmap": {
-			"/Label": "the full name is not sent as name.full",
 			"/Phone/tel-1/URI": "the tel: URI value type is not kept",
 			"/Phone/tel-2/URI": "the tel: URI value type is not kept"
 		},
 		"server": {
 			"/Email/email-2/Context": "vCard types are sent as contexts, the server keeps only private and work",
-			"/Label": "the full name is not sent as name.full",
 			"/Phone/tel-1/Context": "vCard types are sent as contexts, the server keeps cell as the mobile feature",
 			"/Phone/tel-1/URI": "the tel: URI value type is not kept",
 			"/Phone/tel-2/URI": "the tel: URI value type is not kept"
@@ -80,12 +63,10 @@
 	"name-full": {
 		"vcard": {},
 		"jmap": {
-			"/Label": "the full name is not sent as name.full",
 			"/Language": "the language is not sent",
 			"/TimeZone": "the time zone is not sent"
 		},
 		"server": {
-			"/Label": "the full name is not sent as name.full",
 			"/Language": "the language is not sent",
 			"/TimeZone": "the time zone is not sent"
 		}
@@ -96,12 +77,10 @@
 		},
 		"jmap": {
 			"/@warnings": "RemoteContactsService reads tags as objects with a Value property",
-			"/Label": "the full name is not sent as name.full",
 			"/Tags": "tags are not sent as keywords"
 		},
 		"server": {
 			"/@warnings": "RemoteContactsService reads tags as objects with a Value property",
-			"/Label": "the full name is not sent as name.full",
 			"/Tags": "tags are not sent as keywords"
 		}
 	},
@@ -110,21 +89,14 @@
 			"/@warnings": "fromContactObject reads organization unit 0 and a Language property that titles do not have",
 			"/Organizations/org-1/Units": "ORG units are not written back to the vCard"
 		},
-		"jmap": {
-			"/Label": "the full name is not sent as name.full"
-		},
+		"jmap": {},
 		"server": {
-			"/Label": "the full name is not sent as name.full",
 			"/Titles/role-1/Relation": "the server links titles to the only organization"
 		}
 	},
 	"unicode": {
 		"vcard": {},
-		"jmap": {
-			"/Label": "the full name is not sent as name.full"
-		},
-		"server": {
-			"/Label": "the full name is not sent as name.full"
-		}
+		"jmap": {},
+		"server": {}
 	}
 }

@@ -790,6 +790,7 @@ class RemoteContactsService {
 		// name
 		if ($so->name() !== null) {
 			$nameParams = $so->name();
+			$do->Label = $nameParams->full();
 			foreach ($nameParams->components() as $component) {
 				$kind = $component->kind();
 				$value = $component->value();
@@ -981,6 +982,9 @@ class RemoteContactsService {
 		// name
 		if ($so->Name !== null) {
 			$nameParams = $to->name();
+			if ($so->Label !== null) {
+				$nameParams->full($so->Label);
+			}
 			if ($so->Name->First !== null || $so->Name->Last !== null
 				|| $so->Name->Other !== null || $so->Name->Prefix !== null
 				|| $so->Name->Suffix !== null) {
