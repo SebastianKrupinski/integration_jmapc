@@ -11,6 +11,9 @@ namespace OCA\JMAPC\Tests\Unit\Service\Local;
 
 use OCA\JMAPC\Objects\Event\EventAvailabilityTypes;
 use OCA\JMAPC\Objects\Event\EventMutationObject;
+use OCA\JMAPC\Objects\Event\EventNotificationAnchorTypes;
+use OCA\JMAPC\Objects\Event\EventNotificationObject;
+use OCA\JMAPC\Objects\Event\EventNotificationPatterns;
 use OCA\JMAPC\Objects\Event\EventObject;
 use OCA\JMAPC\Objects\Event\EventParticipantObject;
 use OCA\JMAPC\Objects\Event\EventTagCollection;
@@ -200,5 +203,45 @@ class LocalEventsServiceTest extends TestCase {
 
 		$this->assertSame('DATE', (string)$vEvent->EXDATE['VALUE']);
 		$this->assertSame('20280610', (string)$vEvent->EXDATE);
+	}
+
+	public function testFromEventObjectDurationWithSeconds(): void {
+		$event = new EventObject();
+		$event->UUID = 'duration';
+		$event->StartsOn = new \DateTimeImmutable('2026-11-13T15:00:00Z');
+		$event->Duration = new \DateInterval('PT45M30S');
+
+		$vEvent = $this->eventsService->fromEventObject($event)->VEVENT;
+
+		$this->assertSame('PT45M30S', (string)$vEvent->DURATION);
+	}
+
+	public function testFromEventObjectDurationWithoutMonths(): void {
+		$event = new EventObject();
+		$event->UUID = 'duration';
+		$event->StartsOn = new \DateTimeImmutable('2026-01-31T00:00:00Z');
+		// one month from the Unix epoch is 31 days
+		$event->Duration = new \DateInterval('P1M2DT1H30M');
+
+		$vEvent = $this->eventsService->fromEventObject($event)->VEVENT;
+
+		$this->assertSame('P33DT1H30M', (string)$vEvent->DURATION);
+	}
+
+	public function testFromEventObjectAlarmOffset(): void {
+		$event = new EventObject();
+		$event->UUID = 'alarm';
+		$event->StartsOn = new \DateTimeImmutable('2026-11-19T09:00:00Z');
+		$alarm = new EventNotificationObject();
+		$alarm->Id = 'alarm-1';
+		$alarm->Pattern = EventNotificationPatterns::Relative;
+		$alarm->Anchor = EventNotificationAnchorTypes::Start;
+		$alarm->Offset = new \DateInterval('PT15M');
+		$alarm->Offset->invert = 1;
+		$event->Notifications['alarm-1'] = $alarm;
+
+		$vEvent = $this->eventsService->fromEventObject($event)->VEVENT;
+
+		$this->assertSame('-PT15M', (string)$vEvent->VALARM->TRIGGER);
 	}
 }

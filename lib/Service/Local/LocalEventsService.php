@@ -1080,22 +1080,51 @@ class LocalEventsService {
 	/**
 	 * convert event object date interval to local duration period
 	 *
+	 * iCalendar durations have no years or months (RFC 5545 3.3.6), those are
+	 * converted to days, measured from the Unix epoch when the interval has no day count
+	 *
 	 * @since Release 1.0.0
 	 *
 	 * @param DateInterval $period
 	 *
-	 * @return string
+	 * @return string e.g. "P1DT2H45M", "-PT15M" or "PT0S"
 	 */
 	private function toDurationPeriod(DateInterval $period): string {
 
-		return match (true) {
-			($period->y > 0) => $period->format('%rP%yY%mM%dDT%hH%iM'),
-			($period->m > 0) => $period->format('%rP%mM%dDT%hH%iM'),
-			($period->d > 0) => $period->format('%rP%dDT%hH%iM'),
-			($period->h > 0) => $period->format('%rPT%hH%iM'),
-			default => $period->format('%rPT%iM')
-		};
+		$days = $period->days;
+		if ($days === false) {
+			$epoch = new DateTimeImmutable('@0');
+			$length = clone $period;
+			$length->invert = 0;
+			$days = $epoch->diff($epoch->add($length))->days;
+		}
 
+		$date = '';
+		if ($days > 0) {
+			$date .= $days . 'D';
+		}
+		$time = '';
+		if ($period->h > 0) {
+			$time .= $period->h . 'H';
+		}
+		if ($period->i > 0) {
+			$time .= $period->i . 'M';
+		}
+		if ($period->s > 0) {
+			$time .= $period->s . 'S';
+		}
+		if ($date === '' && $time === '') {
+			$time = '0S';
+		}
+
+		$value = 'P' . $date;
+		if ($time !== '') {
+			$value .= 'T' . $time;
+		}
+		if ($period->invert === 1) {
+			$value = '-' . $value;
+		}
+		return $value;
 	}
 
 	private function convertToInt(array $values): array {
