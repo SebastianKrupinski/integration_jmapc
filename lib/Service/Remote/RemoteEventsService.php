@@ -1032,6 +1032,10 @@ class RemoteEventsService {
 					$entity->Roles[] = $type;
 				}
 			}
+			// attendee is the default role, servers leave it out like iCalendar leaves out ROLE
+			if ($entity->Roles->count() === 0) {
+				$entity->Roles[] = EventParticipantRoleTypes::Attendee;
+			}
 			$do->Participants[$id] = $entity;
 		}
 		// notification(s)

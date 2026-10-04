@@ -314,4 +314,17 @@ class RemoteEventsServiceTest extends TestCase {
 		$this->assertSame('bob@example.com', $event->Participants['att-1']->Address);
 		$this->assertSame('carol@example.com', $event->Participants['att-2']->Address);
 	}
+
+	public function testToEventObjectParticipantDefaultRole(): void {
+		$event = $this->eventsService->toEventObject(new EventParametersResponse([
+			'calendarIds' => ['calendar-1' => true],
+			'participants' => [
+				'att-1' => ['calendarAddress' => 'mailto:bob@example.com'],
+				'att-2' => ['calendarAddress' => 'mailto:carol@example.com', 'roles' => ['optional' => true]],
+			],
+		]));
+
+		$this->assertSame([EventParticipantRoleTypes::Attendee], iterator_to_array($event->Participants['att-1']->Roles));
+		$this->assertSame([EventParticipantRoleTypes::Optional], iterator_to_array($event->Participants['att-2']->Roles));
+	}
 }
