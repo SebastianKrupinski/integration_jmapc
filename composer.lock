@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2f25d5a74dc969d1b22173b9025afa5a",
+    "content-hash": "175bbcd7edc4a82655106543f2d635fb",
     "packages": [
         {
             "name": "php-http/discovery",
@@ -247,16 +247,16 @@
         },
         {
             "name": "sebastiankrupinski/jmap-client-php",
-            "version": "v2.2.3",
+            "version": "v2.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/SebastianKrupinski/jmap-client-php.git",
-                "reference": "e45109787070f1a316925c630ca1107e852dde90"
+                "reference": "c0c71c5cd99ba8c689de66a296c97b79e4cb7031"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/SebastianKrupinski/jmap-client-php/zipball/e45109787070f1a316925c630ca1107e852dde90",
-                "reference": "e45109787070f1a316925c630ca1107e852dde90",
+                "url": "https://api.github.com/repos/SebastianKrupinski/jmap-client-php/zipball/c0c71c5cd99ba8c689de66a296c97b79e4cb7031",
+                "reference": "c0c71c5cd99ba8c689de66a296c97b79e4cb7031",
                 "shasum": ""
             },
             "require": {
@@ -306,7 +306,7 @@
                 "issues": "https://github.com/SebastianKrupinski/jmap-client-php/issues",
                 "source": "https://github.com/SebastianKrupinski/jmap-client-php"
             },
-            "time": "2026-10-04T17:11:10+00:00"
+            "time": "2026-10-04T18:04:12+00:00"
         }
     ],
     "packages-dev": [
