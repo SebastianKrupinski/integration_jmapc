@@ -159,6 +159,7 @@ class RemoteEventsServiceTest extends TestCase {
 		$card = null;
 		$this->eventsService->fromEventObject($event)->bind($card);
 
+		$this->assertSame('mailto:room101@example.com', $card->participants->{'att-1'}->calendarAddress);
 		$this->assertSame('location', $card->participants->{'att-1'}->kind);
 		$this->assertSame('tentative', $card->participants->{'att-1'}->participationStatus);
 		$this->assertEquals((object)['informational' => true], $card->participants->{'att-1'}->roles);
@@ -299,5 +300,18 @@ class RemoteEventsServiceTest extends TestCase {
 		$this->assertSame('Europe/Berlin', $mutation->StartsTZ->getName());
 		$this->assertSame('2026-11-11T13:30:00+01:00', $mutation->EndsOn->format(DATE_ATOM));
 		$this->assertSame('Europe/Berlin', $mutation->EndsTZ->getName());
+	}
+
+	public function testToEventObjectParticipantCalendarAddress(): void {
+		$event = $this->eventsService->toEventObject(new EventParametersResponse([
+			'calendarIds' => ['calendar-1' => true],
+			'participants' => [
+				'att-1' => ['calendarAddress' => 'MAILTO:bob@example.com', 'email' => 'bob.contact@example.com'],
+				'att-2' => ['email' => 'carol@example.com'],
+			],
+		]));
+
+		$this->assertSame('bob@example.com', $event->Participants['att-1']->Address);
+		$this->assertSame('carol@example.com', $event->Participants['att-2']->Address);
 	}
 }

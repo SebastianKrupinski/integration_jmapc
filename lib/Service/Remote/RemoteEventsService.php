@@ -1001,7 +1001,12 @@ class RemoteEventsService {
 		foreach ($so->participants() as $id => $entry) {
 			$entity = new EventParticipantObject();
 			$entity->Id = (string)$id;
+			// the calendar address is the scheduling address, email is only contact information
 			$entity->Address = $entry->address();
+			$calendarAddress = $entry->calendarAddress();
+			if ($calendarAddress !== null && stripos($calendarAddress, 'mailto:') === 0) {
+				$entity->Address = substr($calendarAddress, strlen('mailto:'));
+			}
 			$entity->Name = $entry->name();
 			$entity->Description = $entry->description();
 			$entity->Comment = $entry->comment();
@@ -1258,6 +1263,7 @@ class RemoteEventsService {
 			$entity = $do->participants($entry->Id);
 			if ($entry->Address !== null) {
 				$entity->address($entry->Address);
+				$entity->calendarAddress('mailto:' . $entry->Address);
 				$entity->send('imip', 'mailto:' . $entry->Address);
 			}
 			if ($entry->Name !== null) {
