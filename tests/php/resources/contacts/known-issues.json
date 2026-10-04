@@ -23,9 +23,7 @@
 		}
 	},
 	"complete": {
-		"vcard": {
-			"/Tags": "CATEGORIES are not written back to the vCard"
-		},
+		"vcard": {},
 		"jmap": {
 			"/Phone/tel-1/URI": "the tel: URI value type is not kept",
 			"/Phone/tel-2/URI": "the tel: URI value type is not kept"
@@ -60,9 +58,7 @@
 		}
 	},
 	"notes-tags": {
-		"vcard": {
-			"/Tags": "CATEGORIES are not written back to the vCard"
-		},
+		"vcard": {},
 		"jmap": {},
 		"server": {}
 	},

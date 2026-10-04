@@ -941,6 +941,16 @@ class LocalContactsService {
 			}
 		}
 		unset($index, $entry, $property);
+		// tag(s)
+		$tags = [];
+		foreach ($so->Tags as $tag) {
+			if ($tag !== '') {
+				$tags[] = $tag;
+			}
+		}
+		if ($tags !== []) {
+			$do->add('CATEGORIES', $tags);
+		}
 		// crypto
 		foreach ($so->Crypto as $index => $entry) {
 			/** @var \Sabre\VObject\Property $property */

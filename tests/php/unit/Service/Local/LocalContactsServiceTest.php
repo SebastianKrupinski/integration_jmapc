@@ -12,6 +12,7 @@ namespace OCA\JMAPC\Tests\Unit\Service\Local;
 use OCA\JMAPC\Objects\Contact\ContactAnniversaryTypes;
 use OCA\JMAPC\Objects\Contact\ContactObject;
 use OCA\JMAPC\Objects\Contact\ContactOrganizationObject;
+use OCA\JMAPC\Objects\Contact\ContactTagCollection;
 use OCA\JMAPC\Service\Local\LocalContactsService;
 use OCA\JMAPC\Tests\Unit\TestCase;
 use Sabre\VObject\Reader;
@@ -85,5 +86,21 @@ class LocalContactsServiceTest extends TestCase {
 		$this->assertSame(['ACME Corporation', 'Engineering', 'Research'], $vcard->ORG->getParts());
 		$this->assertSame('org-1', (string)$vcard->ORG['X-ID']);
 		$this->assertCount(1, $vcard->ORG->parameters());
+	}
+
+	public function testFromContactObjectTags(): void {
+		$contact = new ContactObject();
+		$contact->Tags = new ContactTagCollection(['Work', '', 'VIP, Gold']);
+
+		$vcard = $this->contactsService->fromContactObject($contact);
+
+		$this->assertSame(['Work', 'VIP, Gold'], $vcard->CATEGORIES->getParts());
+		$this->assertCount(1, $vcard->select('CATEGORIES'));
+	}
+
+	public function testFromContactObjectNoTags(): void {
+		$vcard = $this->contactsService->fromContactObject(new ContactObject());
+
+		$this->assertFalse(isset($vcard->CATEGORIES));
 	}
 }
