@@ -19,6 +19,9 @@ use Sabre\VObject\Reader;
  */
 final class EventFixtures extends ObjectFixtures {
 
+	/** names of the UTC time zone, servers return any of them for UTC */
+	private const UTC_ALIASES = ['UTC', 'Etc/UTC', 'Etc/UCT', 'Etc/Universal', 'Etc/Zulu', 'UCT', 'Universal', 'Zulu', 'Z'];
+
 	protected static function directory(): string {
 		return __DIR__ . '/../../resources/events';
 	}
@@ -33,9 +36,15 @@ final class EventFixtures extends ObjectFixtures {
 
 	/**
 	 * Compares the end of the event and of each mutation as an end date time,
-	 * JSCalendar only has start and duration so either form comes back as the other
+	 * JSCalendar only has start and duration so either form comes back as the other,
+	 * and compares every name of the UTC time zone as UTC
 	 */
 	protected static function normalize(array $values): array {
+		foreach ($values as $path => $value) {
+			if (preg_match('#/(StartsTZ|EndsTZ|TimeZone|mutationTz)$#', $path) === 1 && in_array($value, self::UTC_ALIASES, true)) {
+				$values[$path] = 'UTC';
+			}
+		}
 		$prefixes = [''];
 		foreach (array_keys($values) as $path) {
 			if (preg_match('#^(/OccurrenceMutations/[^/]+)/#', $path, $matches) === 1) {

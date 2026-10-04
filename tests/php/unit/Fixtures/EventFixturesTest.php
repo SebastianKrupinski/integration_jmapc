@@ -63,4 +63,23 @@ class EventFixturesTest extends TestCase {
 
 		$this->assertSame([], EventFixtures::differences($withEnd, $withDuration));
 	}
+
+	public function testUtcAliasesAreEquivalent(): void {
+		$utc = self::event('2026-11-10T09:00:00');
+		$utc->StartsOn = new \DateTimeImmutable('2026-11-10T09:00:00', new \DateTimeZone('UTC'));
+		$utc->StartsTZ = new \DateTimeZone('UTC');
+		$etc = self::event('2026-11-10T09:00:00');
+		$etc->StartsOn = new \DateTimeImmutable('2026-11-10T09:00:00', new \DateTimeZone('Etc/UTC'));
+		$etc->StartsTZ = new \DateTimeZone('Etc/UTC');
+
+		$this->assertSame([], EventFixtures::differences($utc, $etc));
+	}
+
+	public function testOtherTimeZonesAreReported(): void {
+		$berlin = self::event('2026-11-10T09:00:00');
+		$paris = self::event('2026-11-10T09:00:00');
+		$paris->StartsTZ = new \DateTimeZone('Europe/Paris');
+
+		$this->assertSame(['/StartsTZ' => '"Europe\/Berlin" => "Europe\/Paris"'], EventFixtures::differences($berlin, $paris));
+	}
 }
