@@ -11,7 +11,9 @@ namespace OCA\JMAPC\Tests\Unit\Service\Remote;
 use JmapClient\Responses\Contacts\ContactParameters as ContactParametersResponse;
 use OCA\JMAPC\Objects\Contact\ContactAnniversaryObject;
 use OCA\JMAPC\Objects\Contact\ContactAnniversaryTypes;
+use OCA\JMAPC\Objects\Contact\ContactEmailObject;
 use OCA\JMAPC\Objects\Contact\ContactObject;
+use OCA\JMAPC\Objects\Contact\ContactPhoneObject;
 use OCA\JMAPC\Objects\Contact\ContactPhysicalLocationObject;
 use OCA\JMAPC\Objects\Contact\ContactTagCollection;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
@@ -237,5 +239,62 @@ class RemoteContactsServiceTest extends TestCase {
 		$this->assertSame('tel:+1-555-0200', $contact->Phone['tel-1']->Number);
 		$this->assertSame('uri', $contact->Phone['tel-2']->URI);
 		$this->assertNull($contact->Phone['tel-3']->URI);
+	}
+
+	public function testFromContactObjectEmailContext(): void {
+		$contact = new ContactObject();
+		foreach (['home' => 'HOME', 'work' => 'work', 'other' => 'internet'] as $id => $context) {
+			$email = new ContactEmailObject();
+			$email->Address = $id . '@example.com';
+			$email->Context = $context;
+			$contact->Email[$id] = $email;
+		}
+
+		$card = null;
+		$this->contactsService->fromContactObject($contact)->bind($card);
+
+		$this->assertEquals((object)['private' => true], $card->emails->home->contexts);
+		$this->assertEquals((object)['work' => true], $card->emails->work->contexts);
+		$this->assertObjectNotHasProperty('contexts', $card->emails->other);
+	}
+
+	public function testFromContactObjectPhoneTypes(): void {
+		$contact = new ContactObject();
+		foreach (['cell' => 'cell', 'work' => 'work, voice', 'home' => 'home,cell,fax', 'other' => 'iphone'] as $id => $context) {
+			$phone = new ContactPhoneObject();
+			$phone->Number = '+1-555-0100';
+			$phone->Context = $context;
+			$contact->Phone[$id] = $phone;
+		}
+
+		$card = null;
+		$this->contactsService->fromContactObject($contact)->bind($card);
+
+		$this->assertObjectNotHasProperty('contexts', $card->phones->cell);
+		$this->assertEquals((object)['mobile' => true], $card->phones->cell->features);
+		$this->assertEquals((object)['work' => true], $card->phones->work->contexts);
+		$this->assertEquals((object)['voice' => true], $card->phones->work->features);
+		$this->assertEquals((object)['private' => true], $card->phones->home->contexts);
+		$this->assertEquals((object)['mobile' => true, 'fax' => true], $card->phones->home->features);
+		$this->assertObjectNotHasProperty('contexts', $card->phones->other);
+		$this->assertObjectNotHasProperty('features', $card->phones->other);
+	}
+
+	public function testToContactObjectEmailAndPhoneTypes(): void {
+		$contact = $this->contactsService->toContactObject(new ContactParametersResponse([
+			'emails' => [
+				'email-1' => ['address' => 'a@example.com', 'contexts' => ['private' => true]],
+				'email-2' => ['address' => 'b@example.com'],
+			],
+			'phones' => [
+				'tel-1' => ['number' => '+1-555-0100', 'features' => ['mobile' => true]],
+				'tel-2' => ['number' => '+1-555-0101', 'contexts' => ['work' => true], 'features' => ['voice' => true]],
+			],
+		]));
+
+		$this->assertSame('home', $contact->Email['email-1']->Context);
+		$this->assertNull($contact->Email['email-2']->Context);
+		$this->assertSame('cell', $contact->Phone['tel-1']->Context);
+		$this->assertSame('work,voice', $contact->Phone['tel-2']->Context);
 	}
 }

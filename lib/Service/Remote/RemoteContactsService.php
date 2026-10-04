@@ -67,6 +67,25 @@ class RemoteContactsService {
 		'id', 'addressbookId', 'uid'
 	];
 
+	/** vCard TYPE value => JSContact context */
+	private const JMAP_CONTEXTS = [
+		'home' => 'private',
+		'work' => 'work',
+		'billing' => 'billing',
+		'delivery' => 'delivery',
+	];
+	/** vCard TEL TYPE value => JSContact phone feature */
+	private const JMAP_PHONE_FEATURES = [
+		'cell' => 'mobile',
+		'voice' => 'voice',
+		'fax' => 'fax',
+		'pager' => 'pager',
+		'text' => 'text',
+		'video' => 'video',
+		'textphone' => 'textphone',
+		'main-number' => 'main-number',
+	];
+
 	public function __construct() {
 	}
 
@@ -847,7 +866,7 @@ class RemoteContactsService {
 				$entity->Id = (string)$id;
 				$entity->Address = $entry->address();
 				$entity->Priority = $entry->priority();
-				$entity->Context = !empty($entry->context()) ? $entry->context()[0] : null;
+				$entity->Context = $this->toContext($entry->context());
 				$do->Email[$id] = $entity;
 			}
 		}
@@ -863,7 +882,7 @@ class RemoteContactsService {
 				}
 				$entity->Label = $entry->label();
 				$entity->Priority = $entry->priority();
-				$entity->Context = !empty($entry->context()) ? $entry->context()[0] : null;
+				$entity->Context = $this->toContext($entry->context(), $entry->features());
 				$do->Phone[$id] = $entity;
 			}
 		}
@@ -878,8 +897,7 @@ class RemoteContactsService {
 					$entity->TimeZone = $entry->timeZone()->getName();
 				}
 				$entity->Country = $entry->country();
-				$context = $entry->context()[0] ?? null;
-				$entity->Context = $context === 'private' ? 'home' : $context;
+				$entity->Context = $this->toContext($entry->context());
 				// parse components
 				foreach ($entry->components() as $component) {
 					$kind = $component->kind();
@@ -1062,8 +1080,9 @@ class RemoteContactsService {
 			if ($entry->Priority !== null) {
 				$emailParams->priority($entry->Priority);
 			}
-			if ($entry->Context !== null) {
-				$emailParams->context($entry->Context);
+			$contexts = $this->fromContext($entry->Context, self::JMAP_CONTEXTS);
+			if ($contexts !== []) {
+				$emailParams->context(...$contexts);
 			}
 		}
 		// phones
@@ -1078,8 +1097,13 @@ class RemoteContactsService {
 			if ($entry->Priority !== null) {
 				$phoneParams->priority($entry->Priority);
 			}
-			if ($entry->Context !== null) {
-				$phoneParams->context($entry->Context);
+			$contexts = $this->fromContext($entry->Context, self::JMAP_CONTEXTS);
+			if ($contexts !== []) {
+				$phoneParams->context(...$contexts);
+			}
+			$features = $this->fromContext($entry->Context, self::JMAP_PHONE_FEATURES);
+			if ($features !== []) {
+				$phoneParams->features(...$features);
 			}
 		}
 		// addresses
@@ -1137,13 +1161,9 @@ class RemoteContactsService {
 					$addressParams->coordinates((float)$matches[1], (float)$matches[2]);
 				}
 			}
-			$context = match (strtolower($entry->Context ?? '')) {
-				'home' => 'private',
-				'work', 'billing', 'delivery' => strtolower($entry->Context),
-				default => null,
-			};
-			if ($context !== null) {
-				$addressParams->context($context);
+			$contexts = $this->fromContext($entry->Context, self::JMAP_CONTEXTS);
+			if ($contexts !== []) {
+				$addressParams->context(...$contexts);
 			}
 			if ($entry->TimeZone !== null) {
 				try {
@@ -1215,6 +1235,46 @@ class RemoteContactsService {
 		}
 
 		return $to;
+	}
+
+	/**
+	 * Converts a comma separated vCard TYPE value to the JSContact values of $map,
+	 * types missing from $map have no JSContact equivalent and are left out
+	 *
+	 * @param array<string, string> $map vCard type => JSContact value
+	 * @return list<string>
+	 */
+	private function fromContext(?string $types, array $map): array {
+		if ($types === null) {
+			return [];
+		}
+		$values = [];
+		foreach (explode(',', $types) as $type) {
+			$type = strtolower(trim($type));
+			if (isset($map[$type])) {
+				$values[] = $map[$type];
+			}
+		}
+		return array_values(array_unique($values));
+	}
+
+	/**
+	 * Converts JSContact contexts and phone features to a comma separated vCard TYPE value
+	 *
+	 * @param list<string> $contexts
+	 * @param list<string> $features
+	 */
+	private function toContext(array $contexts, array $features = []): ?string {
+		$types = [];
+		foreach ($contexts as $context) {
+			$type = array_search($context, self::JMAP_CONTEXTS, true);
+			$types[] = $type !== false ? $type : $context;
+		}
+		foreach ($features as $feature) {
+			$type = array_search($feature, self::JMAP_PHONE_FEATURES, true);
+			$types[] = $type !== false ? $type : $feature;
+		}
+		return $types !== [] ? implode(',', $types) : null;
 	}
 
 	public function generateSignature(ContactObject $eo): string {

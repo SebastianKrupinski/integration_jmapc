@@ -16,27 +16,24 @@
 	},
 	"basic-vcard3": {
 		"vcard": {},
-		"jmap": {},
+		"jmap": {
+			"/Email/email-1/Context": "vCard types are case-insensitive and come back lowercased",
+			"/Phone/tel-1/Context": "vCard types are case-insensitive and come back lowercased"
+		},
 		"server": {
-			"/Email/email-1/Context": "vCard types are sent as contexts, the server keeps only private and work",
-			"/Phone/tel-1/Context": "vCard types are sent as contexts, the server keeps cell as the mobile feature"
+			"/Email/email-1/Context": "vCard types are case-insensitive and come back lowercased",
+			"/Phone/tel-1/Context": "vCard types are case-insensitive and come back lowercased"
 		}
 	},
 	"complete": {
 		"vcard": {},
 		"jmap": {},
-		"server": {
-			"/Email/email-2/Context": "vCard types are sent as contexts, the server keeps only private and work",
-			"/Phone/tel-1/Context": "vCard types are sent as contexts, the server keeps cell as the mobile feature"
-		}
+		"server": {}
 	},
 	"email-phone": {
 		"vcard": {},
 		"jmap": {},
-		"server": {
-			"/Email/email-2/Context": "vCard types are sent as contexts, the server keeps only private and work",
-			"/Phone/tel-1/Context": "vCard types are sent as contexts, the server keeps cell as the mobile feature"
-		}
+		"server": {}
 	},
 	"name-full": {
 		"vcard": {},
