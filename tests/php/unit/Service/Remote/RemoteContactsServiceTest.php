@@ -8,6 +8,11 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Tests\Unit\Service\Remote;
 
+use JmapClient\Responses\Contacts\ContactParameters as ContactParametersResponse;
+use OCA\JMAPC\Objects\Contact\ContactAnniversaryObject;
+use OCA\JMAPC\Objects\Contact\ContactAnniversaryTypes;
+use OCA\JMAPC\Objects\Contact\ContactObject;
+use OCA\JMAPC\Objects\Contact\ContactPhysicalLocationObject;
 use OCA\JMAPC\Service\Remote\RemoteContactsService;
 use OCA\JMAPC\Store\Remote\Filters\ContactFilter;
 use OCA\JMAPC\Store\Remote\Sort\ContactSort;
@@ -67,5 +72,71 @@ class RemoteContactsServiceTest extends TestCase {
 		$this->assertArrayHasKey('modified', $attributes);
 		$this->assertArrayHasKey('nameGiven', $attributes);
 		$this->assertArrayHasKey('nameSurname', $attributes);
+	}
+
+	public function testFromContactObjectAnniversaries(): void {
+		$contact = new ContactObject();
+		$birth = new ContactAnniversaryObject();
+		$birth->Type = ContactAnniversaryTypes::Birth;
+		$birth->Location = 'Minneapolis';
+		$contact->Anniversaries['birth'] = $birth;
+		$nuptial = new ContactAnniversaryObject();
+		$nuptial->Type = ContactAnniversaryTypes::Nuptial;
+		$contact->Anniversaries['nuptial'] = $nuptial;
+
+		$card = null;
+		$this->contactsService->fromContactObject($contact)->bind($card);
+
+		$this->assertSame('birth', $card->anniversaries->birth->kind);
+		$this->assertSame('Minneapolis', $card->anniversaries->birth->place->full);
+		$this->assertSame('wedding', $card->anniversaries->nuptial->kind);
+		$this->assertObjectNotHasProperty('place', $card->anniversaries->nuptial);
+	}
+
+	public function testToContactObjectAnniversaries(): void {
+		$contact = $this->contactsService->toContactObject(new ContactParametersResponse([
+			'anniversaries' => [
+				'birth' => ['kind' => 'birth', 'place' => ['full' => 'Minneapolis']],
+				'nuptial' => ['kind' => 'wedding'],
+				'other' => ['kind' => 'unknown'],
+			],
+		]));
+
+		$this->assertSame(ContactAnniversaryTypes::Birth, $contact->Anniversaries['birth']->Type);
+		$this->assertSame('Minneapolis', $contact->Anniversaries['birth']->Location);
+		$this->assertSame(ContactAnniversaryTypes::Nuptial, $contact->Anniversaries['nuptial']->Type);
+		$this->assertNull($contact->Anniversaries['nuptial']->Location);
+		$this->assertNull($contact->Anniversaries['other']->Type);
+	}
+
+	public function testFromContactObjectAddressContext(): void {
+		$contact = new ContactObject();
+		foreach (['home' => 'HOME', 'work' => 'work', 'other' => 'postal'] as $id => $context) {
+			$address = new ContactPhysicalLocationObject();
+			$address->Locality = 'Springfield';
+			$address->Context = $context;
+			$contact->PhysicalLocations[$id] = $address;
+		}
+
+		$card = null;
+		$this->contactsService->fromContactObject($contact)->bind($card);
+
+		$this->assertEquals((object)['private' => true], $card->addresses->home->contexts);
+		$this->assertEquals((object)['work' => true], $card->addresses->work->contexts);
+		$this->assertObjectNotHasProperty('contexts', $card->addresses->other);
+	}
+
+	public function testToContactObjectAddressContext(): void {
+		$contact = $this->contactsService->toContactObject(new ContactParametersResponse([
+			'addresses' => [
+				'home' => ['contexts' => ['private' => true]],
+				'work' => ['contexts' => ['work' => true]],
+				'none' => [],
+			],
+		]));
+
+		$this->assertSame('home', $contact->PhysicalLocations['home']->Context);
+		$this->assertSame('work', $contact->PhysicalLocations['work']->Context);
+		$this->assertNull($contact->PhysicalLocations['none']->Context);
 	}
 }

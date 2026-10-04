@@ -30,6 +30,7 @@ use OCA\JMAPC\Exceptions\JmapUnknownMethod;
 use OCA\JMAPC\Objects\BaseStringCollection;
 use OCA\JMAPC\Objects\Contact\ContactAliasObject;
 use OCA\JMAPC\Objects\Contact\ContactAnniversaryObject;
+use OCA\JMAPC\Objects\Contact\ContactAnniversaryTypes;
 use OCA\JMAPC\Objects\Contact\ContactCollectionObject;
 use OCA\JMAPC\Objects\Contact\ContactCryptoObject;
 use OCA\JMAPC\Objects\Contact\ContactEmailObject;
@@ -796,11 +797,11 @@ class RemoteContactsService {
 					$do->Name->Last = $value;
 				} elseif ($kind === 'given') {
 					$do->Name->First = $value;
-				} elseif ($kind === 'additional') {
+				} elseif ($kind === 'given2') {
 					$do->Name->Other = $value;
-				} elseif ($kind === 'prefix') {
+				} elseif ($kind === 'title') {
 					$do->Name->Prefix = $value;
-				} elseif ($kind === 'suffix') {
+				} elseif ($kind === 'credential') {
 					$do->Name->Suffix = $value;
 				}
 			}
@@ -824,6 +825,13 @@ class RemoteContactsService {
 						$entity->When = $dateParams->value();
 					}
 				}
+				$entity->Type = match ($entry->kind()) {
+					'birth' => ContactAnniversaryTypes::Birth,
+					'death' => ContactAnniversaryTypes::Death,
+					'wedding' => ContactAnniversaryTypes::Nuptial,
+					default => null,
+				};
+				$entity->Location = $entry->place()?->full();
 				$do->Anniversaries[$id] = $entity;
 			}
 		}
@@ -860,21 +868,23 @@ class RemoteContactsService {
 					$entity->TimeZone = $entry->timeZone()->getName();
 				}
 				$entity->Country = $entry->country();
+				$context = $entry->context()[0] ?? null;
+				$entity->Context = $context === 'private' ? 'home' : $context;
 				// parse components
 				foreach ($entry->components() as $component) {
 					$kind = $component->kind();
 					$value = $component->value();
-					if ($kind === 'pobox') {
+					if ($kind === 'postOfficeBox') {
 						$entity->Box = $value;
-					} elseif ($kind === 'unit') {
+					} elseif ($kind === 'apartment') {
 						$entity->Unit = $value;
-					} elseif ($kind === 'street') {
+					} elseif ($kind === 'name') {
 						$entity->Street = $value;
 					} elseif ($kind === 'locality') {
 						$entity->Locality = $value;
 					} elseif ($kind === 'region') {
 						$entity->Region = $value;
-					} elseif ($kind === 'code') {
+					} elseif ($kind === 'postcode') {
 						$entity->Code = $value;
 					} elseif ($kind === 'country') {
 						$entity->Country = $value;
@@ -977,7 +987,7 @@ class RemoteContactsService {
 				// Build name components
 				if ($so->Name->Prefix !== null) {
 					$component = $nameParams->components();
-					$component->kind('prefix');
+					$component->kind('title');
 					$component->value($so->Name->Prefix);
 				}
 				if ($so->Name->First !== null) {
@@ -987,7 +997,7 @@ class RemoteContactsService {
 				}
 				if ($so->Name->Other !== null) {
 					$component = $nameParams->components();
-					$component->kind('additional');
+					$component->kind('given2');
 					$component->value($so->Name->Other);
 				}
 				if ($so->Name->Last !== null) {
@@ -997,7 +1007,7 @@ class RemoteContactsService {
 				}
 				if ($so->Name->Suffix !== null) {
 					$component = $nameParams->components();
-					$component->kind('suffix');
+					$component->kind('credential');
 					$component->value($so->Name->Suffix);
 				}
 			}
@@ -1014,6 +1024,16 @@ class RemoteContactsService {
 			$annivParams = $to->anniversaries((string)$id);
 			if ($entry->When !== null) {
 				$annivParams->dateStamp()->value($entry->When);
+			}
+			if ($entry->Type !== null) {
+				$annivParams->kind(match ($entry->Type) {
+					ContactAnniversaryTypes::Birth => 'birth',
+					ContactAnniversaryTypes::Death => 'death',
+					ContactAnniversaryTypes::Nuptial => 'wedding',
+				});
+			}
+			if ($entry->Location !== null) {
+				$annivParams->place()->full($entry->Location);
 			}
 		}
 		// emails
@@ -1054,17 +1074,17 @@ class RemoteContactsService {
 				// Build address components
 				if ($entry->Box !== null) {
 					$component = $addressParams->components();
-					$component->kind('pobox');
+					$component->kind('postOfficeBox');
 					$component->value($entry->Box);
 				}
 				if ($entry->Unit !== null) {
 					$component = $addressParams->components();
-					$component->kind('unit');
+					$component->kind('apartment');
 					$component->value($entry->Unit);
 				}
 				if ($entry->Street !== null) {
 					$component = $addressParams->components();
-					$component->kind('street');
+					$component->kind('name');
 					$component->value($entry->Street);
 				}
 				if ($entry->Locality !== null) {
@@ -1079,7 +1099,7 @@ class RemoteContactsService {
 				}
 				if ($entry->Code !== null) {
 					$component = $addressParams->components();
-					$component->kind('code');
+					$component->kind('postcode');
 					$component->value($entry->Code);
 				}
 				if ($entry->Country !== null) {
@@ -1096,6 +1116,14 @@ class RemoteContactsService {
 				if (preg_match('/geo:([-\d.]+),([-\d.]+)/', $entry->Coordinates, $matches)) {
 					$addressParams->coordinates((float)$matches[1], (float)$matches[2]);
 				}
+			}
+			$context = match (strtolower($entry->Context ?? '')) {
+				'home' => 'private',
+				'work', 'billing', 'delivery' => strtolower($entry->Context),
+				default => null,
+			};
+			if ($context !== null) {
+				$addressParams->context($context);
 			}
 			if ($entry->TimeZone !== null) {
 				try {
