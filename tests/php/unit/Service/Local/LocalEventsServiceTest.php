@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace OCA\JMAPC\Tests\Unit\Service\Local;
 
+use OCA\JMAPC\Objects\Event\EventAvailabilityTypes;
 use OCA\JMAPC\Objects\Event\EventObject;
 use OCA\JMAPC\Objects\Event\EventParticipantObject;
 use OCA\JMAPC\Objects\Event\EventTagCollection;
@@ -110,5 +111,45 @@ class LocalEventsServiceTest extends TestCase {
 
 		$this->assertFalse(isset($vEvent->DTSTART));
 		$this->assertSame('No Start', (string)$vEvent->SUMMARY);
+	}
+
+	public function testToEventObjectUidFromEvent(): void {
+		$event = $this->eventsService->toEventObject(Reader::read(
+			"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nUID:calendar-uid\r\nBEGIN:VEVENT\r\nUID:event-uid\r\nDTSTART:20261110T090000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+		));
+
+		$this->assertSame('event-uid', $event->UUID);
+	}
+
+	public function testAllDayEvent(): void {
+		$event = $this->eventsService->toEventObject(Reader::read(
+			"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:all-day\r\n"
+			. "DTSTART;VALUE=DATE:20261116\r\nDTEND;VALUE=DATE:20261117\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+		));
+		$this->assertTrue($event->Timeless);
+
+		$vEvent = $this->eventsService->fromEventObject($event)->VEVENT;
+		$this->assertSame('DATE', (string)$vEvent->DTSTART['VALUE']);
+		$this->assertSame('20261116', (string)$vEvent->DTSTART);
+		$this->assertFalse(isset($vEvent->DTSTART['TZID']));
+		$this->assertSame('20261117', (string)$vEvent->DTEND);
+	}
+
+	public function testTimedEventIsNotAllDay(): void {
+		$event = $this->eventsService->toEventObject(Reader::read(
+			"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:timed\r\nDTSTART:20261116T000000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+		));
+
+		$this->assertFalse($event->Timeless);
+	}
+
+	public function testToEventObjectTransparentIsFree(): void {
+		$event = $this->eventsService->toEventObject(Reader::read(
+			"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:free\r\nDTSTART:20261118T130000Z\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\n"
+			. "BEGIN:VEVENT\r\nUID:busy\r\nRECURRENCE-ID:20261125T130000Z\r\nDTSTART:20261125T130000Z\r\nTRANSP:OPAQUE\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+		));
+
+		$this->assertSame(EventAvailabilityTypes::Free, $event->Availability);
+		$this->assertSame(EventAvailabilityTypes::Busy, $event->OccurrenceMutations['2026-11-25T13:00:00']->Availability);
 	}
 }

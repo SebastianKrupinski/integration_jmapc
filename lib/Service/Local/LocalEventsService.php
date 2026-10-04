@@ -378,11 +378,6 @@ class LocalEventsService {
 		$do = new EventObject();
 		// Origin
 		$do->Origin = OriginTypes::Internal;
-		// universal id
-		if (isset($so->UID)) {
-			$do->UUID = trim($so->UID->getValue());
-		}
-
 		foreach ($so->getComponents() as $vComponent) {
 			if ($vComponent->name !== 'VEVENT') {
 				continue;
@@ -394,6 +389,10 @@ class LocalEventsService {
 				$this->toEventInstanceObject($vComponent, $instance, $so->VEVENT);
 				$do->OccurrenceMutations[$id->format('Y-m-d\TH:i:s')] = $instance;
 			} else {
+				// universal id, from the event and not the calendar (RFC 7986 5.3)
+				if (isset($vComponent->UID)) {
+					$do->UUID = trim($vComponent->UID->getValue());
+				}
 				$do = $this->toEventInstanceObject($vComponent, $do);
 			}
 		}
@@ -440,6 +439,8 @@ class LocalEventsService {
 		if (isset($so->DTSTART)) {
 			$do->StartsOn = $so->DTSTART->getDateTime();
 			$do->StartsTZ = $do->StartsOn->getTimezone();
+			// all day events start on a date (VALUE=DATE) instead of a date time
+			$do->Timeless = !$so->DTSTART->hasTime();
 		}
 		// Ends Date/Time
 		// Ends Time Zone
@@ -475,7 +476,7 @@ class LocalEventsService {
 		// availability
 		if (isset($so->TRANSP)) {
 			$do->Availability = match (strtoupper($so->TRANSP?->getValue() ?? 'default')) {
-				'FREE' => EventAvailabilityTypes::Free,
+				'TRANSPARENT' => EventAvailabilityTypes::Free,
 				default => EventAvailabilityTypes::Busy,
 			};
 		}
@@ -770,17 +771,18 @@ class LocalEventsService {
 		}
 		// Starts Date, Time and Zone
 		if ($so->StartsOn !== null) {
-			if (isset($so->Timeless)) {
-				$do->add('DTSTART', $so->StartsOn);
+			// all day events are written as dates, which have no time zone
+			if ($so->Timeless === true) {
+				$do->add('DTSTART', $so->StartsOn->format('Ymd'), ['VALUE' => 'DATE']);
 			} else {
 				$do->add('DTSTART', $so->StartsOn);
-			}
-			if ($so->StartsTZ !== null) {
-				$do->DTSTART->add('TZID', $so->StartsTZ->getName());
-			} elseif ($so->TimeZone !== null) {
-				$do->DTSTART->add('TZID', $so->TimeZone->getName());
-			} elseif ($bo !== null && $bo->StartsTZ !== null) {
-				$do->DTSTART->add('TZID', $bo->StartsTZ->getName());
+				if ($so->StartsTZ !== null) {
+					$do->DTSTART->add('TZID', $so->StartsTZ->getName());
+				} elseif ($so->TimeZone !== null) {
+					$do->DTSTART->add('TZID', $so->TimeZone->getName());
+				} elseif ($bo !== null && $bo->StartsTZ !== null) {
+					$do->DTSTART->add('TZID', $bo->StartsTZ->getName());
+				}
 			}
 		} elseif ($so instanceof EventMutationObject && $so->mutationId !== null) {
 			$do->add('DTSTART', $so->mutationId);
@@ -792,15 +794,15 @@ class LocalEventsService {
 		}
 		// End Date, Time and Zone
 		if ($so->EndsOn !== null) {
-			if (isset($so->Timeless)) {
-				$do->add('DTEND', $so->EndsOn);
+			if ($so->Timeless === true) {
+				$do->add('DTEND', $so->EndsOn->format('Ymd'), ['VALUE' => 'DATE']);
 			} else {
 				$do->add('DTEND', $so->EndsOn);
-			}
-			if ($so->EndsTZ !== null) {
-				$do->DTEND->add('TZID', $so->EndsTZ->getName());
-			} elseif ($so->TimeZone !== null) {
-				$do->DTEND->add('TZID', $so->TimeZone->getName());
+				if ($so->EndsTZ !== null) {
+					$do->DTEND->add('TZID', $so->EndsTZ->getName());
+				} elseif ($so->TimeZone !== null) {
+					$do->DTEND->add('TZID', $so->TimeZone->getName());
+				}
 			}
 		}
 		// Duration
