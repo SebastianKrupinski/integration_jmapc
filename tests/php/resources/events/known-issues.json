@@ -31,44 +31,32 @@
 	},
 	"recurring-daily": {
 		"icalendar": {},
-		"jmap": {
-			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"recurring-exclusion": {
 		"icalendar": {},
-		"jmap": {
-			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"recurring-monthly": {
 		"icalendar": {},
-		"jmap": {
-			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"recurring-mutation": {
 		"icalendar": {},
-		"jmap": {
-			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"recurring-weekly": {
 		"icalendar": {},
-		"jmap": {
-			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"recurring-yearly": {
 		"icalendar": {},
-		"jmap": {
-			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"tags": {

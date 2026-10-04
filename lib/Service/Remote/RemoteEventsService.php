@@ -43,7 +43,6 @@ use OCA\JMAPC\Objects\Event\EventNotificationPatterns;
 use OCA\JMAPC\Objects\Event\EventNotificationTypes;
 use OCA\JMAPC\Objects\Event\EventObject;
 use OCA\JMAPC\Objects\Event\EventOccurrenceObject;
-use OCA\JMAPC\Objects\Event\EventOccurrencePatternTypes;
 use OCA\JMAPC\Objects\Event\EventOccurrencePrecisionTypes;
 use OCA\JMAPC\Objects\Event\EventParticipantObject;
 use OCA\JMAPC\Objects\Event\EventParticipantRoleTypes;
@@ -825,12 +824,10 @@ class RemoteEventsService {
 			}
 			// Daily
 			if ($soRule->frequency() === 'daily') {
-				$doRule->Pattern = EventOccurrencePatternTypes::Absolute;
 				$doRule->Precision = EventOccurrencePrecisionTypes::Daily;
 			}
 			// Weekly
 			if ($soRule->frequency() === 'weekly') {
-				$doRule->Pattern = EventOccurrencePatternTypes::Absolute;
 				$doRule->Precision = EventOccurrencePrecisionTypes::Weekly;
 				$doRule->OnDayOfWeek = $this->fromDaysOfWeek($soRule->byDayOfWeek());
 			}
@@ -839,12 +836,10 @@ class RemoteEventsService {
 				$doRule->Precision = EventOccurrencePrecisionTypes::Monthly;
 				// Absolute
 				if ($soRule->byDayOfMonth() !== []) {
-					$doRule->Pattern = EventOccurrencePatternTypes::Absolute;
 					$doRule->OnDayOfMonth = $soRule->byDayOfMonth();
 				}
 				// Relative
 				else {
-					$doRule->Pattern = EventOccurrencePatternTypes::Relative;
 					$doRule->OnDayOfWeek = $this->fromDaysOfWeek($soRule->byDayOfWeek());
 					$doRule->OnPosition = $soRule->byPosition();
 				}
@@ -854,13 +849,11 @@ class RemoteEventsService {
 				$doRule->Precision = EventOccurrencePrecisionTypes::Yearly;
 				// nth day of year
 				if ($soRule->byDayOfYear() !== []) {
-					$doRule->Pattern = EventOccurrencePatternTypes::Absolute;
 					$doRule->OnDayOfYear = $soRule->byDayOfYear();
 					$doRule->OnDayOfWeek = $this->fromDaysOfWeek($soRule->byDayOfWeek());
 				}
 				// nth week of year
 				elseif ($soRule->byWeekOfYear() !== []) {
-					$doRule->Pattern = EventOccurrencePatternTypes::Relative;
 					$doRule->OnWeekOfYear = $soRule->byWeekOfYear();
 					$doRule->OnDayOfWeek = $this->fromDaysOfWeek($soRule->byDayOfWeek());
 				}
@@ -868,10 +861,8 @@ class RemoteEventsService {
 				elseif ($soRule->byMonthOfYear() !== []) {
 					$doRule->OnMonthOfYear = $this->fromMonthsOfYear($soRule->byMonthOfYear());
 					if ($soRule->byDayOfMonth() !== []) {
-						$doRule->Pattern = EventOccurrencePatternTypes::Absolute;
 						$doRule->OnDayOfMonth = $soRule->byDayOfMonth();
 					} else {
-						$doRule->Pattern = EventOccurrencePatternTypes::Relative;
 						$doRule->OnDayOfWeek = $this->fromDaysOfWeek($soRule->byDayOfWeek());
 						$doRule->OnPosition = $soRule->byPosition();
 					}

@@ -13,7 +13,6 @@ use DateTime;
 use DateTimeImmutable;
 
 class EventOccurrenceObject {
-	public ?EventOccurrencePatternTypes $Pattern = null;        // Pattern - Absolute / Relative
 	public ?EventOccurrencePrecisionTypes $Precision = null;    // Time Interval
 	public ?int $Interval = null;           // Time Interval - Every 2 Days / Every 4 Weeks / Every 1 Year
 	public ?int $Iterations = null;         // Number of recurrence
