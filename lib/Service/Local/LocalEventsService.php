@@ -782,7 +782,7 @@ class LocalEventsService {
 			} elseif ($bo !== null && $bo->StartsTZ !== null) {
 				$do->DTSTART->add('TZID', $bo->StartsTZ->getName());
 			}
-		} elseif ($so->mutationId !== null) {
+		} elseif ($so instanceof EventMutationObject && $so->mutationId !== null) {
 			$do->add('DTSTART', $so->mutationId);
 			if ($so->mutationTz !== null) {
 				$do->DTSTART->add('TZID', $so->mutationTz);
@@ -859,7 +859,7 @@ class LocalEventsService {
 			if (in_array(EventParticipantRoleTypes::Owner, iterator_to_array($entry->Roles), true)) {
 				$entity = $do->add('ORGANIZER', 'mailto:' . $entry->Address);
 			} else {
-				$entity = $do->add('ATTENDEE', 'mailto:' . $entry->address);
+				$entity = $do->add('ATTENDEE', 'mailto:' . $entry->Address);
 			}
 			/** @var Property $entity */
 			// Participant Type
@@ -924,8 +924,8 @@ class LocalEventsService {
 					break;
 			}
 		}
-		// Occurrence
-		if ($so->OccurrencePattern !== null) {
+		// Occurrence, mutations have no pattern of their own
+		if ($so instanceof EventObject && $so->OccurrencePattern !== null) {
 			$soRule = $so->OccurrencePattern;
 			$doRule = [];
 			// Occurrence Precision

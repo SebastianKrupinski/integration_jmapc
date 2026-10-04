@@ -28,12 +28,7 @@
 		"server": {}
 	},
 	"participants": {
-		"icalendar": {
-			"/@warnings": "fromEventInstanceObject reads the attendee address from $address instead of $Address",
-			"/Participants/att-1/Address": "attendee addresses are not written",
-			"/Participants/att-2/Address": "attendee addresses are not written",
-			"/Participants/att-3/Address": "attendee addresses are not written"
-		},
+		"icalendar": {},
 		"jmap": {
 			"/Participants/att-1/Roles": "participant roles are read back keyed by role name",
 			"/Participants/att-1/Status": "participant status is not read back",
@@ -71,9 +66,7 @@
 		"server": {}
 	},
 	"recurring-mutation": {
-		"icalendar": {
-			"/@warnings": "fromEventInstanceObject reads OccurrencePattern on mutations, which do not have one"
-		},
+		"icalendar": {},
 		"jmap": {
 			"/OccurrenceMutations/2026-11-11T09:00:00/mutationTz": "the mutation time zone is filled in from the event time zone",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"

@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Tests\Unit\Service\Local;
 
 use OCA\JMAPC\Objects\Event\EventObject;
+use OCA\JMAPC\Objects\Event\EventParticipantObject;
 use OCA\JMAPC\Objects\Event\EventTagCollection;
 use OCA\JMAPC\Service\Local\LocalEventsService;
 use OCA\JMAPC\Tests\Unit\TestCase;
@@ -84,5 +85,30 @@ class LocalEventsServiceTest extends TestCase {
 		));
 
 		$this->assertSame(1, $event->OccurrencePattern->Interval);
+	}
+
+	public function testFromEventObjectAttendeeAddress(): void {
+		$event = new EventObject();
+		$event->UUID = 'participants';
+		$event->StartsOn = new \DateTimeImmutable('2026-11-17T10:00:00Z');
+		$participant = new EventParticipantObject();
+		$participant->Id = 'att-1';
+		$participant->Address = 'bob@example.com';
+		$event->Participants['att-1'] = $participant;
+
+		$vEvent = $this->eventsService->fromEventObject($event)->VEVENT;
+
+		$this->assertSame('mailto:bob@example.com', (string)$vEvent->ATTENDEE);
+	}
+
+	public function testFromEventObjectWithoutStart(): void {
+		$event = new EventObject();
+		$event->UUID = 'no-start';
+		$event->Label = 'No Start';
+
+		$vEvent = $this->eventsService->fromEventObject($event)->VEVENT;
+
+		$this->assertFalse(isset($vEvent->DTSTART));
+		$this->assertSame('No Start', (string)$vEvent->SUMMARY);
 	}
 }
