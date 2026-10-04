@@ -11,6 +11,7 @@ namespace OCA\JMAPC\Service\Local;
 
 use DateInterval;
 use Datetime;
+use DateTimeImmutable;
 use DateTimeZone;
 use OC\Files\Node\LazyUserFolder;
 use OCA\DAV\CalDAV\EventReader;
@@ -394,6 +395,17 @@ class LocalEventsService {
 					$do->UUID = trim($vComponent->UID->getValue());
 				}
 				$do = $this->toEventInstanceObject($vComponent, $do);
+				// excluded occurrences
+				foreach ($vComponent->select('EXDATE') as $entry) {
+					$timeZone = isset($entry['TZID']) ? (string)$entry['TZID'] : null;
+					foreach ($entry->getDateTimes() as $exclusionId) {
+						$instance = new EventMutationObject();
+						$instance->mutationId = $exclusionId;
+						$instance->mutationTz = $timeZone;
+						$instance->mutationExclusion = true;
+						$do->OccurrenceMutations[$exclusionId->format('Y-m-d\TH:i:s')] = $instance;
+					}
+				}
 			}
 		}
 
@@ -682,15 +694,19 @@ class LocalEventsService {
 		}
 		// common properties
 		$this->fromEventInstanceObject($so, $vComponent);
+		$baseComponent = $vComponent;
 		// mutated instances
 		foreach ($so->OccurrenceMutations as $id => $mutation) {
-			// Exclusion Mutations
+			// Exclusion Mutations, excluded occurrences are listed on the base instance
 			if ($mutation->mutationExclusion === true) {
-				/** @var VEvent $vComponent */
-				$vComponent = $do->add('VEVENT');
-				$vComponent->add('EXDATE', $mutation->mutationId);
-				if ($mutation->mutationTz) {
-					$vComponent->{'EXDATE'}->add('TZID', $mutation->mutationTz);
+				if ($so->Timeless === true) {
+					$baseComponent->add('EXDATE', $mutation->mutationId->format('Ymd'), ['VALUE' => 'DATE']);
+				} else {
+					$exclusion = DateTimeImmutable::createFromInterface($mutation->mutationId);
+					if ($mutation->mutationTz) {
+						$exclusion = $exclusion->setTimezone(new DateTimeZone($mutation->mutationTz));
+					}
+					$baseComponent->add('EXDATE', $exclusion);
 				}
 				continue;
 			}

@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace OCA\JMAPC\Tests\Unit\Service\Local;
 
 use OCA\JMAPC\Objects\Event\EventAvailabilityTypes;
+use OCA\JMAPC\Objects\Event\EventMutationObject;
 use OCA\JMAPC\Objects\Event\EventObject;
 use OCA\JMAPC\Objects\Event\EventParticipantObject;
 use OCA\JMAPC\Objects\Event\EventTagCollection;
@@ -151,5 +152,53 @@ class LocalEventsServiceTest extends TestCase {
 
 		$this->assertSame(EventAvailabilityTypes::Free, $event->Availability);
 		$this->assertSame(EventAvailabilityTypes::Busy, $event->OccurrenceMutations['2026-11-25T13:00:00']->Availability);
+	}
+
+	public function testToEventObjectExclusions(): void {
+		$event = $this->eventsService->toEventObject(Reader::read(
+			"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:exclusion\r\n"
+			. "DTSTART;TZID=Europe/Berlin:20261103T090000\r\nRRULE:FREQ=WEEKLY;COUNT=5\r\n"
+			. "EXDATE;TZID=Europe/Berlin:20261110T090000,20261117T090000\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+		));
+
+		$this->assertCount(2, $event->OccurrenceMutations);
+		$exclusion = $event->OccurrenceMutations['2026-11-10T09:00:00'];
+		$this->assertTrue($exclusion->mutationExclusion);
+		$this->assertSame('Europe/Berlin', $exclusion->mutationTz);
+		$this->assertSame('2026-11-10T09:00:00+01:00', $exclusion->mutationId->format(DATE_ATOM));
+	}
+
+	public function testFromEventObjectExclusionsOnBaseEvent(): void {
+		$event = new EventObject();
+		$event->UUID = 'exclusion';
+		$event->StartsOn = new \DateTimeImmutable('2026-11-03T09:00:00', new \DateTimeZone('Europe/Berlin'));
+		$event->StartsTZ = new \DateTimeZone('Europe/Berlin');
+		$exclusion = new EventMutationObject();
+		$exclusion->mutationId = new \DateTimeImmutable('2026-11-10T08:00:00Z');
+		$exclusion->mutationTz = 'Europe/Berlin';
+		$exclusion->mutationExclusion = true;
+		$event->OccurrenceMutations['2026-11-10T09:00:00'] = $exclusion;
+
+		$calendar = $this->eventsService->fromEventObject($event);
+
+		$this->assertCount(1, $calendar->select('VEVENT'));
+		$this->assertSame('20261110T090000', (string)$calendar->VEVENT->EXDATE);
+		$this->assertSame('Europe/Berlin', (string)$calendar->VEVENT->EXDATE['TZID']);
+	}
+
+	public function testFromEventObjectAllDayExclusion(): void {
+		$event = new EventObject();
+		$event->UUID = 'exclusion';
+		$event->StartsOn = new \DateTimeImmutable('2027-06-10T00:00:00Z');
+		$event->Timeless = true;
+		$exclusion = new EventMutationObject();
+		$exclusion->mutationId = new \DateTimeImmutable('2028-06-10T00:00:00Z');
+		$exclusion->mutationExclusion = true;
+		$event->OccurrenceMutations['2028-06-10T00:00:00'] = $exclusion;
+
+		$vEvent = $this->eventsService->fromEventObject($event)->VEVENT;
+
+		$this->assertSame('DATE', (string)$vEvent->EXDATE['VALUE']);
+		$this->assertSame('20280610', (string)$vEvent->EXDATE);
 	}
 }
