@@ -60,7 +60,9 @@ class EventsFixturesTest extends TestCase {
 		$collection = new EventCollectionObject();
 		$collection->Label = 'Test Event Collection ' . time();
 		$collectionId = $this->eventsService->collectionCreate($collection);
-		$this->assertNotEmpty($collectionId);
+		// ids are strings and "0" is a valid id, so assertNotEmpty() does not fit
+		$this->assertNotNull($collectionId);
+		$this->assertNotSame('', $collectionId);
 
 		$warnings = [];
 		$expected = EventFixtures::event($name, $warnings);
@@ -68,7 +70,8 @@ class EventsFixturesTest extends TestCase {
 
 		$actual = EventFixtures::attempt(function () use ($collectionId, $expected) {
 			$created = $this->eventsService->entityCreate($collectionId, $expected);
-			$this->assertNotEmpty($created?->ID);
+			$this->assertNotNull($created?->ID);
+			$this->assertNotSame('', $created->ID);
 			return $this->eventsService->entityFetch($collectionId, $created->ID);
 		}, $warnings, $error);
 

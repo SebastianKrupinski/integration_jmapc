@@ -60,7 +60,9 @@ class ContactsFixturesTest extends TestCase {
 		$collection = new ContactCollectionObject();
 		$collection->Label = 'Test Contact Collection ' . time();
 		$collectionId = $this->contactsService->collectionCreate($collection);
-		$this->assertNotEmpty($collectionId);
+		// ids are strings and "0" is a valid id, so assertNotEmpty() does not fit
+		$this->assertNotNull($collectionId);
+		$this->assertNotSame('', $collectionId);
 
 		$warnings = [];
 		$expected = ContactFixtures::contact($name, $warnings);
@@ -68,7 +70,8 @@ class ContactsFixturesTest extends TestCase {
 
 		$actual = ContactFixtures::capture(function () use ($collectionId, $expected) {
 			$created = $this->contactsService->entityCreate($collectionId, $expected);
-			$this->assertNotEmpty($created?->ID);
+			$this->assertNotNull($created?->ID);
+			$this->assertNotSame('', $created->ID);
 			return $this->contactsService->entityFetch($collectionId, $created->ID);
 		}, $warnings);
 		$this->assertNotNull($actual);
