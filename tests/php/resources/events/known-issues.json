@@ -1,10 +1,7 @@
 {
 	"alarms": {
 		"icalendar": {},
-		"jmap": {
-			"/Notifications/alarm-1/Id": "alarm ids are not read back",
-			"/Notifications/alarm-2/Id": "alarm ids are not read back"
-		},
+		"jmap": {},
 		"server": {}
 	},
 	"all-day": {

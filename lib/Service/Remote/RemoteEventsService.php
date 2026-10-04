@@ -1025,6 +1025,7 @@ class RemoteEventsService {
 		foreach ($so->notifications() as $id => $entry) {
 			$trigger = $entry->trigger();
 			$entity = new EventNotificationObject();
+			$entity->Id = (string)$id;
 			$entity->Type = match (strtolower($entry->action() ?? 'display')) {
 				'email' => EventNotificationTypes::Email,
 				'audio' => EventNotificationTypes::Audible,

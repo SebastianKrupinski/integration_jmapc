@@ -179,4 +179,15 @@ class RemoteEventsServiceTest extends TestCase {
 		$this->assertSame(EventParticipantStatusTypes::Tentative, $participant->Status);
 		$this->assertSame([EventParticipantRoleTypes::Attendee, EventParticipantRoleTypes::Optional], iterator_to_array($participant->Roles));
 	}
+
+	public function testToEventObjectNotificationId(): void {
+		$event = $this->eventsService->toEventObject(new EventParametersResponse([
+			'calendarIds' => ['calendar-1' => true],
+			'alerts' => [
+				'alarm-1' => ['@type' => 'Alert', 'action' => 'display', 'trigger' => ['@type' => 'OffsetTrigger', 'offset' => '-PT15M', 'relativeTo' => 'start']],
+			],
+		]));
+
+		$this->assertSame('alarm-1', $event->Notifications['alarm-1']->Id);
+	}
 }
