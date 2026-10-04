@@ -407,7 +407,7 @@ class LocalContactsService {
 				$entity->Id = $parameters['X-ID']->getValue();
 				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
 				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
-				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeType(($parameters['TYPE'] ?? null)?->getValue());
 				$entity->Language = $this->sanitizeString(($parameters['LANGUAGE'] ?? null)?->getValue());
 				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
 				$do->Name->Aliases[$entity->Id] = $entity;
@@ -421,10 +421,10 @@ class LocalContactsService {
 			$do->Anniversaries[ContactAnniversaryTypes::Birth->value] = $entity;
 		}
 		// death day
-		if (isset($so->DEATHDAY)) {
+		if (isset($so->DEATHDATE)) {
 			$entity = new ContactAnniversaryObject();
 			$entity->Type = ContactAnniversaryTypes::Death;
-			$entity->When = $so->DEATHDAY->getDatetime();
+			$entity->When = $so->DEATHDATE->getDateTime();
 			$do->Anniversaries[ContactAnniversaryTypes::Death->value] = $entity;
 		}
 		// nuptial day
@@ -436,15 +436,17 @@ class LocalContactsService {
 		}
 		// birth place
 		if (isset($so->BIRTHPLACE)) {
-			if (isset($do->Anniversaries[ContactAnniversaryTypes::Birth->value])) {
+			if (!isset($do->Anniversaries[ContactAnniversaryTypes::Birth->value])) {
 				$do->Anniversaries[ContactAnniversaryTypes::Birth->value] = new ContactAnniversaryObject();
+				$do->Anniversaries[ContactAnniversaryTypes::Birth->value]->Type = ContactAnniversaryTypes::Birth;
 			}
 			$do->Anniversaries[ContactAnniversaryTypes::Birth->value]->Location = $this->sanitizeString($so->BIRTHPLACE->getValue());
 		}
 		// death place
 		if (isset($so->DEATHPLACE)) {
-			if (isset($do->Anniversaries[ContactAnniversaryTypes::Death->value])) {
+			if (!isset($do->Anniversaries[ContactAnniversaryTypes::Death->value])) {
 				$do->Anniversaries[ContactAnniversaryTypes::Death->value] = new ContactAnniversaryObject();
+				$do->Anniversaries[ContactAnniversaryTypes::Death->value]->Type = ContactAnniversaryTypes::Death;
 			}
 			$do->Anniversaries[ContactAnniversaryTypes::Death->value]->Location = $this->sanitizeString($so->DEATHPLACE->getValue());
 		}
@@ -457,7 +459,7 @@ class LocalContactsService {
 				$entity->Id = $parameters['X-ID']->getValue();
 				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
 				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
-				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeType(($parameters['TYPE'] ?? null)?->getValue());
 				$entity->Language = $this->sanitizeString(($parameters['LANGUAGE'] ?? null)?->getValue());
 				$do->Pronouns[$entity->Id] = $entity;
 			}
@@ -471,7 +473,7 @@ class LocalContactsService {
 				$entity->Id = $parameters['X-ID']->getValue();
 				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
 				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
-				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeType(($parameters['TYPE'] ?? null)?->getValue());
 				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
 				$do->Phone[$entity->Id] = $entity;
 				unset($primary, $secondary);
@@ -486,7 +488,7 @@ class LocalContactsService {
 				$entity->Id = $parameters['X-ID']->getValue();
 				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
 				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
-				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeType(($parameters['TYPE'] ?? null)?->getValue());
 				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
 				$do->Email[$entity->Id] = $entity;
 			}
@@ -510,7 +512,7 @@ class LocalContactsService {
 				$entity->Id = $parameters['X-ID']->getValue();
 				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
 				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
-				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeType(($parameters['TYPE'] ?? null)?->getValue());
 				$entity->Language = $this->sanitizeString(($parameters['LANGUAGE'] ?? null)?->getValue());
 				$do->PhysicalLocations[$entity->Id] = $entity;
 				unset($type, $pob, $unit, $street, $locality, $region, $code, $country);
@@ -521,19 +523,19 @@ class LocalContactsService {
 			foreach ($so->ORG as $entry) {
 				$parameters = $entry->parameters();
 				$entity = new ContactOrganizationObject();
-				$entity->Label = $this->sanitizeString($entry->getValue());
 				$parts = $entry->getParts();
-				if (isset($parts[1])) {
-					$entity->Units[1] = $this->sanitizeString($parts[1]);
-				}
-				if (isset($parts[2])) {
-					$entity->Units[2] = $this->sanitizeString($parts[2]);
+				$entity->Label = $this->sanitizeString($parts[0] ?? null);
+				foreach (array_slice($parts, 1) as $unit) {
+					$unit = $this->sanitizeString($unit);
+					if ($unit !== null) {
+						$entity->Units[] = $unit;
+					}
 				}
 				$entity->SortName = $this->sanitizeString(($parameters['SORT-AS'] ?? null)?->getValue());
 				$entity->Id = $parameters['X-ID']->getValue();
 				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
 				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
-				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeType(($parameters['TYPE'] ?? null)?->getValue());
 				$entity->Language = $this->sanitizeString(($parameters['LANGUAGE'] ?? null)?->getValue());
 				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
 				$do->Organizations[$entity->Id] = $entity;
@@ -550,7 +552,7 @@ class LocalContactsService {
 				$entity->Id = $parameters['X-ID']->getValue();
 				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
 				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
-				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeType(($parameters['TYPE'] ?? null)?->getValue());
 				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
 				$do->Titles[$entity->Id] = $entity;
 			}
@@ -566,7 +568,7 @@ class LocalContactsService {
 				$entity->Id = $parameters['X-ID']->getValue();
 				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
 				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
-				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeType(($parameters['TYPE'] ?? null)?->getValue());
 				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
 				$do->Titles[$entity->Id] = $entity;
 			}
@@ -587,7 +589,7 @@ class LocalContactsService {
 				$entity->Id = $parameters['X-ID']->getValue();
 				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
 				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
-				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeType(($parameters['TYPE'] ?? null)?->getValue());
 				$entity->Language = $this->sanitizeString(($parameters['LANGUAGE'] ?? null)?->getValue());
 				$entity->URI = $this->sanitizeString(($parameters['VALUE'] ?? null)?->getValue());
 				$do->Notes[$entity->Id] = $entity;
@@ -603,7 +605,7 @@ class LocalContactsService {
 				$entity->Id = $parameters['X-ID']->getValue();
 				$entity->Index = (int)$this->sanitizeNumeric(($parameters['INDEX'] ?? null)?->getValue());
 				$entity->Priority = (int)$this->sanitizeNumeric(($parameters['PREF'] ?? null)?->getValue());
-				$entity->Context = $this->sanitizeString(($parameters['TYPE'] ?? null)?->getValue());
+				$entity->Context = $this->sanitizeType(($parameters['TYPE'] ?? null)?->getValue());
 				$do->Crypto[$entity->Id] = $entity;
 			}
 		}
@@ -723,19 +725,25 @@ class LocalContactsService {
 		foreach ($so->Anniversaries as $entry) {
 			switch ($entry->Type) {
 				case ContactAnniversaryTypes::Birth:
-					$do->add('BDAY', $entry->When);
+					if ($entry->When !== null) {
+						$do->add('BDAY', $entry->When);
+					}
 					if ($entry->Location !== null) {
 						$do->add('BIRTHPLACE', $entry->Location);
 					}
 					break;
 				case ContactAnniversaryTypes::Death:
-					$do->add('DEATHDAY', $entry->When);
+					if ($entry->When !== null) {
+						$do->add('DEATHDATE', $entry->When);
+					}
 					if ($entry->Location !== null) {
 						$do->add('DEATHPLACE', $entry->Location);
 					}
 					break;
 				case ContactAnniversaryTypes::Nuptial:
-					$do->add('ANNIVERSARY', $entry->When);
+					if ($entry->When !== null) {
+						$do->add('ANNIVERSARY', $entry->When);
+					}
 					break;
 			}
 		}
@@ -879,14 +887,11 @@ class LocalContactsService {
 		// organization(s)
 		foreach ($so->Organizations as $index => $entry) {
 			/** @var \Sabre\VObject\Property $property */
-			$property = $do->add(
-				'ORG',
-				$entry->Label,
-				[
-					$entry->Units[0] ? $entry->Units[0] : null,
-					$entry->Units[1] ? $entry->Units[1] : null
-				]
-			);
+			$parts = [$entry->Label ?? ''];
+			foreach ($entry->Units as $unit) {
+				$parts[] = $unit;
+			}
+			$property = $do->add('ORG', $parts);
 			if ($entry->SortName !== null) {
 				$property->add('SORT-AS', $entry->SortName);
 			}
@@ -934,11 +939,18 @@ class LocalContactsService {
 			if ($entry->Context !== null) {
 				$property->add('TYPE', $entry->Context);
 			}
-			if ($entry->Language !== null) {
-				$property->add('LANGUAGE', $entry->Language);
-			}
 		}
 		unset($index, $entry, $property);
+		// tag(s)
+		$tags = [];
+		foreach ($so->Tags as $tag) {
+			if ($tag !== '') {
+				$tags[] = $tag;
+			}
+		}
+		if ($tags !== []) {
+			$do->add('CATEGORIES', $tags);
+		}
 		// crypto
 		foreach ($so->Crypto as $index => $entry) {
 			/** @var \Sabre\VObject\Property $property */
@@ -1016,6 +1028,14 @@ class LocalContactsService {
 
 	public function sanitizeString(?string $value): ?string {
 		return $value === null || $value === '' ? null : trim($value);
+	}
+
+	/**
+	 * vCard TYPE values are case-insensitive, they are kept in lower case
+	 */
+	public function sanitizeType(?string $value): ?string {
+		$value = $this->sanitizeString($value);
+		return $value !== null ? strtolower($value) : null;
 	}
 
 	public function sanitizeNumeric(?string $value): ?string {

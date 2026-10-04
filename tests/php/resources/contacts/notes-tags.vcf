@@ -1,0 +1,9 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:7d4b1a3e-0c1f-4c47-9c5e-1b0e2f3a4b07
+FN:Diana Prince
+N:Prince;Diana;;;
+NICKNAME;X-ID=nickname-1:Di
+CATEGORIES:Friends,Book Club
+NOTE;X-ID=note-1:Met at the conference.\nPrefers email over phone.
+END:VCARD

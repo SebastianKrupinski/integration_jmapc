@@ -30,6 +30,7 @@ use OCA\JMAPC\Exceptions\JmapUnknownMethod;
 use OCA\JMAPC\Objects\BaseStringCollection;
 use OCA\JMAPC\Objects\Contact\ContactAliasObject;
 use OCA\JMAPC\Objects\Contact\ContactAnniversaryObject;
+use OCA\JMAPC\Objects\Contact\ContactAnniversaryTypes;
 use OCA\JMAPC\Objects\Contact\ContactCollectionObject;
 use OCA\JMAPC\Objects\Contact\ContactCryptoObject;
 use OCA\JMAPC\Objects\Contact\ContactEmailObject;
@@ -64,6 +65,25 @@ class RemoteContactsService {
 	protected array $entityPropertiesDefault = [];
 	protected array $entityPropertiesBasic = [
 		'id', 'addressbookId', 'uid'
+	];
+
+	/** vCard TYPE value => JSContact context */
+	private const JMAP_CONTEXTS = [
+		'home' => 'private',
+		'work' => 'work',
+		'billing' => 'billing',
+		'delivery' => 'delivery',
+	];
+	/** vCard TEL TYPE value => JSContact phone feature */
+	private const JMAP_PHONE_FEATURES = [
+		'cell' => 'mobile',
+		'voice' => 'voice',
+		'fax' => 'fax',
+		'pager' => 'pager',
+		'text' => 'text',
+		'video' => 'video',
+		'textphone' => 'textphone',
+		'main-number' => 'main-number',
 	];
 
 	public function __construct() {
@@ -786,9 +806,14 @@ class RemoteContactsService {
 		if ($so->kind() !== null) {
 			$do->Kind = $so->kind();
 		}
+		// language
+		if ($so->language() !== null) {
+			$do->Language = $so->language();
+		}
 		// name
 		if ($so->name() !== null) {
 			$nameParams = $so->name();
+			$do->Label = $nameParams->full();
 			foreach ($nameParams->components() as $component) {
 				$kind = $component->kind();
 				$value = $component->value();
@@ -796,11 +821,11 @@ class RemoteContactsService {
 					$do->Name->Last = $value;
 				} elseif ($kind === 'given') {
 					$do->Name->First = $value;
-				} elseif ($kind === 'additional') {
+				} elseif ($kind === 'given2') {
 					$do->Name->Other = $value;
-				} elseif ($kind === 'prefix') {
+				} elseif ($kind === 'title') {
 					$do->Name->Prefix = $value;
-				} elseif ($kind === 'suffix') {
+				} elseif ($kind === 'credential') {
 					$do->Name->Suffix = $value;
 				}
 			}
@@ -824,6 +849,13 @@ class RemoteContactsService {
 						$entity->When = $dateParams->value();
 					}
 				}
+				$entity->Type = match ($entry->kind()) {
+					'birth' => ContactAnniversaryTypes::Birth,
+					'death' => ContactAnniversaryTypes::Death,
+					'wedding' => ContactAnniversaryTypes::Nuptial,
+					default => null,
+				};
+				$entity->Location = $entry->place()?->full();
 				$do->Anniversaries[$id] = $entity;
 			}
 		}
@@ -834,7 +866,7 @@ class RemoteContactsService {
 				$entity->Id = (string)$id;
 				$entity->Address = $entry->address();
 				$entity->Priority = $entry->priority();
-				$entity->Context = !empty($entry->context()) ? $entry->context()[0] : null;
+				$entity->Context = $this->toContext($entry->context());
 				$do->Email[$id] = $entity;
 			}
 		}
@@ -844,9 +876,13 @@ class RemoteContactsService {
 				$entity = new ContactPhoneObject();
 				$entity->Id = (string)$id;
 				$entity->Number = $entry->number();
+				// a phone number is either free text or a tel: URI
+				if ($entity->Number !== null && str_starts_with(strtolower($entity->Number), 'tel:')) {
+					$entity->URI = 'uri';
+				}
 				$entity->Label = $entry->label();
 				$entity->Priority = $entry->priority();
-				$entity->Context = !empty($entry->context()) ? $entry->context()[0] : null;
+				$entity->Context = $this->toContext($entry->context(), $entry->features());
 				$do->Phone[$id] = $entity;
 			}
 		}
@@ -855,26 +891,28 @@ class RemoteContactsService {
 			foreach ($so->addresses() as $id => $entry) {
 				$entity = new ContactPhysicalLocationObject();
 				$entity->Id = (string)$id;
+				$entity->Label = $entry->full();
 				$entity->Coordinates = $entry->coordinates();
 				if ($entry->timeZone() !== null) {
 					$entity->TimeZone = $entry->timeZone()->getName();
 				}
 				$entity->Country = $entry->country();
+				$entity->Context = $this->toContext($entry->context());
 				// parse components
 				foreach ($entry->components() as $component) {
 					$kind = $component->kind();
 					$value = $component->value();
-					if ($kind === 'pobox') {
+					if ($kind === 'postOfficeBox') {
 						$entity->Box = $value;
-					} elseif ($kind === 'unit') {
+					} elseif ($kind === 'apartment') {
 						$entity->Unit = $value;
-					} elseif ($kind === 'street') {
+					} elseif ($kind === 'name') {
 						$entity->Street = $value;
 					} elseif ($kind === 'locality') {
 						$entity->Locality = $value;
 					} elseif ($kind === 'region') {
 						$entity->Region = $value;
-					} elseif ($kind === 'code') {
+					} elseif ($kind === 'postcode') {
 						$entity->Code = $value;
 					} elseif ($kind === 'country') {
 						$entity->Country = $value;
@@ -968,16 +1006,23 @@ class RemoteContactsService {
 		if ($so->Kind !== null) {
 			$to->kind($so->Kind);
 		}
+		// language
+		if ($so->Language !== null) {
+			$to->language($so->Language);
+		}
 		// name
 		if ($so->Name !== null) {
 			$nameParams = $to->name();
+			if ($so->Label !== null) {
+				$nameParams->full($so->Label);
+			}
 			if ($so->Name->First !== null || $so->Name->Last !== null
 				|| $so->Name->Other !== null || $so->Name->Prefix !== null
 				|| $so->Name->Suffix !== null) {
 				// Build name components
 				if ($so->Name->Prefix !== null) {
 					$component = $nameParams->components();
-					$component->kind('prefix');
+					$component->kind('title');
 					$component->value($so->Name->Prefix);
 				}
 				if ($so->Name->First !== null) {
@@ -987,7 +1032,7 @@ class RemoteContactsService {
 				}
 				if ($so->Name->Other !== null) {
 					$component = $nameParams->components();
-					$component->kind('additional');
+					$component->kind('given2');
 					$component->value($so->Name->Other);
 				}
 				if ($so->Name->Last !== null) {
@@ -997,7 +1042,7 @@ class RemoteContactsService {
 				}
 				if ($so->Name->Suffix !== null) {
 					$component = $nameParams->components();
-					$component->kind('suffix');
+					$component->kind('credential');
 					$component->value($so->Name->Suffix);
 				}
 			}
@@ -1015,6 +1060,16 @@ class RemoteContactsService {
 			if ($entry->When !== null) {
 				$annivParams->dateStamp()->value($entry->When);
 			}
+			if ($entry->Type !== null) {
+				$annivParams->kind(match ($entry->Type) {
+					ContactAnniversaryTypes::Birth => 'birth',
+					ContactAnniversaryTypes::Death => 'death',
+					ContactAnniversaryTypes::Nuptial => 'wedding',
+				});
+			}
+			if ($entry->Location !== null) {
+				$annivParams->place()->full($entry->Location);
+			}
 		}
 		// emails
 		foreach ($so->Email ?? [] as $id => $entry) {
@@ -1025,8 +1080,9 @@ class RemoteContactsService {
 			if ($entry->Priority !== null) {
 				$emailParams->priority($entry->Priority);
 			}
-			if ($entry->Context !== null) {
-				$emailParams->context($entry->Context);
+			$contexts = $this->fromContext($entry->Context, self::JMAP_CONTEXTS);
+			if ($contexts !== []) {
+				$emailParams->context(...$contexts);
 			}
 		}
 		// phones
@@ -1041,30 +1097,38 @@ class RemoteContactsService {
 			if ($entry->Priority !== null) {
 				$phoneParams->priority($entry->Priority);
 			}
-			if ($entry->Context !== null) {
-				$phoneParams->context($entry->Context);
+			$contexts = $this->fromContext($entry->Context, self::JMAP_CONTEXTS);
+			if ($contexts !== []) {
+				$phoneParams->context(...$contexts);
+			}
+			$features = $this->fromContext($entry->Context, self::JMAP_PHONE_FEATURES);
+			if ($features !== []) {
+				$phoneParams->features(...$features);
 			}
 		}
 		// addresses
 		foreach ($so->PhysicalLocations ?? [] as $id => $entry) {
 			$addressParams = $to->addresses((string)$id);
+			if ($entry->Label !== null) {
+				$addressParams->full($entry->Label);
+			}
 			if ($entry->Box !== null || $entry->Unit !== null || $entry->Street !== null
 				|| $entry->Locality !== null || $entry->Region !== null || $entry->Code !== null
 				|| $entry->Country !== null) {
 				// Build address components
 				if ($entry->Box !== null) {
 					$component = $addressParams->components();
-					$component->kind('pobox');
+					$component->kind('postOfficeBox');
 					$component->value($entry->Box);
 				}
 				if ($entry->Unit !== null) {
 					$component = $addressParams->components();
-					$component->kind('unit');
+					$component->kind('apartment');
 					$component->value($entry->Unit);
 				}
 				if ($entry->Street !== null) {
 					$component = $addressParams->components();
-					$component->kind('street');
+					$component->kind('name');
 					$component->value($entry->Street);
 				}
 				if ($entry->Locality !== null) {
@@ -1079,7 +1143,7 @@ class RemoteContactsService {
 				}
 				if ($entry->Code !== null) {
 					$component = $addressParams->components();
-					$component->kind('code');
+					$component->kind('postcode');
 					$component->value($entry->Code);
 				}
 				if ($entry->Country !== null) {
@@ -1096,6 +1160,10 @@ class RemoteContactsService {
 				if (preg_match('/geo:([-\d.]+),([-\d.]+)/', $entry->Coordinates, $matches)) {
 					$addressParams->coordinates((float)$matches[1], (float)$matches[2]);
 				}
+			}
+			$contexts = $this->fromContext($entry->Context, self::JMAP_CONTEXTS);
+			if ($contexts !== []) {
+				$addressParams->context(...$contexts);
 			}
 			if ($entry->TimeZone !== null) {
 				try {
@@ -1136,16 +1204,14 @@ class RemoteContactsService {
 			}
 		}
 		// tags
-		if (!empty($so->Tags)) {
-			$tags = [];
-			foreach ($so->Tags as $tag) {
-				if ($tag->Value !== null) {
-					$tags[] = $tag->Value;
-				}
+		$tags = [];
+		foreach ($so->Tags as $tag) {
+			if ($tag !== '') {
+				$tags[] = $tag;
 			}
-			if (!empty($tags)) {
-				$to->tags(...$tags);
-			}
+		}
+		if ($tags !== []) {
+			$to->tags(...$tags);
 		}
 		// notes
 		foreach ($so->Notes ?? [] as $id => $entry) {
@@ -1169,6 +1235,46 @@ class RemoteContactsService {
 		}
 
 		return $to;
+	}
+
+	/**
+	 * Converts a comma separated vCard TYPE value to the JSContact values of $map,
+	 * types missing from $map have no JSContact equivalent and are left out
+	 *
+	 * @param array<string, string> $map vCard type => JSContact value
+	 * @return list<string>
+	 */
+	private function fromContext(?string $types, array $map): array {
+		if ($types === null) {
+			return [];
+		}
+		$values = [];
+		foreach (explode(',', $types) as $type) {
+			$type = strtolower(trim($type));
+			if (isset($map[$type])) {
+				$values[] = $map[$type];
+			}
+		}
+		return array_values(array_unique($values));
+	}
+
+	/**
+	 * Converts JSContact contexts and phone features to a comma separated vCard TYPE value
+	 *
+	 * @param list<string> $contexts
+	 * @param list<string> $features
+	 */
+	private function toContext(array $contexts, array $features = []): ?string {
+		$types = [];
+		foreach ($contexts as $context) {
+			$type = array_search($context, self::JMAP_CONTEXTS, true);
+			$types[] = $type !== false ? $type : $context;
+		}
+		foreach ($features as $feature) {
+			$type = array_search($feature, self::JMAP_PHONE_FEATURES, true);
+			$types[] = $type !== false ? $type : $feature;
+		}
+		return $types !== [] ? implode(',', $types) : null;
 	}
 
 	public function generateSignature(ContactObject $eo): string {

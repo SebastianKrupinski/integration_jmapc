@@ -1,0 +1,18 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:7d4b1a3e-0c1f-4c47-9c5e-1b0e2f3a4b10
+FN:Michael Anderson
+N:Anderson;Michael;James;Mr.;
+NICKNAME;X-ID=nickname-1:Mike
+EMAIL;X-ID=email-1;TYPE=work;PREF=1:michael.anderson@example.com
+EMAIL;X-ID=email-2;TYPE=home;PREF=2:mike@example.org
+TEL;X-ID=tel-1;VALUE=uri;TYPE=cell;PREF=1:tel:+1-555-0200
+TEL;X-ID=tel-2;VALUE=uri;TYPE=work,voice:tel:+1-555-0201
+ORG;X-ID=org-1:Tech Solutions Inc.;Product Management
+TITLE;X-ID=title-1:Director of Product
+ADR;X-ID=adr-1;TYPE=work:;;789 Technology Blvd;San Francisco;CA;94105;USA
+BDAY:19800722
+ANNIVERSARY:20080915
+CATEGORIES:Work,VIP
+NOTE;X-ID=note-1:Key stakeholder for product roadmap decisions.
+END:VCARD

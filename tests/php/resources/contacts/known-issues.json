@@ -1,0 +1,58 @@
+{
+	"address": {
+		"vcard": {},
+		"jmap": {},
+		"server": {}
+	},
+	"anniversaries": {
+		"vcard": {},
+		"jmap": {},
+		"server": {}
+	},
+	"basic": {
+		"vcard": {},
+		"jmap": {},
+		"server": {}
+	},
+	"basic-vcard3": {
+		"vcard": {},
+		"jmap": {},
+		"server": {}
+	},
+	"complete": {
+		"vcard": {},
+		"jmap": {},
+		"server": {}
+	},
+	"email-phone": {
+		"vcard": {},
+		"jmap": {},
+		"server": {}
+	},
+	"name-full": {
+		"vcard": {},
+		"jmap": {
+			"/TimeZone": "the time zone is not sent"
+		},
+		"server": {
+			"/TimeZone": "the time zone is not sent"
+		}
+	},
+	"notes-tags": {
+		"vcard": {},
+		"jmap": {},
+		"server": {}
+	},
+	"organization": {
+		"vcard": {},
+		"jmap": {},
+		"server": {
+			"/Titles/role-1/Relation": "the server links titles to the only organization"
+		}
+	},
+	"unicode": {
+		"vcard": {},
+		"jmap": {},
+		"server": {}
+	}
+}
