@@ -59,7 +59,6 @@
 	"recurring-exclusion": {
 		"icalendar": {},
 		"jmap": {
-			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}
@@ -67,7 +66,6 @@
 	"recurring-monthly": {
 		"icalendar": {},
 		"jmap": {
-			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}
@@ -78,7 +76,6 @@
 		},
 		"jmap": {
 			"/OccurrenceMutations/2026-11-11T09:00:00/mutationTz": "the mutation time zone is filled in from the event time zone",
-			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}
@@ -93,8 +90,6 @@
 	"recurring-yearly": {
 		"icalendar": {},
 		"jmap": {
-			"/OccurrencePattern/Interval": "the recurrence interval is read back as 1 when it was not set",
-			"/OccurrencePattern/OnMonthOfYear": "recurrence months of the year are lost",
 			"/OccurrencePattern/Pattern": "the recurrence pattern type is filled in when reading"
 		},
 		"server": {}

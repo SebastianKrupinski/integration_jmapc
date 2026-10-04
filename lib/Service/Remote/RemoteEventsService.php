@@ -866,6 +866,7 @@ class RemoteEventsService {
 				}
 				// nth month of year
 				elseif ($soRule->byMonthOfYear() !== []) {
+					$doRule->OnMonthOfYear = $soRule->byMonthOfYear();
 					if ($soRule->byDayOfMonth() !== []) {
 						$doRule->Pattern = EventOccurrencePatternTypes::Absolute;
 						$doRule->OnDayOfMonth = $soRule->byDayOfMonth();

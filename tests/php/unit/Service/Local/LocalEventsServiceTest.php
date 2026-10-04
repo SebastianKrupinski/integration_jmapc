@@ -76,4 +76,13 @@ class LocalEventsServiceTest extends TestCase {
 		$this->assertSame(0, $event->Sequence);
 		$this->assertSame(3, $event->OccurrenceMutations['2026-11-28T10:00:00']->Sequence);
 	}
+
+	public function testToEventObjectIntervalDefault(): void {
+		$event = $this->eventsService->toEventObject(Reader::read(
+			"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:interval\r\nDTSTART:20261102T083000Z\r\n"
+			. "RRULE:FREQ=DAILY;COUNT=10\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+		));
+
+		$this->assertSame(1, $event->OccurrencePattern->Interval);
+	}
 }

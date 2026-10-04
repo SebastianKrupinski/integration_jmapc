@@ -575,8 +575,11 @@ class LocalEventsService {
 					'SECONDLY' => EventOccurrencePrecisionTypes::Secondly,
 				};
 			}
+			// interval, 1 when missing (RFC 5545 3.3.10)
 			if (isset($parts['INTERVAL'])) {
 				$entity->Interval = (int)$parts['INTERVAL'];
+			} else {
+				$entity->Interval = 1;
 			}
 			if (isset($parts['COUNT'])) {
 				$entity->Iterations = (int)$parts['COUNT'];
