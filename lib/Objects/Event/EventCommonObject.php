@@ -35,7 +35,6 @@ class EventCommonObject {
 	public ?int $Priority = null;
 	public ?EventSensitivityTypes $Sensitivity = null;
 	public ?string $Color = null;
-	public EventTagCollection $Categories;
 	public EventTagCollection $Tags;
 	public EventOrganizerObject $Organizer;
 	public EventParticipantCollection $Participants;

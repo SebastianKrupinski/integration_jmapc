@@ -978,13 +978,9 @@ class RemoteEventsService {
 		if ($so->color() !== null) {
 			$do->Color = $so->color();
 		}
-		// categories(s)
-		foreach ($so->categories() as $id => $entry) {
-			$do->Categories[] = $entry;
-		}
-		// tag(s)
-		foreach ($so->tags() as $id => $entry) {
-			$do->Tags[] = $entry;
+		// tag(s), a map of keyword => true
+		foreach (array_keys($so->tags()) as $tag) {
+			$do->Tags[] = (string)$tag;
 		}
 		// Organizer - Address and Name
 		if ($so->sender() !== null) {

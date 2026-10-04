@@ -118,4 +118,13 @@ class RemoteEventsServiceTest extends TestCase {
 		$this->assertCount(1, $event->OccurrenceMutations);
 		$this->assertNull($event->OccurrenceMutations['2026-11-11T09:00:00']->mutationTz);
 	}
+
+	public function testToEventObjectTags(): void {
+		$event = $this->eventsService->toEventObject(new EventParametersResponse(json_decode(
+			'{"calendarIds":{"calendar-1":true},"keywords":{"Finance":true,"2026":true}}',
+			true
+		)));
+
+		$this->assertSame(['Finance', '2026'], iterator_to_array($event->Tags));
+	}
 }

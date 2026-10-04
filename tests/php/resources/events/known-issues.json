@@ -37,7 +37,8 @@
 			"/Tags": "CATEGORIES are written as one comma joined value"
 		},
 		"jmap": {
-			"/@error": "reading tags back fails, the keyword map is turned into a collection with a null key"
+			"/Duration": "JSCalendar stores the end as a duration, the event comes back with a Duration",
+			"/Sequence": "the sequence is read back as 0 when the event has none"
 		},
 		"server": {}
 	},
