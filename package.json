@@ -14,7 +14,9 @@
 		"lint": "eslint --ext .js,.ts,.vue src",
 		"lint:fix": "eslint --ext .js,.ts,.vue src --fix",
 		"stylelint": "stylelint src/**/*.scss src/**/*.vue src/**/*.vue",
-		"stylelint:fix": "stylelint src/**/*.scss src/**/*.vue --fix"
+		"stylelint:fix": "stylelint src/**/*.scss src/**/*.vue --fix",
+		"changelog": "conventional-changelog -p angular -n changelog.config.js -i CHANGELOG.md -s",
+		"changelog:full": "conventional-changelog -p angular -n changelog.config.js -i CHANGELOG.md -s -r 0"
 	},
 	"browserslist": [
 		"extends @nextcloud/browserslist-config"
@@ -44,6 +46,7 @@
 		"@rspack/plugin-node-polyfill": "^0.5.8",
 		"@vue/tsconfig": "^0.8.1",
 		"browserslist": "^4.28.8",
+		"conventional-changelog-cli": "^5.0.0",
 		"css-loader": "^7.1.5",
 		"sass": "^1.93.2",
 		"sass-loader": "^17.0.1",
